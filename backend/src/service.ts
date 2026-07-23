@@ -1,6 +1,6 @@
 import { and, cosineDistance, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "./db/client.js";
-import { codeAnchors, nodes, projects, users } from "./db/schema.js";
+import { codeAnchors, nodes, pendingActions, projects, users } from "./db/schema.js";
 import { embed } from "./gemini.js";
 
 // Business logic lives here once; MCP tools and REST endpoints are thin
@@ -29,6 +29,18 @@ const MAX_CONTENT_LENGTH = 4000;
 const NODE_TYPES = ["session_summary", "decision", "note"] as const;
 const CHANNELS = ["coder", "app_chat", "app_form"] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function validateContent(raw: string): string {
+  const content = raw?.trim() ?? "";
+  if (!content) throw new ServiceError("validation", "content must not be empty");
+  if (content.length > MAX_CONTENT_LENGTH) {
+    throw new ServiceError(
+      "validation",
+      `content has ${content.length} chars, max is ${MAX_CONTENT_LENGTH}; split it into single thoughts`,
+    );
+  }
+  return content;
+}
 
 function assertUuid(value: string, field: string) {
   if (!UUID_RE.test(value)) {
@@ -76,14 +88,7 @@ export async function createNode(input: {
   if (!NODE_TYPES.includes(input.type)) {
     throw new ServiceError("validation", `type must be one of: ${NODE_TYPES.join(", ")}`);
   }
-  const content = input.content?.trim() ?? "";
-  if (!content) throw new ServiceError("validation", "content must not be empty");
-  if (content.length > MAX_CONTENT_LENGTH) {
-    throw new ServiceError(
-      "validation",
-      `content has ${content.length} chars, max is ${MAX_CONTENT_LENGTH}; split it into single thoughts`,
-    );
-  }
+  const content = validateContent(input.content);
   if (!input.source?.session_id) {
     throw new ServiceError("validation", "source.session_id is required");
   }
@@ -260,4 +265,180 @@ export async function getBootContext(input: { userId: string; repoRef: string })
     },
     last_summary: lastSummary ?? null,
   };
+}
+
+// --- Node lifecycle (plan section 4) ---
+
+export type RequestedBy = "coder" | "app_agent";
+type UpdatePayload = { content?: string; anchors?: Anchor[] };
+
+async function getOwnedNode(userId: string, nodeId: string) {
+  assertUuid(userId, "userId");
+  assertUuid(nodeId, "nodeId");
+  const [node] = await db
+    .select({ id: nodes.id })
+    .from(nodes)
+    .where(and(eq(nodes.id, nodeId), eq(nodes.userId, userId)));
+  if (!node) throw new ServiceError("not_found", "node not found for this user");
+  return node;
+}
+
+async function hasAllPermission(userId: string): Promise<boolean> {
+  const [user] = await db
+    .select({ allPermission: users.allPermission })
+    .from(users)
+    .where(eq(users.id, userId));
+  if (!user) throw new ServiceError("not_found", "user not found");
+  return user.allPermission;
+}
+
+// Applies an update to a node's content and/or anchors. Content change
+// recomputes the embedding - otherwise RAG keeps searching stale meaning.
+async function applyNodeUpdate(nodeId: string, payload: UpdatePayload) {
+  const updates: Partial<typeof nodes.$inferInsert> = { updatedAt: new Date() };
+  if (payload.content !== undefined) {
+    updates.content = validateContent(payload.content);
+    updates.embedding = await embed(updates.content, "RETRIEVAL_DOCUMENT");
+  }
+  await db.transaction(async (tx) => {
+    await tx.update(nodes).set(updates).where(eq(nodes.id, nodeId));
+    if (payload.anchors) {
+      assertAnchors(payload.anchors);
+      await tx.delete(codeAnchors).where(eq(codeAnchors.nodeId, nodeId));
+      if (payload.anchors.length) {
+        await tx.insert(codeAnchors).values(
+          payload.anchors.map((a) => ({ nodeId, path: a.path, symbol: a.symbol, sha: a.sha })),
+        );
+      }
+    }
+  });
+}
+
+async function archiveNodeById(nodeId: string) {
+  await db
+    .update(nodes)
+    .set({ status: "archived", updatedAt: new Date() })
+    .where(eq(nodes.id, nodeId));
+}
+
+export async function requestUpdate(input: {
+  userId: string;
+  nodeId: string;
+  content?: string;
+  anchors?: Anchor[];
+  requestedBy: RequestedBy;
+}): Promise<{ applied: true } | { applied: false; pendingActionId: string }> {
+  if (input.content === undefined && input.anchors === undefined) {
+    throw new ServiceError("validation", "nothing to update: provide content and/or anchors");
+  }
+  // Fail fast on bad payload even when it only goes to the pending queue.
+  if (input.content !== undefined) validateContent(input.content);
+  if (input.anchors) assertAnchors(input.anchors);
+  await getOwnedNode(input.userId, input.nodeId);
+
+  const payload: UpdatePayload = { content: input.content, anchors: input.anchors };
+  if (await hasAllPermission(input.userId)) {
+    await applyNodeUpdate(input.nodeId, payload);
+    return { applied: true };
+  }
+  const [pending] = await db
+    .insert(pendingActions)
+    .values({
+      userId: input.userId,
+      nodeId: input.nodeId,
+      action: "update",
+      payload,
+      requestedBy: input.requestedBy,
+    })
+    .returning({ id: pendingActions.id });
+  return { applied: false, pendingActionId: pending.id };
+}
+
+export async function requestDelete(input: {
+  userId: string;
+  nodeId: string;
+  requestedBy: RequestedBy;
+}): Promise<{ applied: true } | { applied: false; pendingActionId: string }> {
+  await getOwnedNode(input.userId, input.nodeId);
+
+  if (await hasAllPermission(input.userId)) {
+    await archiveNodeById(input.nodeId); // never a physical DELETE
+    return { applied: true };
+  }
+  const [pending] = await db
+    .insert(pendingActions)
+    .values({
+      userId: input.userId,
+      nodeId: input.nodeId,
+      action: "delete",
+      requestedBy: input.requestedBy,
+    })
+    .returning({ id: pendingActions.id });
+  return { applied: false, pendingActionId: pending.id };
+}
+
+export async function approvePending(input: { userId: string; pendingActionId: string }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.pendingActionId, "pendingActionId");
+  const [pending] = await db
+    .select()
+    .from(pendingActions)
+    .where(
+      and(
+        eq(pendingActions.id, input.pendingActionId),
+        eq(pendingActions.userId, input.userId),
+        eq(pendingActions.status, "pending"),
+      ),
+    );
+  if (!pending) throw new ServiceError("not_found", "pending action not found");
+
+  if (pending.action === "update") {
+    await applyNodeUpdate(pending.nodeId, pending.payload as UpdatePayload);
+  } else {
+    await archiveNodeById(pending.nodeId);
+  }
+  await db
+    .update(pendingActions)
+    .set({ status: "approved", resolvedAt: new Date() })
+    .where(eq(pendingActions.id, pending.id));
+}
+
+export async function rejectPending(input: { userId: string; pendingActionId: string }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.pendingActionId, "pendingActionId");
+  const [rejected] = await db
+    .update(pendingActions)
+    .set({ status: "rejected", resolvedAt: new Date() })
+    .where(
+      and(
+        eq(pendingActions.id, input.pendingActionId),
+        eq(pendingActions.userId, input.userId),
+        eq(pendingActions.status, "pending"),
+      ),
+    )
+    .returning({ id: pendingActions.id });
+  if (!rejected) throw new ServiceError("not_found", "pending action not found");
+}
+
+export async function confirmNode(input: { userId: string; nodeId: string }) {
+  await getOwnedNode(input.userId, input.nodeId);
+  const [confirmed] = await db
+    .update(nodes)
+    .set({ status: "confirmed", updatedAt: new Date() })
+    .where(
+      and(
+        eq(nodes.id, input.nodeId),
+        eq(nodes.userId, input.userId),
+        eq(nodes.status, "proposed"), // only proposed can be confirmed (plan section 4)
+      ),
+    )
+    .returning({ id: nodes.id });
+  if (!confirmed) {
+    throw new ServiceError("validation", "only a node with status proposed can be confirmed");
+  }
+}
+
+export async function archiveNode(input: { userId: string; nodeId: string }) {
+  await getOwnedNode(input.userId, input.nodeId);
+  await archiveNodeById(input.nodeId);
 }
