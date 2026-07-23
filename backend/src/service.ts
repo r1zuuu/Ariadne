@@ -179,6 +179,8 @@ export async function searchNodes(input: {
   query: string;
   k?: number;
 }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
   const k = input.k ?? 5;
   if (!Number.isInteger(k) || k < 1 || k > 10) {
     throw new ServiceError("validation", "k must be an integer between 1 and 10");
@@ -230,6 +232,7 @@ export async function searchNodes(input: {
 // Boot context for a coder session start: user profile + project card +
 // last session summary (plan section 6).
 export async function getBootContext(input: { userId: string; repoRef: string }) {
+  assertUuid(input.userId, "userId");
   const project = await resolveProjectByRepoRef(input.userId, input.repoRef);
 
   const [user] = await db
@@ -272,7 +275,7 @@ export async function getBootContext(input: { userId: string; repoRef: string })
 export type RequestedBy = "coder" | "app_agent";
 type UpdatePayload = { content?: string; anchors?: Anchor[] };
 
-async function getOwnedNode(userId: string, nodeId: string) {
+async function assertNodeOwned(userId: string, nodeId: string) {
   assertUuid(userId, "userId");
   assertUuid(nodeId, "nodeId");
   const [node] = await db
@@ -280,7 +283,6 @@ async function getOwnedNode(userId: string, nodeId: string) {
     .from(nodes)
     .where(and(eq(nodes.id, nodeId), eq(nodes.userId, userId)));
   if (!node) throw new ServiceError("not_found", "node not found for this user");
-  return node;
 }
 
 async function hasAllPermission(userId: string): Promise<boolean> {
@@ -334,7 +336,7 @@ export async function requestUpdate(input: {
   // Fail fast on bad payload even when it only goes to the pending queue.
   if (input.content !== undefined) validateContent(input.content);
   if (input.anchors) assertAnchors(input.anchors);
-  await getOwnedNode(input.userId, input.nodeId);
+  await assertNodeOwned(input.userId, input.nodeId);
 
   const payload: UpdatePayload = { content: input.content, anchors: input.anchors };
   if (await hasAllPermission(input.userId)) {
@@ -359,7 +361,7 @@ export async function requestDelete(input: {
   nodeId: string;
   requestedBy: RequestedBy;
 }): Promise<{ applied: true } | { applied: false; pendingActionId: string }> {
-  await getOwnedNode(input.userId, input.nodeId);
+  await assertNodeOwned(input.userId, input.nodeId);
 
   if (await hasAllPermission(input.userId)) {
     await archiveNodeById(input.nodeId); // never a physical DELETE
@@ -392,6 +394,9 @@ export async function approvePending(input: { userId: string; pendingActionId: s
     );
   if (!pending) throw new ServiceError("not_found", "pending action not found");
 
+  // ponytail: apply-then-flip is not atomic; two concurrent approves can
+  // double-apply. Fine for a single user clicking a feed; add a conditional
+  // status flip if this ever runs multi-client.
   if (pending.action === "update") {
     await applyNodeUpdate(pending.nodeId, pending.payload as UpdatePayload);
   } else {
@@ -421,7 +426,7 @@ export async function rejectPending(input: { userId: string; pendingActionId: st
 }
 
 export async function confirmNode(input: { userId: string; nodeId: string }) {
-  await getOwnedNode(input.userId, input.nodeId);
+  await assertNodeOwned(input.userId, input.nodeId);
   const [confirmed] = await db
     .update(nodes)
     .set({ status: "confirmed", updatedAt: new Date() })
@@ -439,6 +444,6 @@ export async function confirmNode(input: { userId: string; nodeId: string }) {
 }
 
 export async function archiveNode(input: { userId: string; nodeId: string }) {
-  await getOwnedNode(input.userId, input.nodeId);
+  await assertNodeOwned(input.userId, input.nodeId);
   await archiveNodeById(input.nodeId);
 }
