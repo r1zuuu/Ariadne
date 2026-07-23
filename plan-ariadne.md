@@ -330,13 +330,28 @@ Nietechniczny user zyje w ekranach 3, 5, 6. Techniczny dodatkowo w 4 i 7. Nic wi
 
 ## 13. Kolejnosc budowy z kryteriami "gotowe gdy"
 
-Krok 1. Baza.
+Krok 1. Baza. [ZROBIONE 2026-07-23, branch feature/step-1-database]
 - Docker Compose z Postgresem, rozszerzenie vector, migracje Drizzle wg sekcji 3.
 - Gotowe gdy: migracja przechodzi czysto na swiezej bazie, INSERT i SELECT wektora dziala z psql.
+- Powstalo: docker-compose.yml (pgvector/pgvector:pg17, healthcheck), backend/src/db/schema.ts
+  (6 tabel, bez edges - krok 2 planu), migracja backend/drizzle/0000_*.sql z CREATE EXTENSION vector.
+  Jeden .env w korzeniu wspolny dla compose i drizzle. Kryterium sprawdzone: down -v + up + migrate
+  przechodzi czysto, INSERT/SELECT wektora 768d dziala, CHECK constrainty odrzucaja zle wartosci.
 
-Krok 2. Warstwa serwisowa + embeddingi.
+Krok 2. Warstwa serwisowa + embeddingi. [ZROBIONE 2026-07-23, branch feature/step-2-service-layer]
 - Funkcje: createNode (walidacja + embedding + transakcja), searchNodes (sekcja 7), getBootContext, requestUpdate/Delete (pending), approve/reject, confirm/archive.
 - Gotowe gdy: testowy skrypt zapisuje 10 wezlow i search zwraca sensowna kolejnosc dla 3 roznych pytan.
+- Powstalo: backend/src/gemini.ts (embed przez natywny fetch, taskType RETRIEVAL_DOCUMENT/QUERY,
+  normalizacja wektora - przy output_dimensionality 768 Gemini zwraca wektory nieznormalizowane),
+  backend/src/db/client.ts (pool pg + drizzle), backend/src/service.ts (cala logika z sekcji 4, 5, 7:
+  brama walidacji, wymuszony status proposed, normalizeRepoRef, update przelicza embedding),
+  skrypty: scripts/check-embedding.ts, scripts/verify-service.ts (idempotentny, seed 10 wezlow).
+- Kryterium sprawdzone: 3 pytania trafiaja we wlasciwe wezly (similarity 0.69-0.81), cykl
+  pending -> approve -> przeliczony embedding -> confirm -> archive dziala, archived znika z searcha.
+- Lekcja z weryfikacji: vector search nie zna pojecia "ostatnia sesja" (podobienstwo to "o czym",
+  nie "kiedy") - boot context slusznie bierze session_summary po dacie, nie po similarity.
+- Decyzje po drodze: Gemini przez goly fetch zamiast SDK (jeden POST, SDK najwczesniej w kroku 5),
+  branch kroku 2 wychodzi z brancha kroku 1 (oba czekaja na merge do main za zgoda).
 
 Krok 3. Serwer MCP.
 - 5 narzedzi wg sekcji 9, auth tokenem, bledy z czytelnymi komunikatami.
