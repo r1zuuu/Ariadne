@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, cosineDistance, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "./db/client.js";
-import { codeAnchors, nodes, projects } from "./db/schema.js";
+import { codeAnchors, nodes, projects, users } from "./db/schema.js";
 import { embed } from "./gemini.js";
 
 // Business logic lives here once; MCP tools and REST endpoints are thin
@@ -138,4 +138,126 @@ export async function createNode(input: {
 
     return { nodeId: node.id, status: "proposed", contradictedNodeId };
   });
+}
+
+// "https://github.com/User/Repo.git" and "git@github.com:User/Repo" both
+// normalize to "github.com/User/Repo" (host lowercased, plan section 3).
+export function normalizeRepoRef(raw: string): string {
+  let ref = raw.trim();
+  ref = ref.replace(/^git@([^:]+):/, "$1/"); // ssh form -> host/path
+  ref = ref.replace(/^[a-z+]+:\/\//i, ""); // strip scheme
+  ref = ref.replace(/^[^@/]+@/, ""); // strip user@ before host
+  ref = ref.replace(/\.git$/i, "").replace(/\/+$/, "");
+  const slash = ref.indexOf("/");
+  if (slash === -1) return ref.toLowerCase();
+  return ref.slice(0, slash).toLowerCase() + ref.slice(slash);
+}
+
+export async function resolveProjectByRepoRef(userId: string, repoRef: string) {
+  const normalized = normalizeRepoRef(repoRef);
+  const [project] = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.userId, userId), eq(projects.repoRef, normalized)));
+  if (!project) {
+    throw new ServiceError(
+      "unknown_repo",
+      `Zaloz projekt w aplikacji Ariadne i podaj repo_ref: ${normalized}`,
+    );
+  }
+  return project;
+}
+
+export async function searchNodes(input: {
+  userId: string;
+  projectId: string;
+  query: string;
+  k?: number;
+}) {
+  const k = input.k ?? 5;
+  if (!Number.isInteger(k) || k < 1 || k > 10) {
+    throw new ServiceError("validation", "k must be an integer between 1 and 10");
+  }
+  if (!input.query?.trim()) {
+    throw new ServiceError("validation", "query must not be empty");
+  }
+
+  const queryVector = await embed(input.query, "RETRIEVAL_QUERY");
+  const distance = cosineDistance(nodes.embedding, queryVector);
+
+  // Metadata filters BEFORE similarity: they narrow, vectors rank (plan section 7).
+  const found = await db
+    .select({
+      id: nodes.id,
+      type: nodes.type,
+      content: nodes.content,
+      status: nodes.status,
+      source: nodes.source,
+      createdAt: nodes.createdAt,
+      similarity: sql<number>`1 - (${distance})`,
+    })
+    .from(nodes)
+    .where(
+      and(
+        eq(nodes.userId, input.userId),
+        eq(nodes.projectId, input.projectId),
+        ne(nodes.status, "archived"),
+      ),
+    )
+    .orderBy(distance)
+    .limit(k);
+
+  const anchorRows = found.length
+    ? await db
+        .select()
+        .from(codeAnchors)
+        .where(inArray(codeAnchors.nodeId, found.map((n) => n.id)))
+    : [];
+
+  return found.map((node) => ({
+    ...node,
+    anchors: anchorRows
+      .filter((a) => a.nodeId === node.id)
+      .map(({ path, symbol, sha }) => ({ path, symbol, sha })),
+  }));
+}
+
+// Boot context for a coder session start: user profile + project card +
+// last session summary (plan section 6).
+export async function getBootContext(input: { userId: string; repoRef: string }) {
+  const project = await resolveProjectByRepoRef(input.userId, input.repoRef);
+
+  const [user] = await db
+    .select({ profile: users.profile })
+    .from(users)
+    .where(eq(users.id, input.userId));
+  if (!user) throw new ServiceError("not_found", "user not found");
+
+  const [lastSummary] = await db
+    .select({ content: nodes.content, createdAt: nodes.createdAt })
+    .from(nodes)
+    .where(
+      and(
+        eq(nodes.projectId, project.id),
+        eq(nodes.type, "session_summary"),
+        ne(nodes.status, "archived"),
+      ),
+    )
+    .orderBy(desc(nodes.createdAt))
+    .limit(1);
+
+  return {
+    profile: user.profile,
+    project: {
+      name: project.name,
+      opis: project.opis,
+      stack: project.stack,
+      dla_kogo: project.dlaKogo,
+      grupa_odbiorcza: project.grupaOdbiorcza,
+      konwencje_ref: project.konwencjeRef,
+      ograniczenia: project.ograniczenia,
+      etap: project.etap,
+    },
+    last_summary: lastSummary ?? null,
+  };
 }
