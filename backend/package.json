@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "description": "Ariadne backend: memory layer for LLM coders",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
@@ -15,7 +14,6 @@
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
     "drizzle-kit": "^0.31.10",
-    "tsx": "^4.23.1",
     "typescript": "^7.0.2"
   },
   "type": "module"
