@@ -3,12 +3,15 @@
   "version": "0.1.0",
   "description": "Ariadne backend: memory layer for LLM coders",
   "scripts": {
+    "dev": "tsx --env-file=../.env src/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "drizzle-orm": "^0.45.2",
-    "pg": "^8.22.0"
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
