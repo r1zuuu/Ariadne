@@ -14,13 +14,15 @@ function sendError(res: ServerResponse, status: number, message: string) {
 }
 
 const httpServer = createServer(async (req, res) => {
-  const path = new URL(req.url ?? "/", "http://localhost").pathname;
+  // Plain split, not new URL(): a malformed request target would make the
+  // URL constructor throw out here, and an unhandled rejection kills the process.
+  const path = (req.url ?? "/").split("?")[0];
   if (path !== "/mcp") return sendError(res, 404, "Not found. The MCP endpoint is POST /mcp.");
   // Stateless mode has no server-initiated streams, so GET and DELETE have no job here.
   if (req.method !== "POST") return sendError(res, 405, "Method not allowed. Use POST.");
 
-  const header = req.headers.authorization ?? "";
-  const token = header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : "";
+  // The auth scheme is case-insensitive per RFC 7235, so match it that way.
+  const token = /^Bearer +(.+)$/i.exec(req.headers.authorization ?? "")?.[1].trim() ?? "";
   if (!token) {
     res.setHeader("WWW-Authenticate", "Bearer");
     return sendError(res, 401, "Missing header: Authorization: Bearer <token>");
