@@ -1,6 +1,7 @@
+import { createHash, randomBytes } from "node:crypto";
 import { and, cosineDistance, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "./db/client.js";
-import { codeAnchors, nodes, pendingActions, projects, users } from "./db/schema.js";
+import { apiTokens, codeAnchors, nodes, pendingActions, projects, users } from "./db/schema.js";
 import { embed } from "./gemini.js";
 
 // Business logic lives here once; MCP tools and REST endpoints are thin
@@ -8,7 +9,7 @@ import { embed } from "./gemini.js";
 
 export class ServiceError extends Error {
   constructor(
-    public code: "validation" | "unknown_repo" | "not_found",
+    public code: "validation" | "unknown_repo" | "not_found" | "unauthorized",
     message: string,
   ) {
     super(message);
@@ -446,4 +447,27 @@ export async function confirmNode(input: { userId: string; nodeId: string }) {
 export async function archiveNode(input: { userId: string; nodeId: string }) {
   await assertNodeOwned(input.userId, input.nodeId);
   await archiveNodeById(input.nodeId);
+}
+
+// --- MCP tokens (plan section 9) ---
+
+// The raw token is shown once at generation; only its sha256 reaches the DB,
+// so a database leak does not hand out working tokens.
+export function generateToken(): string {
+  return randomBytes(32).toString("base64url");
+}
+
+export function hashToken(rawToken: string): string {
+  return createHash("sha256").update(rawToken).digest("hex");
+}
+
+// Every MCP call scopes to the user behind the bearer token.
+export async function resolveUserByToken(rawToken: string): Promise<string> {
+  const [token] = await db
+    .select({ id: apiTokens.id, userId: apiTokens.userId })
+    .from(apiTokens)
+    .where(eq(apiTokens.tokenHash, hashToken(rawToken)));
+  if (!token) throw new ServiceError("unauthorized", "invalid token");
+  await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, token.id));
+  return token.userId;
 }
