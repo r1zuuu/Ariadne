@@ -266,7 +266,8 @@ search_context
 - output: { results: [ { id, type, content, status, similarity, source, anchors: [{path, symbol, sha}], created_at } ] }
 
 add_context
-- input: { repo_ref: string, type: "decision"|"note"|"session_summary", content: string (max 4000), anchors?: [{path, symbol?, sha?}], source: { session_id: string, commit_sha?: string, channel: string }, replaces_node_id?: uuid }
+- input: { repo_ref: string, type: "decision"|"note"|"session_summary", content: string (max 4000), anchors?: [{path, symbol?, sha?}], source: { session_id: string, commit_sha?: string }, replaces_node_id?: uuid }
+- source.channel nie jest polem wejsciowym: wejscie przez MCP oznacza codera, wiec serwer wpisuje "coder" sam
 - output: { node_id: uuid, status: "proposed", contradicted_node_id?: uuid }
 - efekt replaces_node_id: wskazany wezel dostaje status contradicted (w kroku 2 dodatkowo krawedz replaces)
 
@@ -353,9 +354,24 @@ Krok 2. Warstwa serwisowa + embeddingi. [ZROBIONE 2026-07-23, branch feature/ste
 - Decyzje po drodze: Gemini przez goly fetch zamiast SDK (jeden POST, SDK najwczesniej w kroku 5),
   branch kroku 2 wychodzi z brancha kroku 1 (oba czekaja na merge do main za zgoda).
 
-Krok 3. Serwer MCP.
+Krok 3. Serwer MCP. [ZROBIONE 2026-07-25, branch feature/step-3-mcp-server]
 - 5 narzedzi wg sekcji 9, auth tokenem, bledy z czytelnymi komunikatami.
 - Gotowe gdy: MCP Inspector przechodzi wszystkie narzedzia, w tym sciezke unknown_repo i pending.
+- Powstalo: backend/src/mcp.ts (5 narzedzi jako cienkie wrappery na service.ts, konwersja
+  camelCase -> snake_case w jednym miejscu, bledy serwisowe wracaja jako isError zamiast
+  wywrotki protokolu), backend/src/index.ts (node:http, jeden endpoint POST /mcp, transport
+  stateless), auth w service.ts (generateToken / hashToken / resolveUserByToken),
+  skrypt scripts/mint-token.ts, skrypt npm "dev".
+- Kryterium sprawdzone: MCP Inspector w trybie --cli przeszedl wszystkie 5 narzedzi,
+  sciezke unknown_repo i obie sciezki pending. Dodatkowo: 401 na zly i na brakujacy token,
+  405 na GET, 404 na inna sciezke, repo_ref podany jako https i jako git@ trafia w ten sam
+  projekt.
+- Decyzje po drodze: gole node:http zamiast Hono/Fastify (endpoint jest jeden, a transport
+  z SDK i tak chce surowe req/res; wybor frameworka wraca w kroku 5 razem z REST), transport
+  stateless ze swiezym serwerem per request (userId domkniety w narzedziach, wiec scope nie
+  ma jak wyciec miedzy userami), SDK v1.29 zamiast bety v2 pod spec 2026-07-28.
+- Odstepstwo od sekcji 9: source.channel nie jest polem wejsciowym add_context, serwer
+  wymusza "coder". Kto puka przez MCP, ten jest coderem, wiec nie ma tu czego deklarowac.
 
 Krok 4. Podpiecie Claude Code (pierwszy prawdziwy test).
 - Token wygenerowany recznie w bazie, snippet w CLAUDE.md realnego projektu.
