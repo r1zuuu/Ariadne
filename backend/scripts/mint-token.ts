@@ -1,4 +1,5 @@
-// Mints an MCP token by hand; the app gets a UI for this in step 5.
+// Mints an MCP token from the command line. The app does the same thing through
+// POST /tokens; this stays for when there is no app running yet.
 // Run from backend/: npx tsx scripts/mint-token.ts <email> [label]
 process.loadEnvFile("../.env");
 
@@ -9,18 +10,20 @@ if (!email) {
 }
 
 const { db } = await import("../src/db/client.js");
-const { apiTokens, users } = await import("../src/db/schema.js");
+const { users } = await import("../src/db/schema.js");
 const { eq } = await import("drizzle-orm");
-const { generateToken, hashToken } = await import("../src/service.js");
+const { createApiToken } = await import("../src/service.js");
 
-const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+const [user] = await db
+  .select({ id: users.id })
+  .from(users)
+  .where(eq(users.email, email.trim().toLowerCase()));
 if (!user) {
   console.error(`no user with email ${email}`);
   process.exit(1);
 }
 
-const token = generateToken();
-await db.insert(apiTokens).values({ userId: user.id, tokenHash: hashToken(token), label });
+const { token } = await createApiToken({ userId: user.id, label });
 
 console.log(`user_id: ${user.id}`);
 console.log(`token (shown once, the DB only keeps its hash):\n${token}`);
