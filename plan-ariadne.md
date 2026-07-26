@@ -396,7 +396,8 @@ Krok 4. Podpiecie Claude Code (pierwszy prawdziwy test).
 - To jest moment nauki RAG: tu sie eksperymentuje z trescia wezlow i jakoscia wynikow.
 - Zrobione: token, .mcp.json i snippet w repo portfolio, seed konta i karty projektu, petla zapis -> podsumowanie -> nowa sesja odpowiada z last_summary.
 - Znalezione i naprawione po drodze: coder nie wolal search_context ani razu, bo boot context wygladal na komplet. Stad index w get_project_context, pelny opis w sekcji 6.
-- Zostaje do sprawdzenia: czy z indexem coder faktycznie siega po search_context. Do tego pytanie, na ktore odpowiedz lezy TYLKO w wezle, nie w karcie projektu i nie w ostatnim podsumowaniu.
+- Potwierdzone po dodaniu indexu: to samo pytanie, ktore wczesniej konczylo sie na boot contextcie, poszlo teraz get_project_context -> search_context -> weryfikacja w kodzie. Coder wzial z pamieci "gdzie patrzec i na co uwazac", a aktualny stan policzyl z repo (parytet kluczy i18n, lista slugow). Ten podzial rol jest docelowy: graf trzyma dlaczego, repo trzyma jak jest teraz.
+- KROK 4 GOTOWY.
 
 Krok 5. REST + aplikacja Tauri.
 - Endpointy sekcji 10, ekrany sekcji 11 w kolejnosci: auth -> onboarding -> ekran glowny -> chat RAG -> do potwierdzenia -> rozmawiaj z baza -> widok projektu z grafem.
