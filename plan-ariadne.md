@@ -174,7 +174,23 @@ Brama walidacji (kod, nie LLM), wspolna dla obu drog: pola wypelnione, content n
 
 Definicja sesji: jedno uruchomienie codera. Coder generuje session_id (uuid) na starcie i przekazuje go w source kazdego zapisu.
 
-Petla: start -> get_project_context (boot context: profil + karta projektu + ostatnie session_summary; gdy brak podsumowania, sama karta i profil) -> praca (add_context na biezaco po waznych decyzjach, search_context gdy potrzebny kontekst historyczny) -> koniec (add_context z type=session_summary).
+Petla: start -> get_project_context (boot context: profil + karta projektu + ostatnie session_summary + index; gdy brak podsumowania, sama karta i profil) -> praca (add_context na biezaco po waznych decyzjach, search_context gdy potrzebny kontekst historyczny) -> koniec (add_context z type=session_summary).
+
+### Index w boot context: dlaczego istnieje (NIE USUWAC bez zamiennika)
+
+Zweryfikowane na zywo w kroku 4, na prawdziwym repo portfolio, dwie sesje Claude Code.
+
+Objaw: coder wolal get_project_context i na tym konczyl kontakt z pamiecia. search_context nie poszedl ANI RAZU, w zadnej sesji, mimo instrukcji w CLAUDE.md ("gdy potrzebujesz kontekstu z przeszlosci, uzyj search_context") i mimo pytania skrojonego pod wyszukiwanie ("dodaje nowy projekt, o czym pamietac"). Odpowiedzi model dorabial z czytania kodu.
+
+Wyszukiwarka byla sprawna przez caly czas. To samo pytanie puszczone recznie przez curl zwrocilo wlasciwa notatke na pierwszym miejscu, similarity 0.759, z trescia bogatsza niz odpowiedz modelu (wniosek operacyjny "sprawdz /pl recznie, nie ufaj zielonemu buildowi", ktorego model nie podal, bo nigdy tej notatki nie zobaczyl).
+
+Przyczyna: boot context wyglada na komplet. Trzy pola, wszystkie wypelnione, zero sygnalu ze pod spodem lezy graf. Model nie szuka, bo nie wie, ze jest czego szukac. Caly graf jest niewidzialny.
+
+Wniosek ogolny, wazniejszy od samego fixa: proza w CLAUDE.md to prosba, ktora model spelnia albo nie. Odpowiedz narzedzia to fakt, ktorego nie da sie przeoczyc. Co ma dzialac zawsze, ma byc w odpowiedzi narzedzia, nie w instrukcji.
+
+Fix: get_project_context zwraca index, czyli naglowki wszystkich decision i note (bez tresci). Model widzi ze cos jest i o czym, po tresc siega przez search_context. Naglowek to pierwsza linia content uciete do 120 znakow, bez nowej kolumny w schemacie.
+
+Sufit tego rozwiazania (oznaczony `ponytail:` w service.ts): dziesiec najnowszych naglowkow. Przy okolo stu wezlach przestaje to byc spis tresci, a staje sie losowa probka i problem wraca w gorszej formie, bo index bedzie wygladal na komplet. Wtedy: wybor po anchors pasujacych do plikow w biezacej rozmowie, albo klastrowanie tematyczne. Nie zwiekszac samego limitu, to tylko przesuwa sciane.
 
 Snippet generowany przy setupie (user wybiera codera, dostaje plik docelowy i tresc). Wersja dla CLAUDE.md:
 
@@ -258,7 +274,8 @@ Serwer: MCP streamable HTTP na VPS, endpoint /mcp. Auth: naglowek Authorization:
 
 get_project_context
 - input: { repo_ref: string }
-- output: { profile: string, project: { name, opis, stack, dla_kogo, grupa_odbiorcza, konwencje_ref, ograniczenia, etap }, last_summary: { content, created_at } | null }
+- output: { profile: string, project: { name, opis, stack, dla_kogo, grupa_odbiorcza, konwencje_ref, ograniczenia, etap }, last_summary: { content, created_at } | null, index: [ { node_id, type, headline } ] }
+- index: naglowki (pierwsza linia content, max 120 znakow) dziesieciu najnowszych wezlow typu decision i note, bez tresci. Powod istnienia i sufit: sekcja 6. Bez tego coder nie wola search_context w ogole.
 - blad gdy repo nieznane: { error: "unknown_repo", message: "Zaloz projekt w aplikacji Ariadne i podaj repo_ref: <znormalizowany url>" }
 
 search_context
@@ -377,6 +394,9 @@ Krok 4. Podpiecie Claude Code (pierwszy prawdziwy test).
 - Token wygenerowany recznie w bazie, snippet w CLAUDE.md realnego projektu.
 - Gotowe gdy: pelna petla na zywo: nowa sesja laduje boot context, w trakcie zapisuje decyzje, na koncu podsumowanie, kolejna sesja startuje z tym podsumowaniem i odpowiada poprawnie na "gdzie skonczylismy".
 - To jest moment nauki RAG: tu sie eksperymentuje z trescia wezlow i jakoscia wynikow.
+- Zrobione: token, .mcp.json i snippet w repo portfolio, seed konta i karty projektu, petla zapis -> podsumowanie -> nowa sesja odpowiada z last_summary.
+- Znalezione i naprawione po drodze: coder nie wolal search_context ani razu, bo boot context wygladal na komplet. Stad index w get_project_context, pelny opis w sekcji 6.
+- Zostaje do sprawdzenia: czy z indexem coder faktycznie siega po search_context. Do tego pytanie, na ktore odpowiedz lezy TYLKO w wezle, nie w karcie projektu i nie w ostatnim podsumowaniu.
 
 Krok 5. REST + aplikacja Tauri.
 - Endpointy sekcji 10, ekrany sekcji 11 w kolejnosci: auth -> onboarding -> ekran glowny -> chat RAG -> do potwierdzenia -> rozmawiaj z baza -> widok projektu z grafem.
