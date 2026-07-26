@@ -631,3 +631,185 @@ export async function resolveUserByToken(rawToken: string): Promise<string> {
   await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, token.id));
   return token.userId;
 }
+
+// The only place the raw token exists after generation is this return value.
+// Whoever calls it has one chance to show it to the user.
+export async function createApiToken(input: { userId: string; label?: string }) {
+  assertUuid(input.userId, "userId");
+  const label = (input.label ?? "").trim().slice(0, MAX_LABEL_LENGTH);
+  const token = generateToken();
+  const [row] = await db
+    .insert(apiTokens)
+    .values({ userId: input.userId, tokenHash: hashToken(token), label })
+    .returning({ id: apiTokens.id, label: apiTokens.label, createdAt: apiTokens.createdAt });
+  return { ...row, token };
+}
+
+export async function listApiTokens(userId: string) {
+  assertUuid(userId, "userId");
+  // No tokenHash in the projection: nothing downstream has a use for it, and a
+  // hash that never leaves this module cannot leak through a response.
+  return db
+    .select({
+      id: apiTokens.id,
+      label: apiTokens.label,
+      createdAt: apiTokens.createdAt,
+      lastUsedAt: apiTokens.lastUsedAt,
+    })
+    .from(apiTokens)
+    .where(eq(apiTokens.userId, userId))
+    .orderBy(desc(apiTokens.createdAt));
+}
+
+// Revoking is a physical delete, unlike nodes: a token has no history worth
+// keeping and a revoked-but-present row is one bug away from still working.
+export async function deleteApiToken(input: { userId: string; tokenId: string }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.tokenId, "tokenId");
+  const [deleted] = await db
+    .delete(apiTokens)
+    .where(and(eq(apiTokens.id, input.tokenId), eq(apiTokens.userId, input.userId)))
+    .returning({ id: apiTokens.id });
+  if (!deleted) throw new ServiceError("not_found", "token not found for this user");
+}
+
+// --- Projects (plan section 10) ---
+
+export type ProjectCard = {
+  name: string;
+  repoRef: string;
+  opis?: string;
+  stack?: string;
+  dlaKogo?: string;
+  grupaOdbiorcza?: string | null;
+  konwencjeRef?: string | null;
+  ograniczenia?: string;
+  etap?: string;
+};
+
+function validateCard(card: Partial<ProjectCard>) {
+  if (card.name !== undefined && !card.name.trim()) {
+    throw new ServiceError("validation", "name must not be empty");
+  }
+  if (card.repoRef !== undefined && !card.repoRef.trim()) {
+    throw new ServiceError("validation", "repo_ref must not be empty");
+  }
+  if (card.etap !== undefined && !ETAPY.includes(card.etap as (typeof ETAPY)[number])) {
+    throw new ServiceError("validation", `etap must be one of: ${ETAPY.join(", ")}`);
+  }
+}
+
+export async function listProjects(userId: string) {
+  assertUuid(userId, "userId");
+  return db
+    .select()
+    .from(projects)
+    .where(eq(projects.userId, userId))
+    .orderBy(desc(projects.updatedAt));
+}
+
+export async function getProject(input: { userId: string; projectId: string }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  const [project] = await db
+    .select()
+    .from(projects)
+    .where(and(eq(projects.id, input.projectId), eq(projects.userId, input.userId)));
+  if (!project) throw new ServiceError("not_found", "project not found for this user");
+  return project;
+}
+
+export async function createProject(input: { userId: string; card: ProjectCard }) {
+  assertUuid(input.userId, "userId");
+  validateCard(input.card);
+  const repoRef = normalizeRepoRef(input.card.repoRef);
+  const [project] = await db
+    .insert(projects)
+    .values({ ...input.card, userId: input.userId, repoRef })
+    .onConflictDoNothing({ target: [projects.userId, projects.repoRef] })
+    .returning();
+  if (!project) {
+    throw new ServiceError("validation", `you already have a project for repo_ref ${repoRef}`);
+  }
+  return project;
+}
+
+export async function updateProject(input: {
+  userId: string;
+  projectId: string;
+  card: Partial<ProjectCard>;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  validateCard(input.card);
+  const patch = { ...input.card, updatedAt: new Date() };
+  if (input.card.repoRef !== undefined) patch.repoRef = normalizeRepoRef(input.card.repoRef);
+
+  try {
+    const [project] = await db
+      .update(projects)
+      .set(patch)
+      .where(and(eq(projects.id, input.projectId), eq(projects.userId, input.userId)))
+      .returning();
+    if (!project) throw new ServiceError("not_found", "project not found for this user");
+    return project;
+  } catch (error) {
+    // A repo_ref edit can land on another project of the same user.
+    if (isUniqueViolation(error)) {
+      throw new ServiceError("validation", "another project of yours already uses this repo_ref");
+    }
+    throw error;
+  }
+}
+
+// --- Review feed (plan section 10) ---
+
+// Everything waiting for a human: queued update/delete requests, plus nodes
+// whose status was never settled. Cross-project on purpose, it is one inbox.
+export async function getReviewFeed(userId: string) {
+  assertUuid(userId, "userId");
+
+  const queued = await db
+    .select({
+      id: pendingActions.id,
+      action: pendingActions.action,
+      payload: pendingActions.payload,
+      requestedBy: pendingActions.requestedBy,
+      createdAt: pendingActions.createdAt,
+      nodeId: nodes.id,
+      nodeType: nodes.type,
+      // The current content travels with the request so the app can show the
+      // change against what is stored, without a second round trip per row.
+      nodeContent: nodes.content,
+      projectId: projects.id,
+      projectName: projects.name,
+    })
+    .from(pendingActions)
+    .innerJoin(nodes, eq(nodes.id, pendingActions.nodeId))
+    .innerJoin(projects, eq(projects.id, nodes.projectId))
+    .where(and(eq(pendingActions.userId, userId), eq(pendingActions.status, "pending")))
+    .orderBy(desc(pendingActions.createdAt))
+    .limit(FEED_LIMIT);
+
+  const unsettled = await db
+    .select({
+      id: nodes.id,
+      type: nodes.type,
+      content: nodes.content,
+      status: nodes.status,
+      source: nodes.source,
+      createdAt: nodes.createdAt,
+      projectId: projects.id,
+      projectName: projects.name,
+    })
+    .from(nodes)
+    .innerJoin(projects, eq(projects.id, nodes.projectId))
+    .where(and(eq(nodes.userId, userId), inArray(nodes.status, ["proposed", "contradicted"])))
+    .orderBy(desc(nodes.createdAt))
+    .limit(FEED_LIMIT);
+
+  // ponytail: both lists capped at FEED_LIMIT with no paging. The screen is
+  // explicitly ignorable, so a long tail is not worth a cursor yet; add one when
+  // the count stops fitting on a screen.
+  return { pendingActions: queued, nodesToReview: unsettled };
+}
