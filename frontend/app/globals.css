@@ -1,0 +1,142 @@
+@import "tailwindcss";
+@import "./fonts.css";
+
+/* Design tokens, transcribed from DESIGN.md at the repo root. That file is the
+   source of truth; this one exists so Tailwind can see the values.
+   Contrast ratios in comments are measured against --color-plaster, except the
+   two canvas tokens which are measured against --color-canvas. */
+
+@theme {
+  /* Colour. Every neutral carries 0.008 to 0.020 chroma toward the accent, so
+     nothing on screen is a pure grey and nothing is #000 or #fff. */
+  --color-plaster: oklch(0.968 0.008 240);
+  --color-plaster-raised: oklch(0.985 0.005 240);
+  --color-plaster-sunk: oklch(0.941 0.01 240);
+
+  --color-ink: oklch(0.26 0.02 250); /* 14.2:1 */
+  --color-ink-2: oklch(0.45 0.02 250); /* 6.8:1 */
+  --color-ink-3: oklch(0.53 0.015 250); /* 4.8:1, floor for text */
+  --color-edge: oklch(0.62 0.015 250); /* 3.3:1, borders of controls */
+  --color-hairline: oklch(0.86 0.01 250); /* 1.4:1, decoration only */
+
+  /* The four roles. A colour that names neither a status nor the thread has no
+     business being saturated. */
+  --color-blue: oklch(0.47 0.12 253); /* 6.0:1, thread, confirmed, focus */
+  --color-blue-lift: oklch(0.72 0.12 250); /* graph canvas only, 2.2:1 on plaster */
+  --color-ochre: oklch(0.52 0.105 78); /* 4.9:1, proposed, text-safe */
+  --color-ochre-mark: oklch(0.63 0.13 78); /* 3.2:1, markers only, never text */
+  --color-iron: oklch(0.505 0.15 27); /* 5.9:1, contradicted, deletions, errors */
+  --color-slate: oklch(0.5 0.012 250); /* 5.5:1, archived, the one status with no chroma */
+
+  --color-canvas: oklch(0.22 0.02 250); /* graph only, not a second theme */
+  --color-canvas-ink: oklch(0.93 0.01 240); /* 15.8:1 on canvas */
+
+  /* Type. Two families, seven steps, ratio 1.26. Prose in the serif, data in
+     the mono, never the reverse. */
+  --font-prose: Literata, Georgia, serif;
+  --font-data: "Martian Mono", ui-monospace, monospace;
+
+  --text-display: 43px;
+  --text-display--line-height: 49px;
+  --text-display--font-weight: 600;
+  --text-display--letter-spacing: -0.01em;
+
+  --text-title: 34px;
+  --text-title--line-height: 41px;
+  --text-title--font-weight: 600;
+
+  --text-section: 27px;
+  --text-section--line-height: 34px;
+  --text-section--font-weight: 600;
+
+  --text-lead: 21px;
+  --text-lead--line-height: 32px;
+  --text-lead--font-weight: 500;
+
+  --text-body: 17px;
+  --text-body--line-height: 28px;
+
+  --text-small: 15px;
+  --text-small--line-height: 25px;
+
+  --text-data: 13px;
+  --text-data--line-height: 20px;
+
+  --text-label: 11px;
+  --text-label--line-height: 16px;
+  --text-label--font-weight: 500;
+  --text-label--letter-spacing: 0.12em;
+
+  /* Space. 4px grid, ten steps. Three densities live on screen at once and each
+     needs an inner and a between value, plus two extremes no layout splits. */
+  --spacing-1: 2px; /* marker to baseline */
+  --spacing-2: 4px; /* marker to status label */
+  --spacing-3: 8px; /* inside a list row, the data density */
+  --spacing-4: 12px; /* between rows, inside a field */
+  --spacing-5: 16px; /* inside a panel, the form density */
+  --spacing-6: 24px; /* between field groups, inside the reader */
+  --spacing-7: 32px; /* between screen sections, the reading density */
+  --spacing-8: 48px; /* screen content margin */
+  --spacing-9: 72px; /* air above a screen heading */
+  --spacing-10: 112px; /* entry plate and empty base, nowhere else */
+
+  /* Radius. Zero by default; 2px only on what you click or type into. There is
+     no pill and no circle in this product. */
+  --radius-none: 0px;
+  --radius-control: 2px;
+
+  /* Motion. Nothing animates a layout property. */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-thread: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-state: 120ms;
+  --duration-enter: 200ms;
+  --duration-thread: 420ms;
+}
+
+/* One shadow in the whole product, worn by the command palette and the context
+   menu only. Panels are cut paper: a border and a background step. */
+@utility shadow-lifted {
+  box-shadow: 0 8px 24px oklch(0.26 0.02 250 / 0.14);
+}
+
+/* Counters change while the reader is looking at them, so mono digits never
+   shift width. */
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer base {
+  html {
+    background: var(--color-plaster);
+    color: var(--color-ink);
+    font-family: var(--font-prose);
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+    /* The window is a desktop app, not a document: no rubber-band scroll on the
+       shell itself, individual panes scroll instead. */
+    overflow: hidden;
+  }
+
+  /* Visible on every surface it can land on, which includes the dark graph
+     canvas, so the ring is the accent and never a browser default. */
+  :focus-visible {
+    outline: 2px solid var(--color-blue);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: oklch(0.47 0.12 253 / 0.18);
+  }
+
+  /* All three motion tokens go to zero. Nothing disappears, it arrives at full
+     length instead, so no information depends on movement. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0ms !important;
+    }
+  }
+}
