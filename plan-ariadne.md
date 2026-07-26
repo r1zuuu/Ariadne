@@ -432,6 +432,24 @@ Krok 5d. Graf i rozmawiaj z baza.
 
 Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezycie, Row-Level Security, hook konca sesji dla Claude Code, obsluga coderow bez MCP (cienkie CLI).
 
+Krok 7 (kierunek, nie zadanie). Tryb zespolowy: jeden projekt, kilka osob, wspolna baza kontekstu.
+
+Dlaczego to jest prawdopodobnie wlasciwy produkt, a wersja jednoosobowa prototypem: solo Ariadne konkuruje z wlasna pamiecia usera, ktory polowe decyzji z zeszlego tygodnia i tak pamieta. W zespole ta konkurencja znika, bo decyzja kolegi z wtorku nie jest w polowie zapamietana, ona jest calkowicie niewidzialna. CLAUDE.md w repo trzyma reguly, nie powody, i nikt go nie aktualizuje po rozmowie na Slacku. Do tego kazda osoba ma wlasnego agenta, a kazdy agent startuje od zera: piec osob to piec agentow codziennie odgadujacych ten sam kontekst. Oszczednosc mnozy sie przez liczbe ludzi.
+
+Czego to kosztuje, zeby nie wygladalo na dolozenie tabelki:
+- Model danych stoi na zalozeniu "wszystko nalezy do jednego usera". projects ma unikalnosc na (user_id, repo_ref), nodes maja user_id, kazda funkcja w service.ts filtruje po user_id. Wlasciciel projektu przenosi sie z usera na zespol, dochodzi tabela czlonkostw i zaproszenia, a kazde zapytanie idzie do przepisania. To nie zmiana dodajaca, to przepisanie modelu bezpieczenstwa.
+- scripts/verify-rest.ts ma blok, ktory dobija sie do kazdego zasobu tokenem drugiego usera i wymaga 404. Tryb zespolowy odwraca to twierdzenie, wiec ten blok tez idzie do przepisania. To dobre miejsce, zeby zobaczyc skale zmiany.
+- Row-Level Security przestaje byc "miloby bylo" z kroku 6 i staje sie wymogiem. Przy jednym userze blad w scope przecieka jego dane do niego samego. W zespole przecieka miedzy ludzmi, przy wielu zespolach miedzy firmami.
+- Hosting przestaje byc lokalnym Dockerem: prawdziwy serwer, zaproszenia, mail, reset hasla, w koncu rozliczenia.
+
+Najtrudniejszy problem nie jest techniczny, jest znaczeniowy. Statusy zakladaja jedna osobe decydujaca: proposed to "nikt tego nie ocenil", confirmed to "ja potwierdzilem". W zespole natychmiast pada pytanie, kto potwierdza. Jesli kazdy, to confirmed nic nie znaczy, bo junior potwierdzi decyzje architektoniczna, ktorej nie rozumie. Jesli tylko wlasciciel, to jest waskim gardlem i kolejka rosnie do stu pozycji. Do tego dwie osoby zapisza tego samego dnia dwie sprzeczne decyzje, obie proposed, obie szczere, i nie ma automatu, ktory to rozstrzygnie. Bez odpowiedzi na to pytanie tryb zespolowy nie ma sensu, choćby cala schema byla gotowa.
+
+Czego w trybie zespolowym NIE robimy na start: uprawnien per rola. Wartosc siedzi we wspolnym czytaniu i w przypisanym zapisie, nie w macierzy uprawnien. Role to osobna warstwa i typowo pierwsza rzecz, ktora niepotrzebnie zabija projekt na tym etapie.
+
+Uboczny skutek: spis treści w boot contextcie (sekcja 6) ma sufit przy okolo stu wezlach. Solo dobije sie do niego po miesiacach, w piecioosobowym zespole po tygodniu. Tryb zespolowy przyspiesza problem, ktory jest juz zapisany.
+
+Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym: uklad rekordu pokazuje autora wpisu obok zrodla, daty i projektu. Dopisanie tego teraz jest darmowe, doklejanie kolumny "kto" do osmiu gotowych ekranow pozniej nie jest. I nie jest to projektowanie na zapas, bo PRODUCT.md juz stanowi, ze kazdy rekord nosi swoja metryczke, a autor jest brakujacym elementem tej metryczki.
+
 ## 14. Swiadomie odlozone
 
 - Mapowanie codebase (AST, call graph): nigdy, to inny projekt (Graphify).
@@ -441,3 +459,4 @@ Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezy
 - Historia wersji tresci wezla: gdy okaze sie potrzebna.
 - Coderzy bez MCP: gdy zajdzie potrzeba.
 - Wlasny klucz Gemini per user vs wspolny klucz aplikacji: MVP na wspolnym, przelacznik w ustawieniach pozniej.
+- Tryb zespolowy: krok 7, z wycena. Budujemy dla jednego usera i dopiero on ma dzialac. Jedyny wyjatek to autor wpisu w warstwie wizualnej, bo retrofit tego jest drogi, a dopisanie darmowe.

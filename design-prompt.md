@@ -46,6 +46,7 @@ Wpis (nazywany w kodzie node):
 - anchors: lista plikow, ktorych wpis dotyczy, kazdy ze sciezka relatywna, opcjonalnie symbolem i hashem
 - data utworzenia, data modyfikacji
 - w wynikach szukania dodatkowo similarity (0 do 1)
+- autor: kto zapisal wpis. Dzis zawsze wlasciciel konta, wiec pole jest nudne. Projektuj je jednak jako osobna pozycje w metryczce, bo docelowo jeden projekt obsluguje kilka osob i kazda ma wlasnego agenta. Uklad rekordu ma to zniesc bez przebudowy, a nie dostac dopisana kolumne pol roku pozniej.
 
 Statusy znacza:
 - `proposed`: zapisane, jeszcze nieocenione przez czlowieka
@@ -152,6 +153,8 @@ Status nigdy samym kolorem. Kazdy z czterech statusow ma osobny kształt znaczni
 `prefers-reduced-motion` respektowane. Pelna obsluga klawiatura, kazdy ekran przechodzi sie Tabem, focus widoczny na kazdym tle, na ktorym moze wyladowac.
 
 Dlugosc wiersza tekstu ciagłego od 65 do 75 znakow. Wpisy maja do 4000 znakow, wiec czytanie dlugiej prozy to normalny przypadek, nie wyjatek.
+
+Metryczka wpisu niesie autora, zrodlo, date, projekt i status, i wszystkie piec musi dac sie odczytac bez klikania. Autor jest dzisiaj zawsze ten sam, wiec nie akcentuj go, ale zarezerwuj mu miejsce: wersja dla kilku osob pracujacych na jednym projekcie jest zaplanowana i wtedy "kto to zapisal" staje sie pierwszym pytaniem, jakie ktos zada patrzac na liste.
 
 ## O co MASZ mnie zapytac
 
