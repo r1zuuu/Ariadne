@@ -107,6 +107,21 @@ for (const route of guarded) {
   check(`${route.method} ${route.path} without a token is 401`, status, 401);
 }
 
+// --- Every error a client can hit is JSON, including the ones Hono answers itself ---
+
+const missing = await call("/nope", { token });
+check("an unknown route is 404", missing.status, 404);
+check("and says so as JSON, not text", missing.body.error, "not_found");
+const unauthorized = await call("/me");
+check("a missing token is JSON too", unauthorized.body.error, "unauthorized");
+const huge = await call("/me/profile", {
+  method: "PUT",
+  token,
+  body: { profile: "x".repeat(70_000) },
+});
+check("an oversized body is 413", huge.status, 413);
+check("and JSON as well", huge.body.error, "too_large");
+
 // --- Account ---
 
 check("profile is empty on a fresh account", (await call("/me", { token })).body.profile, "");
@@ -132,6 +147,12 @@ check(
 const minted = await call("/tokens", { method: "POST", token, body: { label: "laptop" } });
 check("minting a token returns 201", minted.status, 201);
 assert.ok(minted.body.token?.length > 20, "the raw token comes back once");
+
+// Minted and revoked right here, so the later token checks still see one row.
+const unlabelled = await call("/tokens", { method: "POST", token });
+check("a token can be minted with no body at all", unlabelled.status, 201);
+check("its label falls back to empty", unlabelled.body.label, "");
+await call(`/tokens/${unlabelled.body.id}`, { method: "DELETE", token });
 
 const listed = await call("/tokens", { token });
 check("the list holds one token", listed.body.length, 1);

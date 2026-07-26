@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
 import { jwt, sign } from "hono/jwt";
 import * as z from "zod/v4";
@@ -29,10 +30,18 @@ import {
 // Responses are camelCase, unlike the snake_case MCP contract: the only client
 // is the TypeScript app, so a conversion layer would cost code and buy nothing.
 
-const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // desktop app, one login a month is enough
+// ponytail: a 30-day token with no refresh and no revocation list, so a stolen
+// one stays valid until it expires. Fine while the only client is a desktop app
+// on the owner's machine; add refresh plus a jti denylist before anything else
+// holds a token.
+const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 // Pinned on both sides. A verifier that accepts whatever the token's header
 // claims is how alg-confusion attacks get in.
 const JWT_ALG = "HS256";
+// Nothing legitimate comes close: node content caps at 4000 chars and a project
+// card is a handful of short fields. Without a cap the adapter buffers whatever
+// arrives into memory.
+const MAX_BODY_BYTES = 64 * 1024;
 
 // Every route below /auth needs a token, listed one prefix at a time. A single
 // catch-all would also cover /auth and lock out login.
@@ -70,9 +79,12 @@ const cardSchema = z.object({
 // Reading the body and validating it fail the same way for the caller: a 400
 // with a reason, never a 500 on malformed JSON.
 async function readBody<T>(c: Context, schema: z.ZodType<T>): Promise<T> {
+  const text = await c.req.text();
   let raw: unknown;
   try {
-    raw = await c.req.json();
+    // An omitted body is an empty object, not a parse error: a route whose every
+    // field is optional should not demand a literal "{}" from the caller.
+    raw = text ? JSON.parse(text) : {};
   } catch {
     throw new ServiceError("validation", "body must be valid JSON");
   }
@@ -113,6 +125,22 @@ export function createRestApp() {
     console.error("[rest] unexpected error:", error);
     return c.json({ error: "internal", message: "internal error, check the server logs" }, 500);
   });
+
+  // Same reason as the HTTPException branch above: a typo in a URL should not be
+  // the one response a client cannot parse.
+  app.notFound((c) => c.json({ error: "not_found", message: `no route for ${c.req.path}` }, 404));
+
+  // Registered before any route, because middleware only wraps what comes after
+  // it. Scoped to the REST prefixes on purpose: /mcp is added on this same app in
+  // index.ts and hands its raw request stream to the SDK transport, which would
+  // read an empty body if anything here consumed it first.
+  const limit = bodyLimit({
+    maxSize: MAX_BODY_BYTES,
+    // Hono's default 413 body is plain text, same trap as the two above.
+    onError: (c) =>
+      c.json({ error: "too_large", message: `body must be under ${MAX_BODY_BYTES} bytes` }, 413),
+  });
+  for (const prefix of ["/auth/*", ...PROTECTED_PREFIXES]) app.use(prefix, limit);
 
   // --- Public: auth (plan section 10) ---
 
