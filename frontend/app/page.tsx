@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { LabyrinthPlate } from "@/components/labyrinth-plate";
 import { TitleBar, type ServerState } from "@/components/title-bar";
 import { Banner, Button, Field } from "@/components/ui";
-import { ApiError, login, register, serverReachable, serverUrl, writeToken } from "@/lib/api";
+import { ApiError, clearToken, login, readToken, register, serverReachable, serverUrl, writeToken } from "@/lib/api";
 
 // Screen 01. Let the owner into their own base in two fields, without telling
 // them what the product is.
@@ -29,6 +29,12 @@ export default function EntryScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [server, setServer] = useState<ServerState>("checking");
+  // Showing a login form to someone who already holds a token is the one thing
+  // this screen must not do. The main screen is the next piece of work, so until
+  // it exists this branch says where the flow stands instead of pretending.
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => setSignedIn(Boolean(readToken())), []);
 
   const probe = () => {
     setServer("checking");
@@ -70,18 +76,38 @@ export default function EntryScreen() {
         <Banner
           variant="error"
           what={t("server.down", { url: HOST })}
-          means={t("error.server", { url: HOST })}
+          means={t("server.downMeans")}
           action={{ label: t("server.retry"), onClick: probe }}
         />
       ) : null}
 
       <main className="flex min-h-0 flex-1 items-start gap-10 overflow-y-auto px-8 pt-10">
-        <div className="hidden shrink-0 pt-6 lg:block" aria-hidden={false}>
+        <div className="hidden shrink-0 pt-6 lg:block">
           <LabyrinthPlate />
         </div>
 
         <div className="min-w-0 max-w-[560px] flex-1">
-          <h1 className="text-section">{mode === "login" ? t("title") : t("titleRegister")}</h1>
+          <h1 className="text-section">
+            {signedIn ? t("signedIn.title") : mode === "login" ? t("title") : t("titleRegister")}
+          </h1>
+
+          {signedIn ? (
+            <div className="pt-6">
+              <p className="max-w-[68ch] text-body text-ink-2">{t("signedIn.note")}</p>
+              <div className="pt-6">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    clearToken();
+                    setSignedIn(false);
+                  }}
+                >
+                  {t("signedIn.leave")}
+                </Button>
+              </div>
+            </div>
+          ) : (
+          <>
 
           <form onSubmit={submit} className="pt-6">
             <div className="divide-y divide-hairline border-y border-hairline">
@@ -137,6 +163,9 @@ export default function EntryScreen() {
               </Button>
             </div>
           </form>
+
+          </>
+          )}
 
           <p className="pt-7 font-data text-data text-ink-3">
             {t(`server.${server}`, { url: HOST })}
