@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="crossorigin" />
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,300..700;1,7..72,400&family=Martian+Mono:wght@300..700&display=swap" rel="stylesheet" />
+<style>
+  body { margin:0; background: oklch(0.968 0.008 240); color: oklch(0.26 0.02 250); font-family: Literata, Georgia, serif; }
+  a { color: oklch(0.47 0.12 253); text-decoration: none; border-bottom: 1px solid oklch(0.47 0.12 253 / 0.4); }
+  a:hover { color: oklch(0.36 0.12 253); border-bottom-color: oklch(0.36 0.12 253); }
+  ::selection { background: oklch(0.47 0.12 253 / 0.18); }
+  @keyframes thread-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</helmet>
+
+<div style="max-width:1240px; margin:0 auto; padding:72px 48px 160px">
+
+  <header style="display:grid; grid-template-columns: 1fr 470px; gap:48px; align-items:start; padding-bottom:32px">
+    <div>
+      <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Specyfikacja projektowa &nbsp;/&nbsp; Design specification</div>
+      <h1 style="font-family:Literata,serif; font-size:43px; line-height:1.14; font-weight:600; margin:14px 0 0; letter-spacing:-0.01em">Ariadne</h1>
+      <p style="font-size:17px; line-height:1.65; max-width:64ch; color:oklch(0.45 0.02 250); margin:16px 0 0; text-wrap:pretty">Warstwa pamieci dla agentow piszacych kod. Aplikacja desktopowa, okno od 1024 px. Ten dokument jest kompletem wartosci do implementacji: tokeny, komponenty, osiem ekranow ze stanami i tekstami, sygnatura, DESIGN.md.</p>
+      <div style="height:1px; background:oklch(0.47 0.12 253); margin:28px 0 0; transform-origin:left; animation:thread-draw 520ms cubic-bezier(0.16,1,0.3,1) both"></div>
+      <dl style="display:grid; grid-template-columns:max-content 1fr; gap:0 24px; margin:0; font-size:13px">
+        <dt style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); padding:12px 0; border-bottom:1px solid oklch(0.86 0.01 250)">Register</dt>
+        <dd style="margin:0; padding:12px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-family:'Martian Mono',monospace; font-size:12px">product</dd>
+        <dt style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); padding:12px 0; border-bottom:1px solid oklch(0.86 0.01 250)">Osobowosc</dt>
+        <dd style="margin:0; padding:12px 0; border-bottom:1px solid oklch(0.86 0.01 250)">przypisane &middot; rozwazne &middot; ciche</dd>
+        <dt style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); padding:12px 0; border-bottom:1px solid oklch(0.86 0.01 250)">Motyw</dt>
+        <dd style="margin:0; padding:12px 0; border-bottom:1px solid oklch(0.86 0.01 250)">jasny wszedzie, ciemne wylacznie plotno grafu, bez przelacznika</dd>
+        <dt style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); padding:12px 0; border-bottom:1px solid oklch(0.86 0.01 250)">Kroje</dt>
+        <dd style="margin:0; padding:12px 0; border-bottom:1px solid oklch(0.86 0.01 250)">Literata (proza, tytuly) &middot; Martian Mono (dane, etykiety, liczby)</dd>
+      </dl>
+    </div>
+      <figure style="margin:0">
+        <pre style="font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:8.5px; line-height:1.05; color:oklch(0.47 0.12 253); margin:0; overflow:hidden">┌───────────────────────────────────────────────────────────┐
+│                                                           │
+│   ┌────────────────────────   ────────────────────────┐   │
+│   │                                                   │   │
+│   │   ┌───────────────────────────────────────────┐   │   │
+│   │   │                                           │   │   │
+│   │   │   ┌────────────────   ────────────────┐   │   │   │
+│   │   │   │                                   │   │   │   │
+│   │   │   │   ┌───────────────────────────┐   │   │   │   │
+│   │   │   │   │                           │   │   │   │   │
+│   │   │   │   │   ┌────────   ────────┐   │   │   │   │   │
+│   │   │   │   │   │                   │   │   │   │   │   │
+│   │   │   │   │   │   ┌───────────┐   │   │   │   │   │   │
+│   │   │   │   │   │   │           │   │   │   │   │   │   │
+│   │   │   │   │   │   │           │   │   │   │   │   │   │
+│   │   │   │   │   │   │     ●     │   │   │   │   │   │   │
+│   │   │   │   │   │   │     │     │   │   │   │   │   │   │
+│   │   │   │   │   │   │     │     │   │   │   │   │   │   │
+│   │   │   │   │   │   └──── │ ────┘   │   │   │   │   │   │
+│   │   │   │   │   │         │         │   │   │   │   │   │
+│   │   │   │   │   └───────────────────┘   │   │   │   │   │
+│   │   │   │   │             │             │   │   │   │   │
+│   │   │   │   └──────────── │ ────────────┘   │   │   │   │
+│   │   │   │                 │                 │   │   │   │
+│   │   │   └───────────────────────────────────┘   │   │   │
+│   │   │                     │                     │   │   │
+│   │   └──────────────────── │ ────────────────────┘   │   │
+│   │                         │                         │   │
+│   └───────────────────────────────────────────────────┘   │
+│                             │                             │
+└──────────────────────────── │ ────────────────────────────┘</pre>
+        <figcaption style="font-family:'Martian Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:14px; line-height:1.6">Plansza wejscia. Labirynt kretenski rysowany jedna linia, nic wychodzi na dol.<br />Wariant z portretem rzezby wymaga zrodlowego zdjecia, patrz sekcja 8.</figcaption>
+      </figure>
+  </header>
+
+  <!-- ============ 1. AUDIT ============ -->
+  <section id="audit" style="margin-top:112px">
+    <div style="display:flex; align-items:baseline; gap:20px; border-bottom:1px solid oklch(0.62 0.015 250); padding-bottom:12px">
+      <span style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; color:oklch(0.47 0.12 253)">01</span>
+      <h2 style="font-size:27px; font-weight:600; margin:0; letter-spacing:-0.005em">Audyt</h2>
+      <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-left:auto">14 pozycji &middot; 4 decyzje podwazone</span>
+    </div>
+    <p style="font-size:17px; line-height:1.65; max-width:68ch; margin:28px 0 0; text-wrap:pretty">Cztery pozycje uwazam za bledne decyzje, nie za braki. Reszta to dziury, ktore w projekcie musialem czyms zalatac, i te zalatania sa oznaczone w sekcjach ekranow.</p>
+
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:0 56px; margin-top:36px">
+      <div>
+        <div style="border-top:1px solid oklch(0.86 0.01 250); padding:18px 0">
+          <div style="display:flex; gap:14px; align-items:baseline"><span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.505 0.15 27)">A1</span><strong style="font-size:17px; font-weight:600">Sprzecznosc: onboarding kontra terminal</strong></div>
+          <p style="font-size:15px; line-height:1.65; margin:8px 0 0 25px; color:oklch(0.45 0.02 250); max-width:60ch">Krok 3 kaze otworzyc terminal osobie, dla ktorej zabito zmienna srodowiskowa. Jedno polecenie to ulepszenie dla wlasciciela i zero dla drugiej persony. Rozwiazane: krok 3 jest jawnie pomijalny, nie zmniejszonym linkiem, a stan bez agenta jest pelnoprawny.</p>
+        </div>
+        <div style="border-top:1px solid oklch(0.86 0.01 250); padding:18px 0">
+          <div style="display:flex; gap:14px; align-items:baseline"><span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.505 0.15 27)">A2</span><strong style="font-size:17px; font-weight:600">Bledna decyzja: brak GET dla wpisow</strong></div>
+          <p style="font-size:15px; line-height:1.65; margin:8px 0 0 25px; color:oklch(0.45 0.02 250); max-width:60ch">API ma confirm i archive, nie ma czytania. Piec z osmiu ekranow zyje z listy i wyszukiwania. Projektuje na zalozeniu: <span style="font-family:'Martian Mono',monospace; font-size:13px">GET /projects/:id/nodes</span> z filtrem statusu, typu, pliku i kursorem, oraz <span style="font-family:'Martian Mono',monospace; font-size:13px">POST /search</span> zwracajacym similarity. Filtrowanie i sortowanie po stronie serwera, bo 40 pozycji w kolejce to nie gorna granica.</p>
+        </div>
+        <div style="border-top:1px solid oklch(0.86 0.01 250); padding:18px 0">
+          <div style="display:flex; gap:14px; align-items:baseline"><span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.505 0.15 27)">A3</span><strong style="font-size:17px; font-weight:600">Bledna decyzja: contradicted bez producenta</strong></div>
+          <p style="font-size:15px; line-height:1.65; margin:8px 0 0 25px; color:oklch(0.45 0.02 250); max-width:60ch">Status istnieje w modelu, nic go nie nadaje i nic nie mowi, co odwolalo wpis. W zakresie: <span style="font-family:'Martian Mono',monospace; font-size:13px">POST /nodes/:id/contradict</span> z polem <span style="font-family:'Martian Mono',monospace; font-size:13px">supersededBy</span>. Kazdy wpis odwolany pokazuje nic do wpisu, ktory go odwolal, i bez tego odnosnika status jest nieczytelny.</p>
+        </div>
+        <div style="border-top:1px solid oklch(0.86 0.01 250); padding:18px 0">
+          <div style="display:flex; gap:14px; align-items:baseline"><span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.505 0.15 27)">A4</span><strong style="font-size:17px; font-weight:600">Bledna decyzja: czlowiek nie edytuje wpisu</strong></div>
+          <p style="font-size:15px; line-height:1.65; margin:8px 0 0 25px; color:oklch(0.45 0.02 250); max-width:60ch">Poprawa literowki przez prosbe do modelu jest absurdem. W zakresie: <span style="font-family:'Martian Mono',monospace; font-size:13px">PUT /nodes/:id</span> i edycja w miejscu w czytniku. Bez historii wersji, bo jej nie wybrales, ale data modyfikacji i kanal edycji sa widoczne.</p>
+        </div>
+        <div style="border-top:1px solid oklch(0.86 0.01 250); padding:18px 0">
+          <div style="display:flex; gap:14px; align-items:baseline"><span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.505 0.15 27)">A5</span><strong style="font-size:17px; font-weight:600">Bledna decyzja: graf jako trzeci panel</strong></div>
+          <p style="font-size:15px; line-height:1.65; margin:8px 0 0 25px; color:oklch(0.45 0.02 250); max-width:60ch">Ciemne plotno wstawione obok jasnej karty i jasnej listy wyglada jak wklejony widget, a graf calego projektu traci sens okolo 150 wierzcholkow. W projekcie graf to tryb pelnoekranowy wolany z karty, zawsze z zakresem: sasiedztwo wpisu, jeden plik, albo ostatnie 60 wpisow.</p>
+        </div>
+      </div>
+      <div>
+        <div style="border-top:1px solid oklch(0.86 0.01 250); padding:18px 0">
+          <div style="display:flex; gap:14px; align-items:baseline"><span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.63 0.13 78)">A6</span><strong style="font-size:17px; font-weight:600">Ochra nie dojdzie do 4.5:1</strong></div>
+          <p style="font-size:15px; line-height:1.65; margin:8px 0 0 25px; color:oklch(0.45 0.02 250); max-width:60ch">Szafran na chlodnym tynku musi zejsc do palonej ochry, zeby uniesc tekst. Nasycony pigment zyje tylko na znaczniku, gdzie wystarcza 3:1. Wartosci w sekcji 03.</p>
+        </div>
+        <div style="border-top:1px solid oklch(0.86 0.01 250); padding:18px 0">
+          <div style="display:flex; gap:14px; align-items:baseline"><span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.63 0.13 78)">A7</span><strong style="font-size:17px; font-weight:600">Mono na tytulach kontra zakaz przebrania</strong></div>
+          <p style="font-size:15px; line-height:1.65; margin:8px 0 0 25px; color:oklch(0.45 0.02 250); max-width:60ch">Martian Mono na tytulach plus kapitaliki w etykietach oddaja wiekszosc powierzchni jednej grubosci, co jest najkrotsza droga do terminalowego kostiumu, a polskie naglowki w mono sa nadmiernie szerokie. Zamienione: Literata prowadzi, mono trzyma dane.</p>
+        </div>
+        <div style="border-top:1px solid oklch(0.86 0.01 250); padding:18px 0">
+          <div style="display:flex; gap:14px; align-items:baseline"><span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.63 0.13 78)">A8</span><strong style="font-size:17px; font-weight:600">Offline jest nieprawda</strong></div>
+          <p style="font-size:15px; line-height:1.65; margin:8px 0 0 25px; color:oklch(0.45 0.02 250); max-width:60ch">Embeddingi i model rozbijajacy tekst to siec. Lokalne fonty to nie offline. Rozdzielone na trzy rozne awarie: serwer nie wstal, brak sieci, klucz modelu odrzucony. Kazda ma inny komunikat i inny zakres blokady, patrz ekran 03 i 08.</p>
+        </div>
+        <div style="border-top:1px solid oklch(0.86 0.01 250); padding:18px 0">
+          <div style="display:flex; gap:14px; align-items:baseline"><span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.63 0.13 78)">A9</span><strong style="font-size:17px; font-weight:600">Kolejke wolno olewac, ale nie bezkarnie</strong></div>
+          <p style="font-size:15px; line-height:1.65; margin:8px 0 0 25px; color:oklch(0.45 0.02 250); max-width:60ch">Jesli proposed wazy w szukaniu tyle samo co confirmed, ignorowanie kolejki psuje baze. Wybrales oznaczanie: wpis nieoceniony ma znacznik i etykiete rowniez w wynikach i w cytowaniach asystenta.</p>
+        </div>
+        <div style="border-top:1px solid oklch(0.86 0.01 250); padding:18px 0">
+          <div style="display:flex; gap:14px; align-items:baseline"><span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.53 0.015 250)">A10</span><strong style="font-size:17px; font-weight:600">Braki poza zakresem</strong></div>
+          <p style="font-size:15px; line-height:1.65; margin:8px 0 0 25px; color:oklch(0.45 0.02 250); max-width:60ch">Historia wersji, wspoldzielenie bazy miedzy kontami, konflikt rownoleglej edycji czlowieka i agenta, karta projektu bez repo_ref, koszt tokenow modelu. Terminy powrotu w sekcji 08.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. NAVIGATION VARIANTS ============ -->
+  <section id="nav" style="margin-top:112px">
+    <div style="display:flex; align-items:baseline; gap:20px; border-bottom:1px solid oklch(0.62 0.015 250); padding-bottom:12px">
+      <span style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; color:oklch(0.47 0.12 253)">02</span>
+      <h2 style="font-size:27px; font-weight:600; margin:0">Nawigacja, trzy warianty</h2>
+      <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-left:auto">rekomendacja: <a href="#2c">2c</a></span>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:32px; margin-top:36px">
+
+      <div id="2a">
+        <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.1em; padding:3px 7px; background:oklch(0.941 0.01 240); border:1px solid oklch(0.86 0.01 250)">2a</span><strong style="font-size:17px; font-weight:600">Kolumna dwupoziomowa</strong></div>
+        <div style="margin-top:16px; background:oklch(0.985 0.005 240); border:1px solid oklch(0.86 0.01 250); height:210px; display:grid; grid-template-columns:74px 1fr; overflow:hidden">
+          <div style="background:oklch(0.941 0.01 240); border-right:1px solid oklch(0.86 0.01 250); padding:10px 8px; display:flex; flex-direction:column; gap:9px">
+            <div style="font-family:'Martian Mono',monospace; font-size:7px; letter-spacing:0.08em; color:oklch(0.47 0.12 253)">ARIADNE</div>
+            <div style="height:1px; background:oklch(0.86 0.01 250)"></div>
+            <div style="height:8px; background:oklch(0.47 0.12 253 / 0.16); border-left:1px solid oklch(0.47 0.12 253)"></div>
+            <div style="height:8px; background:oklch(0.86 0.01 250 / 0.7)"></div>
+            <div style="height:8px; background:oklch(0.86 0.01 250 / 0.7)"></div>
+            <div style="margin-top:auto; height:8px; background:oklch(0.86 0.01 250 / 0.7)"></div>
+          </div>
+          <div style="padding:10px; display:flex; flex-direction:column; gap:8px">
+            <div style="display:flex; gap:8px">
+              <div style="font-family:'Martian Mono',monospace; font-size:7px; color:oklch(0.53 0.015 250)">ariadne-core</div>
+              <div style="font-family:'Martian Mono',monospace; font-size:7px; color:oklch(0.53 0.015 250); margin-left:auto">— □ ×</div>
+            </div>
+            <div style="display:flex; gap:10px; border-bottom:1px solid oklch(0.86 0.01 250); padding-bottom:6px">
+              <div style="width:34px; height:6px; background:oklch(0.47 0.12 253)"></div>
+              <div style="width:26px; height:6px; background:oklch(0.86 0.01 250)"></div>
+              <div style="width:30px; height:6px; background:oklch(0.86 0.01 250)"></div>
+              <div style="width:22px; height:6px; background:oklch(0.86 0.01 250)"></div>
+            </div>
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+          </div>
+        </div>
+        <p style="font-size:15px; line-height:1.65; color:oklch(0.45 0.02 250); margin:14px 0 0">Globalne w kolumnie (projekty, kolejka, ustawienia), ekrany projektu jako zakladki w tresci. Zawsze wiadomo, gdzie jestes. Koszt: dwa paski nawigacji nad soba i 74 px zjedzone na stale przy oknie 1024.</p>
+      </div>
+
+      <div id="2b">
+        <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.1em; padding:3px 7px; background:oklch(0.941 0.01 240); border:1px solid oklch(0.86 0.01 250)">2b</span><strong style="font-size:17px; font-weight:600">Pasek tytulu jako nawigacja</strong></div>
+        <div style="margin-top:16px; background:oklch(0.985 0.005 240); border:1px solid oklch(0.86 0.01 250); height:210px; display:flex; flex-direction:column; overflow:hidden">
+          <div style="background:oklch(0.941 0.01 240); border-bottom:1px solid oklch(0.86 0.01 250); padding:8px 10px; display:flex; gap:10px; align-items:center">
+            <div style="font-family:'Martian Mono',monospace; font-size:7px; letter-spacing:0.08em; color:oklch(0.47 0.12 253)">ARIADNE</div>
+            <div style="font-family:'Martian Mono',monospace; font-size:7px; color:oklch(0.26 0.02 250)">ariadne-core ▾</div>
+            <div style="font-family:'Martian Mono',monospace; font-size:7px; color:oklch(0.53 0.015 250); margin-left:auto">— □ ×</div>
+          </div>
+          <div style="display:flex; gap:10px; padding:7px 10px; border-bottom:1px solid oklch(0.86 0.01 250)">
+            <div style="width:34px; height:6px; background:oklch(0.47 0.12 253)"></div>
+            <div style="width:26px; height:6px; background:oklch(0.86 0.01 250)"></div>
+            <div style="width:30px; height:6px; background:oklch(0.86 0.01 250)"></div>
+            <div style="width:22px; height:6px; background:oklch(0.86 0.01 250)"></div>
+            <div style="width:14px; height:6px; background:oklch(0.63 0.13 78)"></div>
+          </div>
+          <div style="padding:10px; display:flex; flex-direction:column; gap:8px">
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+          </div>
+        </div>
+        <p style="font-size:15px; line-height:1.65; color:oklch(0.45 0.02 250); margin:14px 0 0">Pelna szerokosc dla tresci, przelacznik projektu wbudowany w pasek okna. Najlepsze dla czytania wpisow. Koszt: kolejka i ustawienia znikaja z pola widzenia, licznik oczekujacych musi walczyc o miejsce w pasku zakladek.</p>
+      </div>
+
+      <div id="2c">
+        <div style="display:flex; align-items:baseline; gap:12px"><span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.1em; padding:3px 7px; background:oklch(0.47 0.12 253); color:oklch(0.985 0.005 240); border:1px solid oklch(0.47 0.12 253)">2c</span><strong style="font-size:17px; font-weight:600">Kolumna zwijana plus paleta</strong></div>
+        <div style="margin-top:16px; background:oklch(0.985 0.005 240); border:1px solid oklch(0.47 0.12 253); height:210px; display:grid; grid-template-columns:96px 1fr; overflow:hidden; position:relative">
+          <div style="background:oklch(0.941 0.01 240); border-right:1px solid oklch(0.86 0.01 250); padding:10px 8px; display:flex; flex-direction:column; gap:7px">
+            <div style="font-family:'Martian Mono',monospace; font-size:7px; letter-spacing:0.08em; color:oklch(0.47 0.12 253)">ARIADNE</div>
+            <div style="font-family:'Martian Mono',monospace; font-size:6.5px; color:oklch(0.26 0.02 250); border:1px solid oklch(0.86 0.01 250); padding:3px 4px">ariadne-core ▾</div>
+            <div style="height:7px; background:oklch(0.47 0.12 253 / 0.16); border-left:1px solid oklch(0.47 0.12 253)"></div>
+            <div style="height:7px; background:oklch(0.86 0.01 250 / 0.7)"></div>
+            <div style="height:7px; background:oklch(0.86 0.01 250 / 0.7)"></div>
+            <div style="height:7px; background:oklch(0.86 0.01 250 / 0.7)"></div>
+            <div style="margin-top:auto; display:flex; gap:4px; align-items:center"><span style="font-family:'Martian Mono',monospace; font-size:6px; color:oklch(0.53 0.015 250)">⌘K</span><span style="height:1px; flex:1; background:oklch(0.86 0.01 250)"></span></div>
+          </div>
+          <div style="padding:10px; display:flex; flex-direction:column; gap:8px">
+            <div style="display:flex"><div style="font-family:'Martian Mono',monospace; font-size:7px; color:oklch(0.53 0.015 250); margin-left:auto">— □ ×</div></div>
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+            <div style="height:9px; background:oklch(0.941 0.01 240)"></div>
+          </div>
+          <div style="position:absolute; left:50%; top:52px; transform:translateX(-50%); width:190px; background:oklch(0.985 0.005 240); border:1px solid oklch(0.62 0.015 250); box-shadow:0 8px 24px oklch(0.26 0.02 250 / 0.14); padding:7px">
+            <div style="font-family:'Martian Mono',monospace; font-size:6.5px; color:oklch(0.53 0.015 250); border-bottom:1px solid oklch(0.86 0.01 250); padding-bottom:4px">zapytaj bazy_</div>
+            <div style="height:6px; background:oklch(0.47 0.12 253 / 0.16); margin-top:5px"></div>
+            <div style="height:6px; background:oklch(0.941 0.01 240); margin-top:4px"></div>
+            <div style="height:6px; background:oklch(0.941 0.01 240); margin-top:4px"></div>
+          </div>
+        </div>
+        <p style="font-size:15px; line-height:1.65; color:oklch(0.45 0.02 250); margin:14px 0 0"><strong style="font-weight:600">Rekomendacja.</strong> Kolumna 200 px z etykietami, zwijana do 56 px skrotem albo automatycznie ponizej 1180 px szerokosci okna. Paleta na <span style="font-family:'Martian Mono',monospace; font-size:13px">Cmd K</span> robi to samo plus szukanie po wpisach. Cztery akcje z planu ekranu glownego zyja w palecie, nie jako przyciski.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:28px; border-top:1px solid oklch(0.86 0.01 250); padding-top:20px; display:grid; grid-template-columns:180px 1fr; gap:32px">
+      <div style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Co widac zawsze</div>
+      <div style="font-size:17px; line-height:1.65; max-width:68ch">Kolumna: przelacznik projektu, cztery pozycje projektu (Przeglad, Wpisy, Asystent, Baza), Do zatwierdzenia z licznikiem, Ustawienia na dole. Wszystko ponizej przelacznika jest zalezne od projektu i przy braku wybranego projektu kolumna pokazuje tylko Projekty, Do zatwierdzenia i Ustawienia. Graf nie jest pozycja w kolumnie, bo jest trybem, nie miejscem.</div>
+    </div>
+  </section>
+
+  <!-- ============ 3. TOKENS ============ -->
+  <section id="tokens" style="margin-top:112px">
+    <div style="display:flex; align-items:baseline; gap:20px; border-bottom:1px solid oklch(0.62 0.015 250); padding-bottom:12px">
+      <span style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; color:oklch(0.47 0.12 253)">03</span>
+      <h2 style="font-size:27px; font-weight:600; margin:0">Tokeny</h2>
+    </div>
+
+    <h3 style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; text-transform:uppercase; font-weight:500; margin:40px 0 0; color:oklch(0.45 0.02 250)">Kolor</h3>
+    <p style="font-size:17px; line-height:1.65; max-width:68ch; margin:12px 0 0">Kontrast liczony wzorem WCAG 2.x wobec tla, na ktorym token faktycznie leci: <span style="font-family:'Martian Mono',monospace; font-size:14px">--plaster</span> dla wszystkiego poza grafem, <span style="font-family:'Martian Mono',monospace; font-size:14px">--canvas</span> dla grafu. Zaden neutralny odcien nie jest czysty, kazdy ma 0.008 do 0.020 chromy w strone akcentu.</p>
+
+    <div style="margin-top:24px">
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; font-family:'Martian Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:oklch(0.53 0.015 250); border-bottom:1px solid oklch(0.62 0.015 250); padding-bottom:8px">
+        <div></div><div>Token</div><div>OKLCH</div><div>Kontrast</div><div>Uzycie</div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.968 0.008 240); border:1px solid oklch(0.86 0.01 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--plaster</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.968 0.008 240</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">tlo</div>
+        <div style="font-size:15px; line-height:1.5">Tynk wapienny. Tlo aplikacji, jedno, bez wyjatkow.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.985 0.005 240); border:1px solid oklch(0.86 0.01 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--plaster-raised</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.985 0.005 240</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">1.06:1</div>
+        <div style="font-size:15px; line-height:1.5">Powierzchnia czytania: czytnik wpisu, paleta, pola formularzy.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.941 0.01 240); border:1px solid oklch(0.86 0.01 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--plaster-sunk</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.941 0.010 240</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">1.06:1</div>
+        <div style="font-size:15px; line-height:1.5">Kolumna nawigacji, pasek tytulu, hover wiersza, blok danych.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.26 0.02 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--ink</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.260 0.020 250</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.47 0.12 253)">14.2:1</div>
+        <div style="font-size:15px; line-height:1.5">Proza wpisow, tytuly, wartosci w metryczkach.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.45 0.02 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--ink-2</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.450 0.020 250</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.47 0.12 253)">6.8:1</div>
+        <div style="font-size:15px; line-height:1.5">Tekst drugorzedny, zajawki, opisy pol.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.53 0.015 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--ink-3</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.530 0.015 250</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.47 0.12 253)">4.8:1</div>
+        <div style="font-size:15px; line-height:1.5">Etykiety monospace, daty, sciezki. Dolna granica dla tekstu.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.62 0.015 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--edge</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.620 0.015 250</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.47 0.12 253)">3.3:1</div>
+        <div style="font-size:15px; line-height:1.5">Obramowania elementow interaktywnych. Minimum 3:1 wymuszone przez WCAG 2.2.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.86 0.01 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--hairline</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.860 0.010 250</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">1.4:1</div>
+        <div style="font-size:15px; line-height:1.5">Wlosowa linia miedzy rzedami. Dekoracja, nigdy nie niesie znaczenia.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.47 0.12 253)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--blue</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.470 0.120 253</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.47 0.12 253)">6.0:1</div>
+        <div style="font-size:15px; line-height:1.5">Blekit egipski. Akcent, nic, status <span style="font-family:'Martian Mono',monospace; font-size:13px">confirmed</span>, focus.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.72 0.12 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--blue-lift</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.720 0.120 250</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.47 0.12 253)">6.0:1 na canvas</div>
+        <div style="font-size:15px; line-height:1.5">Ten sam pigment podniesiony dla ciemnego plotna grafu. Nie wolno go uzyc na tynku (2.2:1).</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.52 0.105 78)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--ochre</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.520 0.105 78</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.47 0.12 253)">4.9:1</div>
+        <div style="font-size:15px; line-height:1.5">Ochra palona. Tekst i etykieta statusu <span style="font-family:'Martian Mono',monospace; font-size:13px">proposed</span>.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.63 0.13 78)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--ochre-mark</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.630 0.130 78</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.47 0.12 253)">3.2:1</div>
+        <div style="font-size:15px; line-height:1.5">Szafran. Wylacznie znacznik i wypelnienie wierzcholka, nigdy tekst.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.505 0.15 27)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--iron</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.505 0.150 27</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.47 0.12 253)">5.9:1</div>
+        <div style="font-size:15px; line-height:1.5">Czerwien zelazowa. Status <span style="font-family:'Martian Mono',monospace; font-size:13px">contradicted</span>, usuniecia w diffie, bledy pol.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.5 0.012 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--slate</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.500 0.012 250</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.47 0.12 253)">5.5:1</div>
+        <div style="font-size:15px; line-height:1.5">Status <span style="font-family:'Martian Mono',monospace; font-size:13px">archived</span>. Jedyny status bez chromy, bo nieaktualnosc to brak barwy.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.22 0.02 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--canvas</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.220 0.020 250</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">tlo grafu</div>
+        <div style="font-size:15px; line-height:1.5">Plotno grafu i nic tylko tam. Nie jest drugim motywem, nie ma przelacznika.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:52px 1.15fr 1.5fr 92px 1fr; gap:0 20px; align-items:center; border-bottom:1px solid oklch(0.86 0.01 250); padding:11px 0">
+        <div style="height:26px; background:oklch(0.93 0.01 240); border:1px solid oklch(0.86 0.01 250)"></div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--canvas-ink</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">0.930 0.010 240</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.47 0.12 253)">15.8:1 na canvas</div>
+        <div style="font-size:15px; line-height:1.5">Etykiety wierzcholkow i tekst panelu w grafie.</div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:56px; margin-top:36px">
+      <div>
+        <h4 style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; font-weight:500; margin:0; color:oklch(0.53 0.015 250)">Cztery statusy, cztery ksztalty</h4>
+        <p style="font-size:15px; line-height:1.65; margin:10px 0 16px; color:oklch(0.45 0.02 250)">Znacznik 10 px, zawsze z napisem, zawsze rozny ksztaltem. Test: wydrukuj w skali szarosci i rozpoznaj kazdy.</p>
+        <div style="display:flex; flex-direction:column; gap:0">
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px solid oklch(0.86 0.01 250)">
+            <span style="width:10px; height:10px; background:oklch(0.47 0.12 253); flex:none"></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.06em; color:oklch(0.47 0.12 253); width:130px">POTWIERDZONY</span>
+            <span style="font-size:15px; color:oklch(0.45 0.02 250)">pelny kwadrat, blekit</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px solid oklch(0.86 0.01 250)">
+            <span style="width:10px; height:10px; border:1.5px solid oklch(0.63 0.13 78); transform:rotate(45deg); flex:none"></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.06em; color:oklch(0.52 0.105 78); width:130px">PROPONOWANY</span>
+            <span style="font-size:15px; color:oklch(0.45 0.02 250)">pusty romb, ochra</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px solid oklch(0.86 0.01 250)">
+            <span style="width:10px; height:10px; border:1.5px solid oklch(0.505 0.15 27); background:linear-gradient(to bottom right, transparent 44%, oklch(0.505 0.15 27) 44%, oklch(0.505 0.15 27) 56%, transparent 56%); flex:none"></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.06em; color:oklch(0.505 0.15 27); width:130px">ODWOLANY</span>
+            <span style="font-size:15px; color:oklch(0.45 0.02 250)">kwadrat przekreslony, czerwien</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-top:1px solid oklch(0.86 0.01 250); border-bottom:1px solid oklch(0.86 0.01 250)">
+            <span style="width:10px; height:3px; background:oklch(0.5 0.012 250); flex:none"></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.06em; color:oklch(0.5 0.012 250); width:130px">ZARCHIWIZOWANY</span>
+            <span style="font-size:15px; color:oklch(0.45 0.02 250)">plaska belka, szarosc</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h4 style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; font-weight:500; margin:0; color:oklch(0.53 0.015 250)">Krawedzie grafu</h4>
+        <p style="font-size:15px; line-height:1.65; margin:10px 0 16px; color:oklch(0.45 0.02 250)">Dwa zrodla krawedzi musza sie roznic znaczeniowo, wiec roznia sie ksztaltem linii, nie tylko barwa.</p>
+        <div style="background:oklch(0.22 0.02 250); padding:20px; display:flex; flex-direction:column; gap:16px">
+          <div style="display:flex; align-items:center; gap:14px">
+            <span style="width:64px; height:1px; background:oklch(0.72 0.12 250); flex:none"></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.93 0.01 240); letter-spacing:0.06em">WSPOLNY PLIK</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:10px; color:oklch(0.72 0.12 250); margin-left:auto">1 px ciagla</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px">
+            <span style="width:64px; height:1px; background:repeating-linear-gradient(to right, oklch(0.72 0.12 250) 0 3px, transparent 3px 7px); flex:none"></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.93 0.01 240); letter-spacing:0.06em">PODOBIENSTWO &gt; 0.75</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:10px; color:oklch(0.72 0.12 250); margin-left:auto">1 px kreskowana</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px">
+            <span style="width:64px; height:1px; background:oklch(0.505 0.15 27); flex:none; box-shadow:0 0 0 0"></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.93 0.01 240); letter-spacing:0.06em">ODWOLUJE</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:10px; color:oklch(0.505 0.15 27); margin-left:auto">1 px ze strzalka</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; text-transform:uppercase; font-weight:500; margin:56px 0 0; color:oklch(0.45 0.02 250)">Typografia</h3>
+    <p style="font-size:17px; line-height:1.65; max-width:68ch; margin:12px 0 0">Stosunek 1.26 miedzy stopniami, siedem stopni, dwa kroje, cztery grubosci razem. Proza zawsze 17 px w kolumnie 68 znakow, bo wpis do 4000 znakow to normalny przypadek czytania.</p>
+    <div style="margin-top:24px; border-top:1px solid oklch(0.62 0.015 250)">
+      <div style="display:grid; grid-template-columns:150px 200px 1fr; gap:24px; align-items:baseline; padding:16px 0; border-bottom:1px solid oklch(0.86 0.01 250)">
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--text-display</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.53 0.015 250); line-height:1.6">43 / 49 / 600<br />Literata, -0.01em</div>
+        <div style="font-family:Literata,serif; font-size:43px; line-height:1.14; font-weight:600; letter-spacing:-0.01em">Ariadne</div>
+      </div>
+      <div style="display:grid; grid-template-columns:150px 200px 1fr; gap:24px; align-items:baseline; padding:16px 0; border-bottom:1px solid oklch(0.86 0.01 250)">
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--text-title</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.53 0.015 250); line-height:1.6">34 / 41 / 600<br />Literata</div>
+        <div style="font-family:Literata,serif; font-size:34px; line-height:1.2; font-weight:600">Do zatwierdzenia</div>
+      </div>
+      <div style="display:grid; grid-template-columns:150px 200px 1fr; gap:24px; align-items:baseline; padding:16px 0; border-bottom:1px solid oklch(0.86 0.01 250)">
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--text-section</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.53 0.015 250); line-height:1.6">27 / 34 / 600<br />Literata</div>
+        <div style="font-family:Literata,serif; font-size:27px; line-height:1.26; font-weight:600">Ostatnie wpisy</div>
+      </div>
+      <div style="display:grid; grid-template-columns:150px 200px 1fr; gap:24px; align-items:baseline; padding:16px 0; border-bottom:1px solid oklch(0.86 0.01 250)">
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--text-lead</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.53 0.015 250); line-height:1.6">21 / 32 / 500<br />Literata</div>
+        <div style="font-family:Literata,serif; font-size:21px; line-height:1.5; font-weight:500">Pierwsze zdanie wpisu jako naglowek wiersza</div>
+      </div>
+      <div style="display:grid; grid-template-columns:150px 200px 1fr; gap:24px; align-items:baseline; padding:16px 0; border-bottom:1px solid oklch(0.86 0.01 250)">
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--text-body</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.53 0.015 250); line-height:1.6">17 / 28 / 400<br />Literata, 68ch</div>
+        <div style="font-family:Literata,serif; font-size:17px; line-height:1.65; max-width:68ch">Odrzucilismy kolejke zadan w Postgresie, bo jedna instancja Tauri nie potrzebuje brokera, a kazda dodatkowa usluga to kolejny proces do wystartowania przy uruchomieniu aplikacji.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:150px 200px 1fr; gap:24px; align-items:baseline; padding:16px 0; border-bottom:1px solid oklch(0.86 0.01 250)">
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--text-small</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.53 0.015 250); line-height:1.6">15 / 25 / 400<br />Literata</div>
+        <div style="font-family:Literata,serif; font-size:15px; line-height:1.65; color:oklch(0.45 0.02 250)">Zajawka, opis pola, tekst pomocniczy pod formularzem.</div>
+      </div>
+      <div style="display:grid; grid-template-columns:150px 200px 1fr; gap:24px; align-items:baseline; padding:16px 0; border-bottom:1px solid oklch(0.86 0.01 250)">
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--text-data</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.53 0.015 250); line-height:1.6">13 / 20 / 400<br />Martian Mono</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; line-height:1.55">src/graph/edges.ts &nbsp; 2026-07-19 14:02 &nbsp; 0.82</div>
+      </div>
+      <div style="display:grid; grid-template-columns:150px 200px 1fr; gap:24px; align-items:baseline; padding:16px 0; border-bottom:1px solid oklch(0.86 0.01 250)">
+        <div style="font-family:'Martian Mono',monospace; font-size:12px">--text-label</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.53 0.015 250); line-height:1.6">11 / 16 / 500<br />Martian Mono, 0.12em, caps</div>
+        <div style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; font-weight:500">Repozytorium &middot; Etap &middot; Ograniczenia</div>
+      </div>
+    </div>
+    <p style="font-size:15px; line-height:1.65; max-width:68ch; margin:16px 0 0; color:oklch(0.45 0.02 250)">Etykieta monospace ma twardy limit 24 znakow. Dluzsza etykieta w kapitalikach z rozstrzeleniem lamie sie na dwie linie i przestaje byc etykieta, wiec wtedy idzie do <span style="font-family:'Martian Mono',monospace; font-size:13px">--text-small</span> bez kapitalikow. Cyfry w mono zawsze <span style="font-family:'Martian Mono',monospace; font-size:13px">tabular-nums</span>, bo liczniki kolejki zmieniaja sie na oczach.</p>
+
+    <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:56px; margin-top:56px">
+      <div>
+        <h3 style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; text-transform:uppercase; font-weight:500; margin:0; color:oklch(0.45 0.02 250)">Odstepy</h3>
+        <p style="font-size:15px; line-height:1.65; margin:12px 0 20px; color:oklch(0.45 0.02 250)">Siatka 4 px, dziesiec stopni. Uzasadnienie liczby stopni: aplikacja ma trzy rozne gestosci na raz i kazda potrzebuje pary wartosci (wewnetrzna i miedzy elementami), do tego dwa stopnie skrajne, ktorych zaden uklad nie dzieli.</p>
+        <div style="display:flex; flex-direction:column">
+          <div style="display:grid; grid-template-columns:64px 1fr 64px; gap:16px; align-items:center; border-top:1px solid oklch(0.86 0.01 250); padding:8px 0"><span style="font-family:'Martian Mono',monospace; font-size:12px">space-1</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">2 px &middot; przesuniecie znacznika do linii bazowej</span><span style="height:8px; width:2px; background:oklch(0.47 0.12 253); justify-self:end"></span></div>
+          <div style="display:grid; grid-template-columns:64px 1fr 64px; gap:16px; align-items:center; border-top:1px solid oklch(0.86 0.01 250); padding:8px 0"><span style="font-family:'Martian Mono',monospace; font-size:12px">space-2</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">4 px &middot; znacznik do etykiety statusu</span><span style="height:8px; width:4px; background:oklch(0.47 0.12 253); justify-self:end"></span></div>
+          <div style="display:grid; grid-template-columns:64px 1fr 64px; gap:16px; align-items:center; border-top:1px solid oklch(0.86 0.01 250); padding:8px 0"><span style="font-family:'Martian Mono',monospace; font-size:12px">space-3</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">8 px &middot; wnetrze wiersza listy (gestosc danych)</span><span style="height:8px; width:8px; background:oklch(0.47 0.12 253); justify-self:end"></span></div>
+          <div style="display:grid; grid-template-columns:64px 1fr 64px; gap:16px; align-items:center; border-top:1px solid oklch(0.86 0.01 250); padding:8px 0"><span style="font-family:'Martian Mono',monospace; font-size:12px">space-4</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">12 px &middot; miedzy wierszami, wnetrze pola formularza</span><span style="height:8px; width:12px; background:oklch(0.47 0.12 253); justify-self:end"></span></div>
+          <div style="display:grid; grid-template-columns:64px 1fr 64px; gap:16px; align-items:center; border-top:1px solid oklch(0.86 0.01 250); padding:8px 0"><span style="font-family:'Martian Mono',monospace; font-size:12px">space-5</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">16 px &middot; wnetrze panelu (gestosc formularza)</span><span style="height:8px; width:16px; background:oklch(0.47 0.12 253); justify-self:end"></span></div>
+          <div style="display:grid; grid-template-columns:64px 1fr 64px; gap:16px; align-items:center; border-top:1px solid oklch(0.86 0.01 250); padding:8px 0"><span style="font-family:'Martian Mono',monospace; font-size:12px">space-6</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">24 px &middot; miedzy grupami pol, wnetrze czytnika</span><span style="height:8px; width:24px; background:oklch(0.47 0.12 253); justify-self:end"></span></div>
+          <div style="display:grid; grid-template-columns:64px 1fr 64px; gap:16px; align-items:center; border-top:1px solid oklch(0.86 0.01 250); padding:8px 0"><span style="font-family:'Martian Mono',monospace; font-size:12px">space-7</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">32 px &middot; miedzy sekcjami ekranu (gestosc czytania)</span><span style="height:8px; width:32px; background:oklch(0.47 0.12 253); justify-self:end"></span></div>
+          <div style="display:grid; grid-template-columns:64px 1fr 64px; gap:16px; align-items:center; border-top:1px solid oklch(0.86 0.01 250); padding:8px 0"><span style="font-family:'Martian Mono',monospace; font-size:12px">space-8</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">48 px &middot; margines tresci ekranu</span><span style="height:8px; width:48px; background:oklch(0.47 0.12 253); justify-self:end"></span></div>
+          <div style="display:grid; grid-template-columns:64px 1fr 64px; gap:16px; align-items:center; border-top:1px solid oklch(0.86 0.01 250); padding:8px 0"><span style="font-family:'Martian Mono',monospace; font-size:12px">space-9</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">72 px &middot; oddech nad naglowkiem ekranu</span><span style="height:8px; width:64px; background:oklch(0.47 0.12 253); justify-self:end"></span></div>
+          <div style="display:grid; grid-template-columns:64px 1fr 64px; gap:16px; align-items:center; border-top:1px solid oklch(0.86 0.01 250); border-bottom:1px solid oklch(0.86 0.01 250); padding:8px 0"><span style="font-family:'Martian Mono',monospace; font-size:12px">space-10</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">112 px &middot; plansza wejscia i pusta baza, tylko tam</span><span style="height:8px; width:64px; background:repeating-linear-gradient(to right, oklch(0.47 0.12 253) 0 6px, transparent 6px 10px); justify-self:end"></span></div>
+        </div>
+        <p style="font-size:15px; line-height:1.65; margin:16px 0 0; color:oklch(0.45 0.02 250)">Zakaz: <span style="font-family:'Martian Mono',monospace; font-size:13px">space-5</span> jako domyslny wszedzie. Wiersz listy nigdy nie dostaje odstepu panelu, panel nigdy nie dostaje odstepu wiersza.</p>
+      </div>
+      <div>
+        <h3 style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; text-transform:uppercase; font-weight:500; margin:0; color:oklch(0.45 0.02 250)">Promienie i krawedzie</h3>
+        <div style="margin-top:12px; border-top:1px solid oklch(0.86 0.01 250)">
+          <div style="display:grid; grid-template-columns:76px 1fr; gap:16px; align-items:center; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250)"><span style="font-family:'Martian Mono',monospace; font-size:12px">radius-0</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">0 px. Domyslnie wszystko: panele, wiersze, plansze, graf.</span></div>
+          <div style="display:grid; grid-template-columns:76px 1fr; gap:16px; align-items:center; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250)"><span style="font-family:'Martian Mono',monospace; font-size:12px">radius-1</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">2 px. Wylacznie to, co sie klika albo w co sie pisze: przyciski, pola, chipy filtrow.</span></div>
+          <div style="display:grid; grid-template-columns:76px 1fr; gap:16px; align-items:center; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250)"><span style="font-family:'Martian Mono',monospace; font-size:12px">radius-full</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">Nie istnieje. Zaden token nie daje pigulki ani kolka.</span></div>
+        </div>
+        <p style="font-size:15px; line-height:1.65; margin:14px 0 0; color:oklch(0.45 0.02 250)">Cienie: dokladnie jeden, <span style="font-family:'Martian Mono',monospace; font-size:13px">0 8px 24px oklch(0.26 0.02 250 / 0.14)</span>, tylko dla paletty polecen i menu kontekstowego, czyli dla rzeczy naprawde unoszacych sie nad ekranem. Karty nie maja cieni, maja krawedz.</p>
+
+        <h3 style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; text-transform:uppercase; font-weight:500; margin:40px 0 0; color:oklch(0.45 0.02 250)">Ruch</h3>
+        <div style="margin-top:12px; border-top:1px solid oklch(0.86 0.01 250)">
+          <div style="display:grid; grid-template-columns:76px 1fr; gap:16px; align-items:baseline; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250)"><span style="font-family:'Martian Mono',monospace; font-size:12px">dur-state</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">120 ms, <span style="font-family:'Martian Mono',monospace; font-size:12px">cubic-bezier(0.22,1,0.36,1)</span>. Hover, focus, zmiana statusu.</span></div>
+          <div style="display:grid; grid-template-columns:76px 1fr; gap:16px; align-items:baseline; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250)"><span style="font-family:'Martian Mono',monospace; font-size:12px">dur-enter</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">200 ms, ta sama krzywa. Pojawienie sie palety, czytnika, panelu grafu. Tylko krycie.</span></div>
+          <div style="display:grid; grid-template-columns:76px 1fr; gap:16px; align-items:baseline; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250)"><span style="font-family:'Martian Mono',monospace; font-size:12px">dur-thread</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">420 ms, <span style="font-family:'Martian Mono',monospace; font-size:12px">cubic-bezier(0.16,1,0.3,1)</span>. Jedyna choreografia w aplikacji, rysowanie nici.</span></div>
+        </div>
+        <p style="font-size:15px; line-height:1.65; margin:14px 0 0; color:oklch(0.45 0.02 250)">Nie animujemy wlasciwosci ukladu: zero <span style="font-family:'Martian Mono',monospace; font-size:13px">height</span>, <span style="font-family:'Martian Mono',monospace; font-size:13px">width</span>, <span style="font-family:'Martian Mono',monospace; font-size:13px">top</span>. Dozwolone: <span style="font-family:'Martian Mono',monospace; font-size:13px">opacity</span>, <span style="font-family:'Martian Mono',monospace; font-size:13px">color</span>, <span style="font-family:'Martian Mono',monospace; font-size:13px">background</span>, <span style="font-family:'Martian Mono',monospace; font-size:13px">transform: scaleX</span> dla nici. Zero odbicia, zero sprezystosci, zero opoznien kaskadowych.</p>
+        <p style="font-size:15px; line-height:1.65; margin:14px 0 0; color:oklch(0.45 0.02 250)">Przy <span style="font-family:'Martian Mono',monospace; font-size:13px">prefers-reduced-motion: reduce</span> wszystkie trzy tokeny ida na 0 ms. Nic nie znika, pojawia sie w pelnej dlugosci.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. COMPONENTS ============ -->
+  <section id="components" style="margin-top:112px">
+    <div style="display:flex; align-items:baseline; gap:20px; border-bottom:1px solid oklch(0.62 0.015 250); padding-bottom:12px">
+      <span style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; color:oklch(0.47 0.12 253)">04</span>
+      <h2 style="font-size:27px; font-weight:600; margin:0">Inwentarz komponentow</h2>
+      <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-left:auto">14 komponentow</span>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:48px 56px; margin-top:36px">
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.06em">Button</div>
+        <p style="font-size:15px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Warianty: <em>primary</em> (blekit, tekst <span style="font-family:'Martian Mono',monospace; font-size:12px">--plaster-raised</span>), <em>secondary</em> (krawedz <span style="font-family:'Martian Mono',monospace; font-size:12px">--edge</span>), <em>quiet</em> (tylko tekst), <em>destructive</em> (krawedz i tekst <span style="font-family:'Martian Mono',monospace; font-size:12px">--iron</span>). Wysokosc 34 px, padding 8 / 16, <span style="font-family:'Martian Mono',monospace; font-size:12px">radius-1</span>, tekst 15 px Literata 500.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center">
+          <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.47 0.12 253); border-radius:2px; background:oklch(0.47 0.12 253); color:oklch(0.985 0.005 240); cursor:pointer; transition:background 120ms cubic-bezier(0.22,1,0.36,1)" style-hover="background:oklch(0.4 0.12 253); border-color:oklch(0.4 0.12 253)">Potwierdz</button>
+          <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.62 0.015 250); border-radius:2px; background:transparent; color:oklch(0.26 0.02 250); cursor:pointer" style-hover="background:oklch(0.941 0.01 240)">Odrzuc</button>
+          <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 12px; border:1px solid transparent; border-radius:2px; background:transparent; color:oklch(0.47 0.12 253); cursor:pointer" style-hover="background:oklch(0.47 0.12 253 / 0.1)">Pokaz graf</button>
+          <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.505 0.15 27); border-radius:2px; background:transparent; color:oklch(0.505 0.15 27); cursor:pointer" style-hover="background:oklch(0.505 0.15 27 / 0.08)">Zarchiwizuj</button>
+          <button disabled="disabled" style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.86 0.01 250); border-radius:2px; background:transparent; color:oklch(0.62 0.015 250); cursor:not-allowed">Wylaczony</button>
+          <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.47 0.12 253); border-radius:2px; background:oklch(0.47 0.12 253); color:oklch(0.985 0.005 240); outline:2px solid oklch(0.47 0.12 253); outline-offset:2px">Focus</button>
+        </div>
+        <p style="font-size:15px; line-height:1.6; color:oklch(0.45 0.02 250); margin:12px 0 0">Focus: <span style="font-family:'Martian Mono',monospace; font-size:12px">outline 2px --blue, offset 2px</span>. Na blekitnym tle przycisku offset daje jasny przeswit tynku, wiec pierscien jest widoczny na kazdym tle, na ktorym moze wyladowac. Wylaczony nie ma stanu hover i nie wchodzi w kolejnosc Tab.</p>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.06em">Field</div>
+        <p style="font-size:15px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Etykieta w mono kapitalikami nad polem, wartosc 17 px Literata. Bez pudelka w ukladzie karty akcesyjnej (ekran 01, 02b), z pudelkiem w formularzach wewnatrz aplikacji. Blad zawsze tekstem pod polem, nigdy samym kolorem krawedzi.</p>
+        <div style="display:flex; flex-direction:column; gap:20px; max-width:420px">
+          <label style="display:grid; gap:6px">
+            <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Nazwa projektu</span>
+            <input value="ariadne-core" style="font-family:Literata,serif; font-size:17px; height:38px; padding:0 10px; border:1px solid oklch(0.62 0.015 250); border-radius:2px; background:oklch(0.985 0.005 240); color:oklch(0.26 0.02 250)" />
+          </label>
+          <label style="display:grid; gap:6px">
+            <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.47 0.12 253)">Repozytorium</span>
+            <input value="github.com/kacper/ariadne" style="font-family:'Martian Mono',monospace; font-size:13px; height:38px; padding:0 10px; border:1px solid oklch(0.47 0.12 253); border-radius:2px; background:oklch(0.985 0.005 240); color:oklch(0.26 0.02 250); outline:2px solid oklch(0.47 0.12 253); outline-offset:2px" />
+          </label>
+          <label style="display:grid; gap:6px">
+            <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.505 0.15 27)">Adres serwera</span>
+            <input value="localhost:3000" style="font-family:'Martian Mono',monospace; font-size:13px; height:38px; padding:0 10px; border:1px solid oklch(0.505 0.15 27); border-radius:2px; background:oklch(0.985 0.005 240); color:oklch(0.26 0.02 250)" />
+            <span style="display:flex; gap:8px; align-items:baseline; font-size:15px; color:oklch(0.505 0.15 27)"><span style="font-family:'Martian Mono',monospace; font-size:12px">!</span>Nie odpowiada. Sprawdz, czy serwer Ariadne jest uruchomiony.</span>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.06em">NodeRow</div>
+        <p style="font-size:15px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Jeden wiersz na wpis, wysokosc 44 px, siatka <span style="font-family:'Martian Mono',monospace; font-size:12px">18px 1fr max-content max-content 74px</span>: znacznik, pierwsze zdanie, pliki, typ, data. Hover podklada <span style="font-family:'Martian Mono',monospace; font-size:12px">--plaster-sunk</span>, klik otwiera czytnik. Stany: spoczynek, hover, focus (pierscien wewnetrzny), wybrany (nic po lewej krawedzi, 1 px), niepewny (znacznik ochra plus etykieta).</p>
+        <div style="border-top:1px solid oklch(0.86 0.01 250)">
+          <div style="display:grid; grid-template-columns:18px 1fr max-content max-content 78px; gap:12px; align-items:center; height:44px; border-bottom:1px solid oklch(0.86 0.01 250); padding:0 8px">
+            <span style="width:10px; height:10px; background:oklch(0.47 0.12 253)"></span>
+            <span style="font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Kolejka zadan zostaje w SQLite, bez brokera</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">2 pliki</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.53 0.015 250)">decision</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250); text-align:right">19 lip</span>
+          </div>
+          <div style="display:grid; grid-template-columns:18px 1fr max-content max-content 78px; gap:12px; align-items:center; height:44px; border-bottom:1px solid oklch(0.86 0.01 250); padding:0 8px; background:oklch(0.941 0.01 240)">
+            <span style="width:10px; height:10px; border:1.5px solid oklch(0.63 0.13 78); transform:rotate(45deg)"></span>
+            <span style="font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Embeddingi licza sie lokalnie, dopoki model zmiesci sie w pamieci <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.08em; color:oklch(0.52 0.105 78)">NIEOCENIONY</span></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">1 plik</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.53 0.015 250)">note</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250); text-align:right">21 lip</span>
+          </div>
+          <div style="display:grid; grid-template-columns:18px 1fr max-content max-content 78px; gap:12px; align-items:center; height:44px; border-bottom:1px solid oklch(0.86 0.01 250); padding:0 8px; box-shadow:inset 1px 0 0 oklch(0.47 0.12 253)">
+            <span style="width:10px; height:10px; border:1.5px solid oklch(0.505 0.15 27); background:linear-gradient(to bottom right, transparent 44%, oklch(0.505 0.15 27) 44%, oklch(0.505 0.15 27) 56%, transparent 56%)"></span>
+            <span style="font-size:15px; color:oklch(0.45 0.02 250); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Tokeny trzymamy w keychainie systemowym <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.08em; color:oklch(0.505 0.15 27)">ODWOLANY PRZEZ #418</span></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">3 pliki</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.53 0.015 250)">decision</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250); text-align:right">03 lip</span>
+          </div>
+          <div style="display:grid; grid-template-columns:18px 1fr max-content max-content 78px; gap:12px; align-items:center; height:44px; border-bottom:1px solid oklch(0.86 0.01 250); padding:0 8px">
+            <span style="width:10px; height:3px; background:oklch(0.5 0.012 250)"></span>
+            <span style="font-size:15px; color:oklch(0.5 0.012 250); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Pierwsza wersja schematu bazy, przed rozbiciem anchors</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">—</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.53 0.015 250)">session</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250); text-align:right">28 cze</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.06em">Provenance</div>
+        <p style="font-size:15px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Metryczka wpisu. Zawsze te same pola w tej samej kolejnosci, bo to podpis pod eksponatem: kanal, sesja, commit, pliki, daty. Warianty: <em>inline</em> (pod pierwszym zdaniem w czytniku), <em>compact</em> (jedna linia w cytowaniu), <em>full</em> (blok w czytniku). Brak wartosci to <span style="font-family:'Martian Mono',monospace; font-size:12px">—</span>, nigdy puste miejsce.</p>
+        <div style="background:oklch(0.941 0.01 240); padding:16px; display:grid; grid-template-columns:max-content 1fr; gap:10px 20px">
+          <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Kanal</span><span style="font-family:'Martian Mono',monospace; font-size:13px">coder</span>
+          <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Sesja</span><span style="font-family:'Martian Mono',monospace; font-size:13px">s_9f2c &middot; 19 lip 2026, 14:02</span>
+          <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Commit</span><span style="font-family:'Martian Mono',monospace; font-size:13px">a41f0c8</span>
+          <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Pliki</span>
+          <span style="display:flex; flex-direction:column; gap:4px">
+            <a href="#components" style="font-family:'Martian Mono',monospace; font-size:13px">src/queue/worker.ts <span style="color:oklch(0.53 0.015 250)">:: processTask</span></a>
+            <a href="#components" style="font-family:'Martian Mono',monospace; font-size:13px">migrations/0004_queue.sql</a>
+          </span>
+          <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Zmieniony</span><span style="font-family:'Martian Mono',monospace; font-size:13px">21 lip 2026, 09:40 &middot; app_form</span>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.06em">Citation</div>
+        <p style="font-size:15px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Wtracenie w tekscie: liczba w mono 13 px, blekit, podniesiona o 2 px, pole klikalne 24 px. Klik rozwija metryczke pod akapitem, nie nad, i nie przewija tekstu. Stany: spoczynek, hover (podkreslenie), rozwinieta (nic laczy liczbe z rozwinieciem), wpis nieoceniony (liczba w ochrze plus znacznik rombu).</p>
+        <div style="background:oklch(0.985 0.005 240); border:1px solid oklch(0.86 0.01 250); padding:20px">
+          <p style="font-size:17px; line-height:1.65; margin:0; max-width:64ch">Kolejka zadan zostaje w SQLite, bez zewnetrznego brokera<sup style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.47 0.12 253); padding:0 3px"><a href="#components" style="border-bottom:none">1</a></sup>, a limit rownoleglosci ustawiono na cztery zadania, co bylo mierzone na twoim laptopie<sup style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.52 0.105 78); padding:0 3px"><a href="#components" style="border-bottom:none; color:oklch(0.52 0.105 78)">2 ◇</a></sup>.</p>
+          <div style="display:grid; grid-template-columns:14px 1fr; gap:12px; margin-top:16px">
+            <div style="background:oklch(0.47 0.12 253); width:1px; justify-self:center"></div>
+            <div>
+              <div style="display:flex; gap:10px; align-items:baseline; flex-wrap:wrap">
+                <span style="width:10px; height:10px; background:oklch(0.47 0.12 253); align-self:center"></span>
+                <span style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.08em; color:oklch(0.47 0.12 253)">POTWIERDZONY</span>
+                <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">decision &middot; coder &middot; 19 lip 2026</span>
+              </div>
+              <p style="font-size:15px; line-height:1.6; margin:8px 0 0; max-width:60ch; color:oklch(0.45 0.02 250)">Broker to kolejny proces do wystartowania razem z aplikacja, a jedna instancja Tauri go nie potrzebuje.</p>
+              <div style="display:flex; gap:16px; margin-top:8px"><a href="#components" style="font-family:'Martian Mono',monospace; font-size:13px">src/queue/worker.ts</a><a href="#components" style="font-family:'Martian Mono',monospace; font-size:13px">migrations/0004_queue.sql</a></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.06em">DiffPair</div>
+        <p style="font-size:15px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Dwie kolumny, zapisane po lewej, proponowane po prawej, po 46 znakow przy oknie 1024 i po 62 powyzej 1280. Usuniete w czerwieni zelazowej przekreslone, dodane w blekicie podkreslone 1 px. Ponizej 1024 kolumny ida jedna pod druga z etykietami. Warianty: <em>edit</em>, <em>delete</em> (prawa kolumna to pusta plyta z napisem, nie czerwona plama).</p>
+        <div style="border:1px solid oklch(0.86 0.01 250); background:oklch(0.985 0.005 240)">
+          <div style="display:grid; grid-template-columns:1fr 1px 1fr">
+            <div style="padding:14px 16px">
+              <div style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-bottom:10px">Zapisane &middot; 19 lip</div>
+              <p style="font-size:15px; line-height:1.65; margin:0">Limit rownoleglosci kolejki to <span style="color:oklch(0.505 0.15 27); text-decoration:line-through">osiem zadan</span>, ustawiony na oko.</p>
+            </div>
+            <div style="background:oklch(0.86 0.01 250)"></div>
+            <div style="padding:14px 16px">
+              <div style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.47 0.12 253); margin-bottom:10px">Proponowane &middot; app_chat</div>
+              <p style="font-size:15px; line-height:1.65; margin:0">Limit rownoleglosci kolejki to <span style="color:oklch(0.47 0.12 253); border-bottom:1px solid oklch(0.47 0.12 253)">cztery zadania</span>, zmierzony na laptopie wlasciciela.</p>
+            </div>
+          </div>
+          <div style="border-top:1px solid oklch(0.86 0.01 250); padding:10px 16px; display:flex; gap:16px; align-items:center">
+            <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250); margin-right:auto">Poprosil: kanal app_chat, 21 lip 09:38</span>
+            <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.62 0.015 250); border-radius:2px; background:transparent; color:oklch(0.26 0.02 250); cursor:pointer">Odrzuc</button>
+            <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.47 0.12 253); border-radius:2px; background:oklch(0.47 0.12 253); color:oklch(0.985 0.005 240); cursor:pointer">Zatwierdz zmiane</button>
+          </div>
+        </div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:12px 0 0"><strong style="font-weight:600">Zasada opisu.</strong> Naglowek kolumny zawsze mowi wprost, co w niej jest i skad to jest: <em>Zapisane, 19 lip</em> oraz <em>Proponowane, app_chat</em>. Nigdy same slowa przed i po, bo czlowiek ma wiedziec, ktora wersja jest w bazie teraz.</p>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.06em">StatusChip</div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Znacznik plus napis, nigdy sam kolor i nigdy sam znacznik. Wysokosc 20 px, odstep znacznik do napisu 4 px. Wariant <em>with-reason</em> dodaje po napisie powod jednym zdaniem, bo status bez powodu jest domyslaniem sie: przy odwolanym numer wpisu, ktory go odwolal, przy nieocenionym data zapisu i kanal.</p>
+        <div style="display:flex; flex-direction:column; gap:10px">
+          <span style="display:flex; align-items:center; gap:8px"><span style="width:10px; height:10px; background:oklch(0.47 0.12 253); flex:none"></span><span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; color:oklch(0.47 0.12 253)">POTWIERDZONY</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">przez ciebie, 20 lip. Agent traktuje jako pewnik.</span></span>
+          <span style="display:flex; align-items:center; gap:8px"><span style="width:10px; height:10px; border:1.5px solid oklch(0.63 0.13 78); transform:rotate(45deg); flex:none"></span><span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; color:oklch(0.52 0.105 78)">NIEOCENIONY</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">zapisal agent, 21 lip. Czeka na twoja ocene.</span></span>
+          <span style="display:flex; align-items:center; gap:8px"><span style="width:10px; height:10px; border:1.5px solid oklch(0.505 0.15 27); background:linear-gradient(to bottom right, transparent 44%, oklch(0.505 0.15 27) 44%, oklch(0.505 0.15 27) 56%, transparent 56%); flex:none"></span><span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; color:oklch(0.505 0.15 27)">ODWOLANY</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">przez wpis 418 z 22 lip. Nie stosuj tej decyzji.</span></span>
+          <span style="display:flex; align-items:center; gap:8px"><span style="width:10px; height:3px; background:oklch(0.5 0.012 250); flex:none"></span><span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; color:oklch(0.5 0.012 250)">ZARCHIWIZOWANY</span><span style="font-size:15px; color:oklch(0.45 0.02 250)">28 cze. Nie wychodzi w wyszukiwaniu, zostaje w bazie.</span></span>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.06em">Reader</div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Panel czytania wpisu, otwiera sie po kliknieciu wiersza w prawej czesci ekranu, szerokosc tekstu twardo 68 znakow. Kolejnosc: status z powodem, pelna tresc, metryczka, dzialania. Edycja w miejscu: klik w tresc zamienia akapit w pole, bez modalu. Stany: czytanie, edycja, zapisywanie (przyciski wylaczone, napis <em>Zapisuje</em>), konflikt (agent zmienil wpis w trakcie, dwie wersje w DiffPair).</p>
+        <div style="border:1px solid oklch(0.86 0.01 250); background:oklch(0.985 0.005 240); padding:20px">
+          <div style="display:flex; gap:8px; align-items:center"><span style="width:10px; height:10px; border:1.5px solid oklch(0.63 0.13 78); transform:rotate(45deg)"></span><span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; color:oklch(0.52 0.105 78)">NIEOCENIONY</span><span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">&middot; zapisal agent 21 lip, czeka na twoja ocene</span></div>
+          <p style="font-size:17px; line-height:1.65; margin:14px 0 0; max-width:68ch">Embeddingi licza sie lokalnie, dopoki model zmiesci sie w pamieci. Powod: klucz do modelu jest opcjonalny, wiec aplikacja musi umiec szukac po znaczeniu bez niego, choc wolniej i na krotszym kontekscie.</p>
+          <div style="display:flex; gap:16px; margin-top:20px; align-items:center; border-top:1px solid oklch(0.86 0.01 250); padding-top:16px">
+            <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.47 0.12 253); border-radius:2px; background:oklch(0.47 0.12 253); color:oklch(0.985 0.005 240); cursor:pointer">Potwierdz</button>
+            <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.62 0.015 250); border-radius:2px; background:transparent; color:oklch(0.26 0.02 250); cursor:pointer">Popraw tresc</button>
+            <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.505 0.15 27); border-radius:2px; background:transparent; color:oklch(0.505 0.15 27); cursor:pointer">Zarchiwizuj</button>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250); margin-left:auto">Wpis 417</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.06em">CommandPalette</div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Wolana <span style="font-family:'Martian Mono',monospace; font-size:13px">Cmd K</span> lub <span style="font-family:'Martian Mono',monospace; font-size:13px">Ctrl K</span>. Szerokosc 560 px, 32 px od gory okna, jedyny element z cieniem. Dwie funkcje w jednym polu: polecenia i szukanie po wpisach. Kazda pozycja ma napis mowiacy, co sie stanie, i po prawej miejsce, do ktorego przenosi. Stany: puste pole (ostatnie cztery uzyte polecenia), pisanie, brak wynikow, szukanie w toku (napis <em>Szukam po znaczeniu</em>).</p>
+        <div style="background:oklch(0.985 0.005 240); border:1px solid oklch(0.62 0.015 250); box-shadow:0 8px 24px oklch(0.26 0.02 250 / 0.14); padding:12px">
+          <div style="display:flex; align-items:center; gap:10px; border-bottom:1px solid oklch(0.86 0.01 250); padding-bottom:10px"><span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.53 0.015 250)">&gt;</span><span style="font-family:'Martian Mono',monospace; font-size:14px">kolejk</span></div>
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 4px; background:oklch(0.47 0.12 253 / 0.1)"><span style="font-size:16px">Otworz kolejke do zatwierdzenia</span><span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.52 0.105 78); margin-left:auto">6 oczekuje</span></div>
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 4px"><span style="font-size:16px">Zatwierdz wszystkie zadania od agenta</span><span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250); margin-left:auto">wymaga potwierdzenia</span></div>
+          <div style="display:flex; align-items:center; gap:12px; padding:10px 4px"><span style="font-size:16px">Wpis: kolejka zadan zostaje w SQLite</span><span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250); margin-left:auto">0.91 &middot; decision</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.06em">TitleBar</div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Wlasny pasek okna, wysokosc 38 px, tlo <span style="font-family:'Martian Mono',monospace; font-size:13px">--plaster-sunk</span>, dolna krawedz 1 px <span style="font-family:'Martian Mono',monospace; font-size:13px">--hairline</span>. Po lewej nazwa aplikacji i nazwa otwartego projektu, po prawej stan polaczenia z serwerem napisany slowami i kontrolki okna. Kontrolki po stronie systemowej: na macOS po lewej, na Windows po prawej, reszta paska sie do tego dostosowuje. Cala wolna powierzchnia jest obszarem przeciagania.</p>
+        <div style="border:1px solid oklch(0.86 0.01 250)">
+          <div style="background:oklch(0.941 0.01 240); border-bottom:1px solid oklch(0.86 0.01 250); height:38px; display:flex; align-items:center; gap:16px; padding:0 12px">
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; color:oklch(0.47 0.12 253)">ARIADNE</span>
+            <span style="width:1px; height:14px; background:oklch(0.86 0.01 250)"></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:13px">ariadne-core</span>
+            <span style="display:flex; align-items:center; gap:8px; margin-left:auto"><span style="width:8px; height:8px; background:oklch(0.47 0.12 253)"></span><span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.45 0.02 250)">Serwer odpowiada</span></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">—&nbsp; □&nbsp; ×</span>
+          </div>
+          <div style="height:34px; background:oklch(0.968 0.008 240)"></div>
+        </div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:12px 0 0">Stan polaczenia ma trzy napisy, nigdy tylko kropke: <em>Serwer odpowiada</em>, <em>Serwer nie odpowiada</em>, <em>Brak sieci, szukanie po znaczeniu niedostepne</em>.</p>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.06em">Banner</div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Pasek komunikatu pod paskiem tytulu, pelna szerokosc, 1 px krawedz w barwie roli. Zawsze trzy czesci w tej samej kolejnosci: co sie stalo, co to znaczy dla ciebie, przycisk z jedna czynnoscia. Bez ikony ostrzegawczej i bez slowa <em>ups</em>. Warianty: <em>error</em> (serwer, sesja), <em>notice</em> (klucz modelu, tryb ograniczony), <em>done</em> (token wygenerowany).</p>
+        <div style="display:flex; flex-direction:column; gap:12px">
+          <div style="border:1px solid oklch(0.505 0.15 27); background:oklch(0.505 0.15 27 / 0.06); padding:12px 16px; display:flex; gap:16px; align-items:center">
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; color:oklch(0.505 0.15 27)">SESJA</span>
+            <span style="font-size:16px; line-height:1.5">Twoja sesja wygasla po 24 godzinach. Wpisy sa bezpieczne, trzeba sie zalogowac ponownie.</span>
+            <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.505 0.15 27); border-radius:2px; background:transparent; color:oklch(0.505 0.15 27); cursor:pointer; margin-left:auto; flex:none">Zaloguj sie</button>
+          </div>
+          <div style="border:1px solid oklch(0.63 0.13 78); background:oklch(0.63 0.13 78 / 0.08); padding:12px 16px; display:flex; gap:16px; align-items:center">
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; color:oklch(0.52 0.105 78)">TRYB OGRANICZONY</span>
+            <span style="font-size:16px; line-height:1.5">Nie ma klucza do modelu, wiec asystent nie odpowiada. Lista wpisow, kolejka i graf dzialaja normalnie.</span>
+            <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.62 0.015 250); border-radius:2px; background:transparent; color:oklch(0.26 0.02 250); cursor:pointer; margin-left:auto; flex:none">Dodaj klucz</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.06em">GraphCanvas</div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Tryb pelnoekranowy, tlo <span style="font-family:'Martian Mono',monospace; font-size:13px">--canvas</span>, wolany przyciskiem z widoku projektu i zamykany klawiszem Esc. Zawsze ma ustawiony zakres i napisane, jaki: sasiedztwo wybranego wpisu, jeden plik, albo ostatnie 60 wpisow. Wierzcholek to kwadrat 10 px w barwie statusu, etykieta to pierwsze cztery slowa wpisu, maksymalnie trzy krawedzie na wierzcholek. Stany: liczenie ukladu (napis <em>Ukladam graf</em>), gotowy, wierzcholek wybrany (panel po prawej z pelna trescia), zakres pusty.</p>
+        <div style="background:oklch(0.22 0.02 250); padding:20px; display:grid; grid-template-columns:1fr 200px; gap:20px; min-height:200px">
+          <div style="position:relative">
+            <div style="position:absolute; left:0; top:0; font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; color:oklch(0.93 0.01 240)">ZAKRES: SASIEDZTWO WPISU 417 &middot; 12 WIERZCHOLKOW</div>
+            <div style="position:absolute; left:30px; top:60px; width:120px; height:1px; background:oklch(0.72 0.12 250)"></div>
+            <div style="position:absolute; left:30px; top:60px; width:1px; height:52px; background:repeating-linear-gradient(to bottom, oklch(0.72 0.12 250) 0 3px, transparent 3px 7px)"></div>
+            <div style="position:absolute; left:150px; top:60px; width:70px; height:1px; background:oklch(0.505 0.15 27)"></div>
+            <div style="position:absolute; left:24px; top:54px; width:12px; height:12px; background:oklch(0.72 0.12 250)"></div>
+            <div style="position:absolute; left:144px; top:54px; width:12px; height:12px; border:1.5px solid oklch(0.63 0.13 78); transform:rotate(45deg)"></div>
+            <div style="position:absolute; left:214px; top:54px; width:12px; height:12px; border:1.5px solid oklch(0.505 0.15 27); background:linear-gradient(to bottom right, transparent 44%, oklch(0.505 0.15 27) 44%, oklch(0.505 0.15 27) 56%, transparent 56%)"></div>
+            <div style="position:absolute; left:24px; top:106px; width:12px; height:3px; background:oklch(0.5 0.012 250)"></div>
+            <div style="position:absolute; left:44px; top:74px; font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.93 0.01 240)">kolejka w SQLite</div>
+            <div style="position:absolute; left:44px; top:132px; font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.93 0.01 240)">embeddingi lokalnie</div>
+          </div>
+          <div style="border-left:1px solid oklch(0.72 0.12 250 / 0.4); padding-left:16px">
+            <div style="font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.1em; color:oklch(0.72 0.12 250)">WYBRANY WPIS</div>
+            <p style="font-size:15px; line-height:1.6; color:oklch(0.93 0.01 240); margin:10px 0 0">Kolejka zadan zostaje w SQLite, bez brokera.</p>
+            <div style="font-family:'Martian Mono',monospace; font-size:11px; color:oklch(0.93 0.01 240 / 0.7); margin-top:10px; line-height:1.7">decision &middot; 19 lip<br />2 pliki wspolne z sasiadem</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.06em">EmptyPlate</div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Stan pusty jako plyta z napisem, nie obrazek i nie zachecanie. Zawsze dwa zdania i najwyzej jeden przycisk: pierwsze zdanie mowi, czego nie ma i dlaczego, drugie mowi, co sie stanie samo albo co zrobic. Odstep od gory <span style="font-family:'Martian Mono',monospace; font-size:13px">space-10</span> (112 px), tekst wyrownany do lewej krawedzi tresci, nigdy do srodka.</p>
+        <div style="border:1px solid oklch(0.86 0.01 250); padding:32px 24px">
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Baza pusta</div>
+          <p style="font-size:17px; line-height:1.65; margin:12px 0 0; max-width:64ch">Ten projekt nie ma jeszcze zadnego wpisu, bo agent nie prowadzil w nim sesji, a ty nic nie zapisales. Pierwsze wpisy pojawia sie tutaj same po zakonczeniu sesji agenta.</p>
+          <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 16px; border:1px solid oklch(0.62 0.015 250); border-radius:2px; background:transparent; color:oklch(0.26 0.02 250); cursor:pointer; margin-top:20px">Zapisz pierwszy wpis sam</button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.06em">ProjectRow</div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Wiersz projektu na ekranie glownym, wysokosc 56 px. Siatka: nazwa, repozytorium w mono, etap, liczba wpisow, liczba oczekujacych, data ostatniej sesji. Liczba oczekujacych zawsze z rzeczownikiem (<em>6 oczekuje</em>), nigdy naga liczba w kolku. Stany: spoczynek, hover, focus, wybrany, projekt bez repozytorium (napis <em>bez repozytorium</em> zamiast pustego miejsca).</p>
+        <div style="border-top:1px solid oklch(0.86 0.01 250)">
+          <div style="display:grid; grid-template-columns:1.4fr 1.6fr max-content max-content max-content; gap:20px; align-items:center; height:56px; border-bottom:1px solid oklch(0.86 0.01 250); padding:0 8px">
+            <span style="font-size:17px; font-weight:500">ariadne-core</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">github.com/kacper/ariadne</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.53 0.015 250)">prototyp</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">418 wpisow</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.52 0.105 78)">6 oczekuje</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1.4fr 1.6fr max-content max-content max-content; gap:20px; align-items:center; height:56px; border-bottom:1px solid oklch(0.86 0.01 250); padding:0 8px; background:oklch(0.941 0.01 240)">
+            <span style="font-size:17px; font-weight:500">remont-mieszkania</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.53 0.015 250)">bez repozytorium</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.53 0.015 250)">utrzymanie</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">12 wpisow</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.53 0.015 250)">nic nie czeka</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.06em">CommandBlock</div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Jedyne miejsce w calej aplikacji z ciemnym tlem poza grafem: blok z poleceniem do terminala w kroku 3 onboardingu. Tlo <span style="font-family:'Martian Mono',monospace; font-size:13px">--canvas</span>, tekst <span style="font-family:'Martian Mono',monospace; font-size:13px">--canvas-ink</span> 14 px, zawijanie z widocznym znakiem kontynuacji. Nad blokiem zdanie mowiace, co to polecenie robi, pod blokiem zdanie mowiace, gdzie je wkleic. Token wstawiony w tresc, widoczny raz. Stany przycisku: <em>Kopiuj polecenie</em>, <em>Skopiowane</em> (napis wraca po 4 s), <em>Kopiowanie niedostepne</em> (zaznacz recznie).</p>
+        <div>
+          <p style="font-size:16px; line-height:1.6; margin:0 0 10px">To polecenie dopisuje Ariadne do Claude Code jako zrodlo pamieci. Token jest w nim wklejony, nie trafia do repozytorium.</p>
+          <div style="background:oklch(0.22 0.02 250); padding:16px; display:flex; gap:16px; align-items:flex-start">
+            <code style="font-family:'Martian Mono',monospace; font-size:13px; line-height:1.7; color:oklch(0.93 0.01 240); word-break:break-all">claude mcp add --scope user --transport http ariadne http://localhost:3000/mcp --header "Authorization: Bearer ar_9f2c41…"</code>
+            <button style="font-family:Literata,serif; font-size:15px; font-weight:500; height:34px; padding:0 14px; border:1px solid oklch(0.72 0.12 250); border-radius:2px; background:transparent; color:oklch(0.72 0.12 250); cursor:pointer; flex:none">Kopiuj</button>
+          </div>
+          <p style="font-size:16px; line-height:1.6; margin:10px 0 0; color:oklch(0.45 0.02 250)">Wklej to w terminalu i nacisnij Enter. Jesli nie uzywasz terminala, pomin ten krok, aplikacja dziala bez agenta.</p>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.06em">QueueItem</div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Pozycja kolejki do zatwierdzenia. Zwinieta pokazuje rodzaj zadania nazwany po ludzku (<em>Zmiana tresci</em>, <em>Usuniecie wpisu</em>), pierwsze zdanie wpisu, kto poprosil i kiedy. Rozwinieta pokazuje DiffPair. Warianty: <em>edit</em>, <em>delete</em>, <em>unreviewed-node</em> (wpis nieoceniony, bez diffa, tylko tresc i dwa przyciski). Stany: zwinieta, rozwinieta, wybrana do zbiorczego dzialania, przetwarzana, zakonczona (wiersz zostaje 3 s z napisem <em>Zatwierdzone</em> i cofnieciem).</p>
+        <div style="border-top:1px solid oklch(0.86 0.01 250)">
+          <div style="display:grid; grid-template-columns:20px max-content 1fr max-content; gap:16px; align-items:center; padding:12px 8px; border-bottom:1px solid oklch(0.86 0.01 250)">
+            <input type="checkbox" style="width:14px; height:14px; accent-color:oklch(0.47 0.12 253)" />
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.47 0.12 253)">Zmiana tresci</span>
+            <span style="font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Limit rownoleglosci kolejki to osiem zadan</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">poprosil agent &middot; 21 lip</span>
+          </div>
+          <div style="display:grid; grid-template-columns:20px max-content 1fr max-content; gap:16px; align-items:center; padding:12px 8px; border-bottom:1px solid oklch(0.86 0.01 250)">
+            <input type="checkbox" style="width:14px; height:14px; accent-color:oklch(0.47 0.12 253)" />
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:oklch(0.505 0.15 27)">Usuniecie wpisu</span>
+            <span style="font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Tokeny trzymamy w keychainie systemowym</span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250)">poprosil asystent &middot; 22 lip</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.06em">ThreadLink</div>
+        <p style="font-size:16px; line-height:1.6; color:oklch(0.45 0.02 250); margin:6px 0 14px">Nic: linia 1 px w blekicie egipskim. Wolno jej wystapic tylko tam, gdzie dwie rzeczy naprawde sa powiazane: wskaznik postepu onboardingu, polaczenie wpisow dzielacych plik, krawedz grafu, oraz linia od cytowania do rozwinietego zrodla. Nigdy jako obramowanie, separator wiersza ani ozdoba naglowka. Rozdzielnik tresci to zawsze <span style="font-family:'Martian Mono',monospace; font-size:13px">--hairline</span>, nie blekit.</p>
+        <div style="display:flex; flex-direction:column; gap:16px">
+          <div style="display:flex; align-items:center; gap:0">
+            <span style="width:10px; height:10px; background:oklch(0.47 0.12 253); flex:none"></span>
+            <span style="height:1px; width:80px; background:oklch(0.47 0.12 253)"></span>
+            <span style="width:10px; height:10px; background:oklch(0.47 0.12 253); flex:none"></span>
+            <span style="height:1px; width:80px; background:oklch(0.86 0.01 250)"></span>
+            <span style="width:10px; height:10px; border:1px solid oklch(0.62 0.015 250); flex:none"></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; color:oklch(0.53 0.015 250); margin-left:16px">Krok 2 z 3, nic narysowana do miejsca, w ktorym jestes</span>
+          </div>
+          <div style="display:flex; align-items:baseline; gap:12px">
+            <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.08em; color:oklch(0.53 0.015 250); width:120px">WSPOLNY PLIK</span>
+            <span style="height:1px; flex:1; background:oklch(0.47 0.12 253); align-self:center"></span>
+            <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">src/queue/worker.ts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. SCREENS ============ -->
+  <section id="screens" style="margin-top:112px">
+    <div style="display:flex; align-items:baseline; gap:20px; border-bottom:1px solid oklch(0.62 0.015 250); padding-bottom:12px">
+      <span style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; color:oklch(0.47 0.12 253)">05</span>
+      <h2 style="font-size:27px; font-weight:600; margin:0">Osiem ekranow</h2>
+      <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-left:auto">nawigacja 2c &middot; okno od 1024 px</span>
+    </div>
+    <p style="font-size:17px; line-height:1.65; max-width:68ch; margin:28px 0 0">Szkice sa w skali znakow, nie pikseli. <span style="font-family:'Martian Mono',monospace; font-size:14px">SIDE</span> to kolumna nawigacji 200 px, <span style="font-family:'Martian Mono',monospace; font-size:14px">BAR</span> to wlasny pasek tytulu 38 px. Kolejnosc czytania jest numerowana i jest zarazem kolejnoscia Tab.</p>
+
+    <!-- SCREEN 1 -->
+    <article style="margin-top:56px; border-top:1px solid oklch(0.62 0.015 250); padding-top:24px">
+      <div style="display:flex; align-items:baseline; gap:16px">
+        <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.47 0.12 253)">01</span>
+        <h3 style="font-size:21px; font-weight:600; margin:0">Logowanie i rejestracja</h3>
+        <span style="font-size:17px; color:oklch(0.45 0.02 250)">Wpuscic wlasciciela do wlasnej bazy w dwoch polach, bez opowiadania mu, czym jest produkt.</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:40px; margin-top:24px">
+        <pre style="font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:11.5px; line-height:1.5; margin:0; background:oklch(0.941 0.01 240); padding:18px 16px; overflow-x:auto">┌─BAR──────────────────────────────────────────────────────┐
+│ ARIADNE                                          — □ ×  │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  ┌── plansza ASCII ───┐   WEJSCIE DO BAZY                │
+│  │ labirynt, jedna    │   ─────────────────────────────  │
+│  │ linia, blekit,     │   ADRES         you@domena.pl    │
+│  │ nic wychodzi w dol │   ─────────────────────────────  │
+│  │                    │   HASLO         ••••••••         │
+│  │                    │   ─────────────────────────────  │
+│  └────────────────────┘   [ Wejdz ]   Nie mam konta      │
+│                           ─────────────────────────────  │
+│                           [ Zaloguj przez Google ]       │
+│                           Serwer localhost:3000 odpowiada│
+└──────────────────────────────────────────────────────────┘</pre>
+        <div>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Kolejnosc czytania</div>
+          <ol style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li>Naglowek <em>Wejscie do bazy</em>, 27 px. Mowi, co to za okno, bez slowa <em>witaj</em>.</li>
+            <li>Rzedy karty akcesyjnej: etykieta w mono po lewej, pole po prawej, wlosowa linia miedzy nimi. Zero pudelka, zero wysrodkowanej karty.</li>
+            <li>Przycisk glowny i obok niego, nie pod nim, przejscie do rejestracji.</li>
+            <li>Pod wlosowa linia logowanie przez Google jako druga, rownorzedna droga: przycisk wariantu <em>secondary</em>, bez kolorowego logo dostawcy w wypelnieniu, tylko znak 16 px w krawedzi. Nad nim nie ma slowa <em>albo</em>, jest linia i tyle.</li>
+            <li>Stan serwera napisany slowami na dole, zawsze widoczny.</li>
+          </ol>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Stany</div>
+          <ul style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li><strong style="font-weight:600">Ladowanie:</strong> przycisk mowi <em>Sprawdzam</em> i jest wylaczony, pola zostaja czytelne.</li>
+            <li><strong style="font-weight:600">Blad danych:</strong> jedno zdanie pod polem hasla, w czerwieni zelazowej, mowiace co zrobic, nie co jest zle.</li>
+            <li><strong style="font-weight:600">Serwer nie odpowiada:</strong> przycisk wylaczony, banner z adresem serwera i przyciskiem <em>Sprobuj ponownie</em>.</li>
+            <li><strong style="font-weight:600">Rejestracja:</strong> ten sam uklad, trzeci rzad <em>Powtorz haslo</em>, po wyslaniu przejscie prosto do onboardingu, bez ekranu potwierdzenia.</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:20px; border-top:1px solid oklch(0.86 0.01 250)">
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)"><div>Element</div><div>Polski</div><div>English</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">title</div><div>Wejscie do bazy</div><div>Entry to the base</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">submit</div><div>Wejdz</div><div>Enter</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">switchToRegister</div><div>Nie mam konta</div><div>I do not have an account</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">google</div><div>Zaloguj przez Google</div><div>Sign in with Google</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">google.note</div><div>Konto Google zaklada nowe konto Ariadne przy pierwszym wejsciu. Kazde konto ma wlasne projekty i wlasna baze.</div><div>A Google account creates a new Ariadne account on first entry. Every account has its own projects and its own base.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">error.credentials</div><div>Ten adres i haslo nie pasuja do siebie. Sprawdz haslo albo zaloz konto.</div><div>This address and password do not match. Check the password or create an account.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">error.server</div><div>Serwer Ariadne na localhost:3000 nie odpowiada. Uruchom go i sprobuj ponownie.</div><div>The Ariadne server at localhost:3000 is not responding. Start it and try again.</div></div>
+      </div>
+    </article>
+
+    <!-- SCREEN 2 -->
+    <article style="margin-top:56px; border-top:1px solid oklch(0.62 0.015 250); padding-top:24px">
+      <div style="display:flex; align-items:baseline; gap:16px">
+        <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.47 0.12 253)">02</span>
+        <h3 style="font-size:21px; font-weight:600; margin:0">Onboarding, trzy kroki</h3>
+        <span style="font-size:17px; color:oklch(0.45 0.02 250)">Zebrac profil, zalozyc pierwszy projekt, podlaczyc agenta, i zejsc z drogi.</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:40px; margin-top:24px">
+        <pre style="font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:11.5px; line-height:1.5; margin:0; background:oklch(0.941 0.01 240); padding:18px 16px; overflow-x:auto">┌─BAR──────────────────────────────────────────────────────┐
+├──────────────────────────────────────────────────────────┤
+│  ■━━━━━━━━━━━━━━■──────────────□                         │
+│  PROFIL          PROJEKT        AGENT                    │
+│  krok 2 z 3                                              │
+│                                                          │
+│  Pierwszy projekt                                        │
+│  ────────────────────────────────────────────────────    │
+│  NAZWA          [ ariadne-core                       ]   │
+│  REPOZYTORIUM   [ github.com/kacper/ariadne          ]   │
+│                 mozesz zostawic puste                    │
+│  STACK          [ Tauri 2, Next.js, Tailwind v4      ]   │
+│  ETAP           ( ) prototyp ( ) produkcja ( ) utrzym.   │
+│  OGRANICZENIA   [                                    ]   │
+│  ────────────────────────────────────────────────────    │
+│  [ Dalej ]   Wroc                          Pomin krok 3  │
+└──────────────────────────────────────────────────────────┘</pre>
+        <div>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Kolejnosc czytania</div>
+          <ol style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li>Wskaznik postepu z nicia i napisem <em>krok 2 z 3</em>. Nic jest narysowana tylko do miejsca, w ktorym jestes.</li>
+            <li>Naglowek kroku, 27 px, rzeczownik, nie zachecanie.</li>
+            <li>Rzedy pol z etykietami w mono, kazde pole opcjonalne ma pod soba napisane wprost, ze mozna je zostawic puste.</li>
+            <li>Dzialania: <em>Dalej</em>, <em>Wroc</em>, i po prawej jawne <em>Pomin krok 3</em> tej samej wielkosci co reszta.</li>
+          </ol>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Kroki</div>
+          <ul style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li><strong style="font-weight:600">2a Profil:</strong> cztery pytania, jedno na ekranie, kazde z przykladowa odpowiedzia w polu jako podpowiedz. Na koncu gotowy tekst profilu w edytowalnym polu z napisem, ze agent dostanie go na starcie kazdej sesji.</li>
+            <li><strong style="font-weight:600">2b Projekt:</strong> formularz wyzej. Tylko nazwa jest wymagana, i tak jest napisane przy polu.</li>
+            <li><strong style="font-weight:600">2c Agent:</strong> wybor z listy (Claude Code, Codex, inne), CommandBlock z poleceniem i tokenem, jedno zdanie nad blokiem o tym, co polecenie robi, i jedno pod nim o tym, gdzie je wkleic.</li>
+          </ul>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Stany</div>
+          <ul style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li><strong style="font-weight:600">Blad walidacji:</strong> tylko przy nazwie projektu, zdanie pod polem.</li>
+            <li><strong style="font-weight:600">Token nie wygenerowal sie:</strong> blok pokazuje napis, ze polecenie bedzie gotowe po ponownej probie, i przycisk <em>Wygeneruj token</em>.</li>
+            <li><strong style="font-weight:600">Pominiety krok 3:</strong> aplikacja startuje normalnie, w ustawieniach zostaje pozycja <em>Podlacz agenta</em> z tym samym blokiem.</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:20px; border-top:1px solid oklch(0.86 0.01 250)">
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)"><div>Element</div><div>Polski</div><div>English</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">step.profile.title</div><div>Kim jestes przy pracy</div><div>How you work</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">step.profile.note</div><div>Ten tekst agent dostaje na starcie kazdej sesji. Mozesz go zmienic teraz i pozniej w ustawieniach.</div><div>The agent receives this text at the start of every session. You can edit it now and later in settings.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">field.optional</div><div>mozesz zostawic puste</div><div>you can leave this empty</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">step.agent.what</div><div>To polecenie dopisuje Ariadne do twojego agenta jako zrodlo pamieci. Token jest w nim wklejony i nie trafia do repozytorium.</div><div>This command adds Ariadne to your agent as a memory source. The token is embedded in it and never touches your repository.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">step.agent.where</div><div>Wklej to w terminalu i nacisnij Enter. Nie uzywasz terminala? Pomin ten krok, aplikacja dziala bez agenta.</div><div>Paste it in a terminal and press Enter. Not using a terminal? Skip this step, the app works without an agent.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">step.agent.tokenOnce</div><div>Ten token widzisz teraz i nigdy wiecej. Zgubiony token zastepuje sie nowym w ustawieniach.</div><div>You see this token now and never again. A lost token is replaced with a new one in settings.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">step.skip</div><div>Pomin krok 3</div><div>Skip step 3</div></div>
+      </div>
+    </article>
+
+    <!-- SCREEN 3 -->
+    <article style="margin-top:56px; border-top:1px solid oklch(0.62 0.015 250); padding-top:24px">
+      <div style="display:flex; align-items:baseline; gap:16px">
+        <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.47 0.12 253)">03</span>
+        <h3 style="font-size:21px; font-weight:600; margin:0">Ekran glowny, zmiany i projekty</h3>
+        <span style="font-size:17px; color:oklch(0.45 0.02 250)">Odpowiedziec na jedno pytanie po sesji kodowania: co agent zapisal, odkad tu nie bylem.</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:40px; margin-top:24px">
+        <pre style="font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:11.5px; line-height:1.5; margin:0; background:oklch(0.941 0.01 240); padding:18px 16px; overflow-x:auto">┌─BAR─────────────────────────────────── Serwer odpowiada ─┐
+├─SIDE────────┬────────────────────────────────────────────┤
+│ ARIADNE     │ Od 21 lip, 09:12                           │
+│ [ariadne-c▾]│ ──────────────────────────────────────     │
+│             │ ■ Kolejka zadan zostaje w SQL…  19l  agent │
+│ Przeglad    │ ◇ Embeddingi licza sie lokal…   21l  agent │
+│ Wpisy       │ ⊠ Tokeny w keychainie          22l  ty     │
+│ Asystent    │ ◇ Limit rownoleglosci to cz…    22l  agent │
+│ Baza        │ ── 14 wierszy bez przewijania ──           │
+│ ──────────  │ [ Pokaz wszystkie 26 zmian ]               │
+│ Do zatw. 6  │                                            │
+│             │ Projekty                                   │
+│ ──────────  │ ──────────────────────────────────────     │
+│ Ustawienia  │ ariadne-core   418 wpisow   6 oczekuje     │
+│ ⌘K          │ remont-mieszk.  12 wpisow   nic nie czeka  │
+└─────────────┴────────────────────────────────────────────┘</pre>
+        <div>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Kolejnosc czytania</div>
+          <ol style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li>Naglowek z data ostatniego wejscia, dokladna: <em>Od 21 lip, 09:12</em>. Nie <em>ostatnio</em>, nie <em>dzisiaj</em>.</li>
+            <li>Wiersze zmian, najnowsze na gorze, kazdy ze znacznikiem statusu, pierwszym zdaniem, data i kanalem (agent albo ty).</li>
+            <li>Jeden przycisk do pelnej listy wpisow, z liczba i rzeczownikiem.</li>
+            <li>Lista projektow pod spodem, jako punkt startu, nie jako siatka kart.</li>
+          </ol>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Cztery akcje z planu</div>
+          <p style="font-size:16px; line-height:1.65; margin:10px 0 0">Nie sa przyciskami na tym ekranie. <em>Wybierz projekt</em> to przelacznik w kolumnie, <em>Zapytaj asystenta</em> i <em>Rozmawiaj z baza</em> to pozycje kolumny wewnatrz projektu, <em>Do zatwierdzenia</em> to pozycja z licznikiem. Wszystkie cztery sa tez w palecie na Cmd K.</p>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Stany</div>
+          <ul style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li><strong style="font-weight:600">Ladowanie:</strong> szkielet wierszy w <span style="font-family:'Martian Mono',monospace; font-size:13px">--plaster-sunk</span>, bez pulsowania, bez wirujacych kolek.</li>
+            <li><strong style="font-weight:600">Nic sie nie zmienilo:</strong> jedno zdanie <em>Od 21 lip nic sie nie zmienilo</em>, pod nim od razu lista projektow.</li>
+            <li><strong style="font-weight:600">Pusto po onboardingu:</strong> EmptyPlate mowiaca, ze pierwsze wpisy pojawia sie same po sesji agenta, plus przycisk zapisania wpisu recznie.</li>
+            <li><strong style="font-weight:600">Serwer nie odpowiada:</strong> banner na gorze, lista pokazuje ostatnie znane dane z napisem <em>dane z 21 lip 09:12, moga byc nieaktualne</em>.</li>
+            <li><strong style="font-weight:600">Przepelniony:</strong> ponad 14 zmian, lista sie urywa i przycisk pokazuje pelna liczbe, bez nieskonczonego przewijania.</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:20px; border-top:1px solid oklch(0.86 0.01 250)">
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)"><div>Element</div><div>Polski</div><div>English</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">home.since</div><div>Od 21 lip, 09:12</div><div>Since 21 Jul, 09:12</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">home.nothing</div><div>Od 21 lip, 09:12 nic sie nie zmienilo. Agent nie prowadzil sesji.</div><div>Nothing has changed since 21 Jul, 09:12. The agent has not run a session.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">home.showAll</div><div>Pokaz wszystkie 26 zmian</div><div>Show all 26 changes</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">home.stale</div><div>Dane z 21 lip, 09:12. Serwer nie odpowiada, wiec moga byc nieaktualne.</div><div>Data from 21 Jul, 09:12. The server is not responding, so it may be out of date.</div></div>
+      </div>
+    </article>
+
+    <!-- SCREEN 4 -->
+    <article style="margin-top:56px; border-top:1px solid oklch(0.62 0.015 250); padding-top:24px">
+      <div style="display:flex; align-items:baseline; gap:16px">
+        <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.47 0.12 253)">04</span>
+        <h3 style="font-size:21px; font-weight:600; margin:0">Widok projektu</h3>
+        <span style="font-size:17px; color:oklch(0.45 0.02 250)">Pokazac, czym ten projekt jest wedlug bazy, i wpuscic do wpisow oraz do grafu.</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:40px; margin-top:24px">
+        <pre style="font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:11.5px; line-height:1.5; margin:0; background:oklch(0.941 0.01 240); padding:18px 16px; overflow-x:auto">┌─BAR──────────────────────────────────────────────────────┐
+├─SIDE────────┬────────────────────────────────────────────┤
+│ [ariadne-c▾]│ ariadne-core            [ Pokaz graf ]     │
+│             │ ──────────────────────────────────────     │
+│ Przeglad  ◄ │ REPOZYTORIUM  github.com/kacper/ariadne    │
+│ Wpisy       │ ETAP          prototyp                     │
+│ Asystent    │ STACK         Tauri 2, Next.js, Tailwind   │
+│ Baza        │ DLA KOGO      wlasciciel i osoba nietech.  │
+│ ──────────  │ KONWENCJE     docs/CONVENTIONS.md          │
+│ Do zatw. 6  │ OGRANICZENIA  offline, CSP, bez ikon z lib │
+│             │ ──────────────────────────────────────     │
+│ ──────────  │ Ostatnie wpisy                 6 oczekuje  │
+│ Ustawienia  │ ■ Kolejka zadan zostaje…   2 pliki   19l   │
+│ ⌘K          │ ◇ Embeddingi lokalnie…     1 plik    21l   │
+│             │ [ Wszystkie 418 wpisow ]                   │
+└─────────────┴────────────────────────────────────────────┘</pre>
+        <div>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Kolejnosc czytania</div>
+          <ol style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li>Nazwa projektu, 34 px, i obok niej jedyne dzialanie otwierajace graf.</li>
+            <li>Karta projektu jako rzedy etykieta plus wartosc, wlosowe linie miedzy rzedami. Klik w wartosc edytuje ja w miejscu, bez modalu, bez trybu edycji calej karty.</li>
+            <li>Ostatnie wpisy, szesc wierszy, po prawej licznik oczekujacych jako odnosnik do kolejki.</li>
+            <li>Przejscie do pelnej listy wpisow z konkretna liczba.</li>
+          </ol>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Graf</div>
+          <p style="font-size:16px; line-height:1.65; margin:10px 0 0">Nie jest trzecia kolumna na tym ekranie. Przycisk otwiera tryb pelnoekranowy na ciemnym plotnie, z zakresem wypisanym na gorze i wyjsciem przez Esc. Uzasadnienie w audycie, punkt A5.</p>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Stany</div>
+          <ul style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li><strong style="font-weight:600">Karta niepelna:</strong> puste pola pokazuja napis <em>nie podano</em> i sa klikalne. Nigdy pusty wiersz bez wyjasnienia.</li>
+            <li><strong style="font-weight:600">Projekt bez wpisow:</strong> karta zostaje, lista zamienia sie w EmptyPlate, przycisk grafu wylaczony z napisem <em>graf pojawi sie przy trzech wpisach</em>.</li>
+            <li><strong style="font-weight:600">Zapisywanie pola:</strong> wartosc zostaje widoczna, pod nia napis <em>Zapisuje</em>, po zapisie <em>Zapisane 09:41</em> na 4 s.</li>
+            <li><strong style="font-weight:600">Blad zapisu:</strong> wartosc wraca do poprzedniej, zdanie pod polem mowi, ze zmiana nie zostala zapisana i dlaczego.</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:20px; border-top:1px solid oklch(0.86 0.01 250)">
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)"><div>Element</div><div>Polski</div><div>English</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">project.graph</div><div>Pokaz graf</div><div>Show graph</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">project.graphLocked</div><div>Graf pojawi sie, gdy projekt bedzie mial trzy wpisy</div><div>The graph appears once the project has three entries</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">field.empty</div><div>nie podano, kliknij aby dopisac</div><div>not provided, click to add</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">project.empty</div><div>Ten projekt nie ma zadnego wpisu. Pierwsze pojawia sie same po sesji agenta, mozesz tez zapisac wpis sam.</div><div>This project has no entries. The first ones appear on their own after an agent session, or you can write one yourself.</div></div>
+      </div>
+    </article>
+  </section>
+
+  <section id="screens-2">
+    <!-- SCREEN 5 -->
+    <article style="margin-top:56px; border-top:1px solid oklch(0.62 0.015 250); padding-top:24px">
+      <div style="display:flex; align-items:baseline; gap:16px">
+        <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.47 0.12 253)">05</span>
+        <h3 style="font-size:21px; font-weight:600; margin:0">Czat z asystentem</h3>
+        <span style="font-size:17px; color:oklch(0.45 0.02 250)">Odpowiedziec na pytanie o projekt i pokazac, z ktorych wpisow ta odpowiedz jest zlozona.</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:40px; margin-top:24px">
+        <pre style="font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:11.5px; line-height:1.5; margin:0; background:oklch(0.941 0.01 240); padding:18px 16px; overflow-x:auto">┌─BAR──────────────────────────────────────────────────────┐
+├─SIDE────────┬────────────────────────────────────────────┤
+│ [ariadne-c▾]│ Ty, 09:44                                  │
+│             │ Dlaczego kolejka nie jest w Postgresie?    │
+│ Przeglad    │                                            │
+│ Wpisy       │ Asystent, 09:44                            │
+│ Asystent  ◄ │ Kolejka zostaje w SQLite bez brokera[1],   │
+│ Baza        │ a limit rownoleglosci to cztery[2 ◇].      │
+│ ──────────  │   │ ■ POTWIERDZONY  decision coder 19 lip  │
+│ Do zatw. 6  │   │ Broker to kolejny proces do wystar…    │
+│             │   │ src/queue/worker.ts  0004_queue.sql    │
+│ ──────────  │                                            │
+│ Ustawienia  │ ──────────────────────────────────────     │
+│ ⌘K          │ [ Zapytaj o ten projekt…            ][ → ] │
+└─────────────┴────────────────────────────────────────────┘</pre>
+        <div>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Kolejnosc czytania</div>
+          <ol style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li>Twoje pytanie, oznaczone slowem <em>Ty</em> i godzina. Bez awatarow i baniek.</li>
+            <li>Odpowiedz, 17 px, kolumna 68 znakow, strumieniowana. Cytowania sa liczbami w mono w tekscie.</li>
+            <li>Klik w liczbe rozwija zrodlo pod akapitem: status z powodem, metryczka, pliki jako odnosniki. Nic 1 px laczy liczbe z rozwinieciem.</li>
+            <li>Pole pytania przypiete na dole, zawsze widoczne.</li>
+          </ol>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Zasady cytowan</div>
+          <ul style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li>Cytowanie z wpisu nieocenionego ma liczbe w ochrze i romb obok, a w rozwinieciu napis, ze wpis czeka na ocene. Odpowiedz nie udaje pewnosci, ktorej baza nie ma.</li>
+            <li>Cytowanie z wpisu odwolanego ma liczbe w czerwieni i napis, ktory wpis go odwolal, a asystent pisze o nim w czasie przeszlym.</li>
+            <li>Klik w plik otwiera liste wpisow przefiltrowana po tym pliku, nie edytor kodu.</li>
+          </ul>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Stany</div>
+          <ul style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li><strong style="font-weight:600">Szuka:</strong> napis <em>Szukam po znaczeniu w 418 wpisach</em>, bez animowanych kropek.</li>
+            <li><strong style="font-weight:600">Pisze:</strong> tekst pojawia sie strumieniem, cytowania doklejaja sie w miejscu, nie przeskakuja.</li>
+            <li><strong style="font-weight:600">Brak wynikow:</strong> jedno zdanie, ze baza nie ma nic na ten temat, plus propozycja zapisania tego jako wpisu.</li>
+            <li><strong style="font-weight:600">Brak klucza do modelu:</strong> pole wylaczone, banner trybu ograniczonego z przyciskiem do ustawien.</li>
+            <li><strong style="font-weight:600">Przerwany strumien:</strong> odpowiedz zostaje ucieta z napisem, ze polaczenie zerwalo sie w trakcie, i przyciskiem <em>Zapytaj ponownie</em>.</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:20px; border-top:1px solid oklch(0.86 0.01 250)">
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)"><div>Element</div><div>Polski</div><div>English</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">ask.placeholder</div><div>Zapytaj o ten projekt</div><div>Ask about this project</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">ask.searching</div><div>Szukam po znaczeniu w 418 wpisach</div><div>Searching 418 entries by meaning</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">ask.noResults</div><div>Baza nie ma nic na ten temat. Jesli wiesz odpowiedz, zapisz ja jako wpis, zeby agent ja znal.</div><div>The base has nothing on this. If you know the answer, save it as an entry so the agent knows it.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">cite.unreviewed</div><div>Ten wpis czeka na twoja ocene, wiec traktuj go ostroznie.</div><div>This entry is awaiting your review, so treat it with care.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">ask.interrupted</div><div>Polaczenie zerwalo sie w trakcie odpowiedzi. To, co widzisz, jest niepelne.</div><div>The connection dropped mid-answer. What you see is incomplete.</div></div>
+      </div>
+    </article>
+
+    <!-- SCREEN 6 -->
+    <article style="margin-top:56px; border-top:1px solid oklch(0.62 0.015 250); padding-top:24px">
+      <div style="display:flex; align-items:baseline; gap:16px">
+        <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.47 0.12 253)">06</span>
+        <h3 style="font-size:21px; font-weight:600; margin:0">Rozmowa z baza</h3>
+        <span style="font-size:17px; color:oklch(0.45 0.02 250)">Przyjac surowy tekst dowolnej jakosci i zamienic go we wpisy, pokazujac wprost, co zostanie dodane, zmienione i usuniete.</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:40px; margin-top:24px">
+        <pre style="font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:11.5px; line-height:1.5; margin:0; background:oklch(0.941 0.01 240); padding:18px 16px; overflow-x:auto">┌─BAR──────────────────────────────────────────────────────┐
+├─SIDE────────┬────────────────────────────────────────────┤
+│ [ariadne-c▾]│ Ty, 10:02                                  │
+│             │ zmienilismy limit na 4 bo osiem zabijalo   │
+│ Przeglad    │ laptopa, i keychain wypada                 │
+│ Wpisy       │                                            │
+│ Asystent    │ Z tego tekstu wychodza trzy operacje:      │
+│ Baza      ◄ │ ──────────────────────────────────────     │
+│ ──────────  │ DODAJ WPIS      Limit rownoleglosci…  [+]  │
+│ Do zatw. 8  │ ZMIEN WPIS 412  osiem → cztery       [~]  │
+│             │ USUN WPIS 388   Tokeny w keychainie  [!]  │
+│ ──────────  │ ── dwie ostatnie czekaja w kolejce ──      │
+│ Ustawienia  │ [ Wpisz surowy tekst…               ][ → ] │
+└─────────────┴────────────────────────────────────────────┘</pre>
+        <div>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Kolejnosc czytania</div>
+          <ol style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li>Twoj surowy tekst zostaje widoczny w calosci, bez poprawiania.</li>
+            <li>Zdanie mowiace, ile operacji z niego wyszlo, liczba wprost.</li>
+            <li>Lista operacji, kazda z nazwa czynnosci po ludzku (<em>Dodaj wpis</em>, <em>Zmien wpis 412</em>, <em>Usun wpis 388</em>), trescia i numerem wpisu, ktorego dotyczy.</li>
+            <li>Napis wprost, co sie stalo z operacjami niszczacymi: sa juz w kolejce do zatwierdzenia i nic sie nie wykonalo.</li>
+          </ol>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Zasada operacji niszczacych</div>
+          <p style="font-size:16px; line-height:1.65; margin:10px 0 0">Dodanie wpisu wykonuje sie od razu, bo nic nie traci. Zmiana i usuniecie zawsze pokazuja sie natychmiast jako pozycje kolejki, z widocznym DiffPair na miejscu, bez przechodzenia na ekran 07. Gdy przelacznik all-permission jest wlaczony, operacje wykonuja sie od razu, a wiersz mowi <em>wykonane od razu, bo masz wlaczone pelne uprawnienia</em> i daje cofniecie na 10 s.</p>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Stany</div>
+          <ul style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li><strong style="font-weight:600">Rozbija tekst:</strong> napis <em>Rozbijam na wpisy</em> i twoj tekst zostaje na ekranie.</li>
+            <li><strong style="font-weight:600">Nic nie wyszlo:</strong> zdanie, ze z tego tekstu nie da sie zrobic wpisu, i pytanie o jedna konkretna rzecz, ktorej brakuje.</li>
+            <li><strong style="font-weight:600">Konflikt:</strong> jesli wpis zmienil sie od czasu propozycji, wiersz mowi <em>wpis zmienil sie w trakcie</em> i pokazuje trzy wersje: zapisana, proponowana, twoja.</li>
+            <li><strong style="font-weight:600">Brak klucza do modelu:</strong> pole wylaczone, ale zostaje przycisk <em>Zapisz jako jeden wpis bez rozbijania</em>, bo to nie wymaga modelu.</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:20px; border-top:1px solid oklch(0.86 0.01 250)">
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)"><div>Element</div><div>Polski</div><div>English</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">talk.placeholder</div><div>Wpisz surowy tekst, nie musi byc ladny</div><div>Write raw text, it does not need to be tidy</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">talk.result</div><div>Z tego tekstu wychodza trzy operacje. Dodanie wykonalo sie od razu, zmiana i usuniecie czekaja na twoja zgode.</div><div>Three operations come out of this text. The addition is done, the change and the deletion are waiting for your approval.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">talk.allPermission</div><div>Wykonane od razu, bo masz wlaczone pelne uprawnienia. Cofnij</div><div>Applied immediately because full permission is on. Undo</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">talk.nothing</div><div>Z tego tekstu nie da sie zrobic wpisu, bo nie wiadomo, czego dotyczy. Dopisz, o ktory plik albo decyzje chodzi.</div><div>No entry can be made from this text because it is unclear what it refers to. Add which file or decision it concerns.</div></div>
+      </div>
+    </article>
+
+    <!-- SCREEN 7 -->
+    <article style="margin-top:56px; border-top:1px solid oklch(0.62 0.015 250); padding-top:24px">
+      <div style="display:flex; align-items:baseline; gap:16px">
+        <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.47 0.12 253)">07</span>
+        <h3 style="font-size:21px; font-weight:600; margin:0">Do zatwierdzenia</h3>
+        <span style="font-size:17px; color:oklch(0.45 0.02 250)">Przejsc przez zaleglosci w tempie jednego klawisza na pozycje, bez poczucia, ze cos wybucha przy zwloce.</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:40px; margin-top:24px">
+        <pre style="font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:11.5px; line-height:1.5; margin:0; background:oklch(0.941 0.01 240); padding:18px 16px; overflow-x:auto">┌─BAR──────────────────────────────────────────────────────┐
+├─SIDE────────┬────────────────────────────────────────────┤
+│ [ariadne-c▾]│ Do zatwierdzenia                           │
+│             │ 6 zadan i 34 wpisy czekaja. Mozesz wrocic  │
+│ Przeglad    │ do tego kiedy chcesz, nic nie przepada.    │
+│ Wpisy       │ ──────────────────────────────────────     │
+│ Asystent    │ [ zadania 6 ][ nieocenione 34 ][ odwol. 2 ]│
+│ Baza        │ ──────────────────────────────────────     │
+│ ──────────  │ ☐ ZMIANA TRESCI  Limit rownoleg…  agent    │
+│ Do zatw. 40◄│ ┌ zapisane ─────────┬ proponowane ───────┐ │
+│             │ │ osiem zadan       │ cztery zadania     │ │
+│ ──────────  │ └───────────────────┴────────────────────┘ │
+│ Ustawienia  │              [ Odrzuc ] [ Zatwierdz ]      │
+│ ⌘K          │ ☐ USUNIECIE      Tokeny w keych…  asystent │
+│             │ 3 zaznaczone  [ Zatwierdz zaznaczone (3) ] │
+└─────────────┴────────────────────────────────────────────┘</pre>
+        <div>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Kolejnosc czytania</div>
+          <ol style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li>Naglowek i pod nim dwa zdania: ile czeka i ze zwloka nic nie kosztuje. To jedyne miejsce, gdzie interfejs mowi o sobie.</li>
+            <li>Trzy zakladki z liczbami: zadania, nieocenione, odwolane. Kazda z rzeczownikiem, nie naga liczba.</li>
+            <li>Pierwsza pozycja rozwinieta z DiffPair, kolejne zwiniete. Rozwija sie jedna na raz.</li>
+            <li>Pasek zbiorczego dzialania pojawia sie dopiero po zaznaczeniu i mowi, ilu pozycji dotyczy.</li>
+          </ol>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Czterdziesci pozycji</div>
+          <p style="font-size:16px; line-height:1.65; margin:10px 0 0">Klawiatura jest glowna droga: strzalki wybieraja, <span style="font-family:'Martian Mono',monospace; font-size:13px">Y</span> zatwierdza, <span style="font-family:'Martian Mono',monospace; font-size:13px">N</span> odrzuca, <span style="font-family:'Martian Mono',monospace; font-size:13px">Space</span> zaznacza, i skroty sa wypisane w stopce ekranu, nie ukryte w pomocy. Zatwierdzona pozycja zostaje w miejscu na 3 s z napisem <em>Zatwierdzone, cofnij</em>, potem znika i licznik spada. Lista nie przeskakuje pod palcem.</p>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Stany</div>
+          <ul style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li><strong style="font-weight:600">Pusto:</strong> zdanie <em>Nic nie czeka na zatwierdzenie</em> i data ostatniej ocenionej pozycji. Bez pochwal.</li>
+            <li><strong style="font-weight:600">Zbiorcze usuniecie:</strong> jedyne potwierdzenie w calej aplikacji, bo dotyczy wielu wpisow naraz: pyta o liczbe i wypisuje pierwsze trzy tytuly.</li>
+            <li><strong style="font-weight:600">Blad zatwierdzenia:</strong> pozycja wraca do kolejki z napisem, ze nie udalo sie jej zatwierdzic, i przyciskiem ponowienia.</li>
+            <li><strong style="font-weight:600">Sesja wygasla w trakcie:</strong> banner, zaznaczenie zostaje po ponownym zalogowaniu.</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:20px; border-top:1px solid oklch(0.86 0.01 250)">
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)"><div>Element</div><div>Polski</div><div>English</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">queue.subtitle</div><div>6 zadan i 34 wpisy czekaja. Mozesz wrocic do tego kiedy chcesz, nic nie przepada.</div><div>6 tasks and 34 entries are waiting. Come back whenever you want, nothing expires.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">queue.tabs</div><div>zadania 6 &middot; nieocenione 34 &middot; odwolane 2</div><div>tasks 6 &middot; unreviewed 34 &middot; contradicted 2</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">queue.keys</div><div>Y zatwierdza &middot; N odrzuca &middot; Space zaznacza &middot; strzalki wybieraja</div><div>Y approves &middot; N rejects &middot; Space selects &middot; arrows move</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">queue.done</div><div>Zatwierdzone. Cofnij</div><div>Approved. Undo</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">queue.empty</div><div>Nic nie czeka na zatwierdzenie. Ostatnia pozycje ocenilas 22 lip.</div><div>Nothing is waiting for approval. You reviewed the last item on 22 Jul.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">queue.bulkDelete</div><div>Usunac 3 wpisy? Znikna z wyszukiwania, zostana w bazie. Dotyczy: Tokeny w keychainie, Limit osiem zadan, Pierwszy schemat bazy.</div><div>Delete 3 entries? They leave search and stay in the base. Affected: Tokens in the keychain, Limit of eight tasks, First database schema.</div></div>
+      </div>
+    </article>
+
+    <!-- SCREEN 8 -->
+    <article style="margin-top:56px; border-top:1px solid oklch(0.62 0.015 250); padding-top:24px">
+      <div style="display:flex; align-items:baseline; gap:16px">
+        <span style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.47 0.12 253)">08</span>
+        <h3 style="font-size:21px; font-weight:600; margin:0">Ustawienia</h3>
+        <span style="font-size:17px; color:oklch(0.45 0.02 250)">Trzymac w jednym miejscu cztery rzeczy, ktore sie zmienia rzadko, i powiedziec przy kazdej, co jej wlaczenie oznacza.</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1.25fr 1fr; gap:40px; margin-top:24px">
+        <pre style="font-family:ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size:11.5px; line-height:1.5; margin:0; background:oklch(0.941 0.01 240); padding:18px 16px; overflow-x:auto">┌─BAR──────────────────────────────────────────────────────┐
+├─SIDE────────┬────────────────────────────────────────────┤
+│ [ariadne-c▾]│ Ustawienia                                 │
+│             │ ──────────────────────────────────────     │
+│ Przeglad    │ PROFIL                                     │
+│ Wpisy       │ [ Junior frontend, pracuje po polsku,  ]   │
+│ Asystent    │ [ kod po angielsku, nie znosi over-…   ]   │
+│ Baza        │ Agent dostaje ten tekst na starcie sesji   │
+│ ──────────  │ ──────────────────────────────────────     │
+│ Do zatw. 6  │ TOKENY MCP                                 │
+│             │ laptop     utworzony 12 lip  uzyty 10:02   │
+│ ──────────  │ stary-mac  utworzony 03 cze  nieuzywany    │
+│ Ustawienia ◄│ [ Nowy token ]                             │
+│ ⌘K          │ ──────────────────────────────────────     │
+│             │ PELNE UPRAWNIENIA AGENTA        [ ○——— ]  │
+│             │ Wylaczone: zmiany i usuniecia agenta ida   │
+│             │ do kolejki. Wlaczone: wykonuja sie od razu │
+│             │ ──────────────────────────────────────     │
+│             │ KLUCZ DO MODELU     [ ····  ] opcjonalny   │
+│             │ JEZYK   (•) polski ( ) English             │
+│             │ ──────────────────────────────────────     │
+│             │ Wyeksportuj baze     Wyloguj sie           │
+└─────────────┴────────────────────────────────────────────┘</pre>
+        <div>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)">Kolejnosc czytania</div>
+          <ol style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li>Profil, bo zmienia sie najczesciej i wplywa na kazda sesje agenta.</li>
+            <li>Tokeny MCP: etykieta, data utworzenia, data ostatniego uzycia albo napis <em>nieuzywany</em>. Surowy token widoczny raz, przy wygenerowaniu, i tak napisane obok.</li>
+            <li>Pelne uprawnienia agenta z opisem obu stanow pod przelacznikiem, po polsku, bez slowa <em>all-permission</em> w interfejsie.</li>
+            <li>Klucz do modelu z napisem <em>opcjonalny</em> i zdaniem, co dziala bez niego.</li>
+            <li>Jezyk, potem eksport bazy i wylogowanie na koncu.</li>
+          </ol>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Jezyk</div>
+          <p style="font-size:16px; line-height:1.65; margin:10px 0 0">Przy pierwszym uruchomieniu jezyk bierze sie z systemu: polski, gdy system jest polski, inaczej angielski. Zmienia sie tylko tutaj i dziala od razu, bez restartu okna. Nazwy statusow w interfejsie sa tlumaczone, nazwy w kodzie i w API zostaja angielskie.</p>
+          <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-top:20px">Stany</div>
+          <ul style="font-size:16px; line-height:1.65; margin:10px 0 0; padding-left:20px">
+            <li><strong style="font-weight:600">Nowy token:</strong> pojawia sie CommandBlock z gotowym poleceniem i napisem, ze token widac tylko teraz.</li>
+            <li><strong style="font-weight:600">Usuniecie tokenu:</strong> zdanie mowiace, ktory agent przestanie miec dostep, i dopiero potem przycisk.</li>
+            <li><strong style="font-weight:600">Klucz odrzucony:</strong> pole z krawedzia w czerwieni i zdanie, ze dostawca odrzucil klucz, plus co dziala bez niego.</li>
+            <li><strong style="font-weight:600">Eksport:</strong> po kliknieciu napis z nazwa pliku i miejscem zapisu, bez okna postepu.</li>
+          </ul>
+        </div>
+      </div>
+      <div style="margin-top:20px; border-top:1px solid oklch(0.86 0.01 250)">
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)"><div>Element</div><div>Polski</div><div>English</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">settings.permission</div><div>Pelne uprawnienia agenta</div><div>Full agent permission</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">settings.permission.off</div><div>Wylaczone: zmiany i usuniecia proponowane przez agenta czekaja w kolejce na twoja zgode.</div><div>Off: changes and deletions proposed by the agent wait in the queue for your approval.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">settings.permission.on</div><div>Wlaczone: agent zmienia i usuwa wpisy od razu, bez pytania. Cofniecie masz 10 sekund.</div><div>On: the agent changes and deletes entries immediately, without asking. You get 10 seconds to undo.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">settings.key.note</div><div>Opcjonalny. Bez klucza dzialaja wpisy, kolejka, graf i szukanie po znaczeniu. Nie dziala asystent i rozbijanie surowego tekstu.</div><div>Optional. Without a key, entries, the queue, the graph and meaning search work. The assistant and raw-text splitting do not.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">settings.token.once</div><div>Token widzisz raz, przy wygenerowaniu. Nie da sie go pozniej odczytac, mozna tylko wydac nowy.</div><div>You see the token once, when it is generated. It cannot be read later, only replaced.</div></div>
+        <div style="display:grid; grid-template-columns:180px 1fr 1fr; gap:20px; padding:10px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px"><div style="font-family:'Martian Mono',monospace; font-size:13px; color:oklch(0.45 0.02 250)">settings.export</div><div>Wyeksportuj baze do pliku JSON</div><div>Export the base to a JSON file</div></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ 6. SIGNATURE ============ -->
+  <section id="signature" style="margin-top:112px">
+    <div style="display:flex; align-items:baseline; gap:20px; border-bottom:1px solid oklch(0.62 0.015 250); padding-bottom:12px">
+      <span style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; color:oklch(0.47 0.12 253)">06</span>
+      <h2 style="font-size:27px; font-weight:600; margin:0">Sygnatura, czyli nic</h2>
+      <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-left:auto">trzy miejsca, zero wyjatkow</span>
+    </div>
+    <p style="font-size:17px; line-height:1.65; max-width:68ch; margin:28px 0 0">Nic to linia 1 px w <span style="font-family:'Martian Mono',monospace; font-size:14px">--blue</span>. Wolno jej wystapic tylko tam, gdzie dwie rzeczy sa naprawde powiazane, i w kazdym z trzech miejsc dziala inaczej. Wszedzie indziej separator to <span style="font-family:'Martian Mono',monospace; font-size:14px">--hairline</span> i nie jest blekitny. Czwarte, dopuszczone uzycie techniczne: linia od cytowania do rozwinietego zrodla, bo to ta sama zasada w mniejszej skali.</p>
+
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:32px; margin-top:32px">
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.47 0.12 253)">1. Postep onboardingu</div>
+        <div style="margin:16px 0; display:flex; align-items:center">
+          <span style="width:10px; height:10px; background:oklch(0.47 0.12 253); flex:none"></span>
+          <span style="height:1px; width:60px; background:oklch(0.47 0.12 253); transform-origin:left; animation:thread-draw 420ms cubic-bezier(0.16,1,0.3,1) both"></span>
+          <span style="width:10px; height:10px; background:oklch(0.47 0.12 253); flex:none"></span>
+          <span style="height:1px; width:60px; background:oklch(0.86 0.01 250)"></span>
+          <span style="width:10px; height:10px; border:1px solid oklch(0.62 0.015 250); flex:none"></span>
+        </div>
+        <p style="font-size:16px; line-height:1.65; margin:0">Trzy kwadraty 10 px, odstep 60 px. Nic jest narysowana tylko do kroku, w ktorym jestes, dalej biegnie <span style="font-family:'Martian Mono',monospace; font-size:13px">--hairline</span>. Przy przejsciu do nastepnego kroku odcinek rysuje sie od lewej: <span style="font-family:'Martian Mono',monospace; font-size:13px">transform: scaleX(0 → 1)</span>, 420 ms, <span style="font-family:'Martian Mono',monospace; font-size:13px">cubic-bezier(0.16,1,0.3,1)</span>, <span style="font-family:'Martian Mono',monospace; font-size:13px">transform-origin: left</span>. Kwadrat celu wypelnia sie po zakonczeniu, zmiana <span style="font-family:'Martian Mono',monospace; font-size:13px">background</span> w 120 ms. Obok zawsze napis <em>krok 2 z 3</em>, bo linia sama nie jest informacja.</p>
+        <p style="font-size:16px; line-height:1.65; margin:12px 0 0; color:oklch(0.45 0.02 250)"><strong style="font-weight:600">Reduced motion:</strong> odcinek pojawia sie od razu w pelnej dlugosci, <span style="font-family:'Martian Mono',monospace; font-size:13px">animation: none</span>. Napis zmienia sie identycznie, wiec zadna informacja nie zalezy od ruchu.</p>
+      </div>
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.47 0.12 253)">2. Wspolny plik miedzy wpisami</div>
+        <div style="margin:16px 0; border-top:1px solid oklch(0.86 0.01 250); border-bottom:1px solid oklch(0.86 0.01 250); padding:10px 0; display:grid; grid-template-columns:12px 1fr; gap:10px">
+          <div style="position:relative"><span style="position:absolute; left:5px; top:6px; bottom:6px; width:1px; background:oklch(0.47 0.12 253)"></span></div>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <span style="font-size:15px">Kolejka zadan zostaje w SQLite</span>
+            <span style="font-size:15px">Limit rownoleglosci to cztery zadania</span>
+          </div>
+        </div>
+        <p style="font-size:16px; line-height:1.65; margin:0">Na liscie wpisow i w czytniku: pionowa linia 1 px po lewej krawedzi wiersza, laczaca wylacznie te wiersze, ktore dziela plik z wpisem aktualnie wybranym. Pojawia sie na wybor wpisu, znika po odznaczeniu, <span style="font-family:'Martian Mono',monospace; font-size:13px">opacity 0 → 1</span> w 120 ms, bez ruchu w osi X. Nad grupa napis w mono z nazwa pliku, bo linia mowi <em>ze</em>, a napis mowi <em>ktory</em>.</p>
+        <p style="font-size:16px; line-height:1.65; margin:12px 0 0; color:oklch(0.45 0.02 250)"><strong style="font-weight:600">Reduced motion:</strong> linia i napis pojawiaja sie bez przejscia. Grupowanie wierszy nie zmienia sie, wiec uklad nie skacze.</p>
+      </div>
+      <div>
+        <div style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.47 0.12 253)">3. Krawedz w grafie</div>
+        <div style="margin:16px 0; background:oklch(0.22 0.02 250); padding:16px; display:flex; align-items:center; gap:0">
+          <span style="width:10px; height:10px; background:oklch(0.72 0.12 250); flex:none"></span>
+          <span style="height:1px; width:56px; background:oklch(0.72 0.12 250)"></span>
+          <span style="width:10px; height:10px; border:1.5px solid oklch(0.63 0.13 78); transform:rotate(45deg); flex:none"></span>
+          <span style="height:1px; width:56px; background:repeating-linear-gradient(to right, oklch(0.72 0.12 250) 0 3px, transparent 3px 7px)"></span>
+          <span style="width:10px; height:10px; background:oklch(0.72 0.12 250); flex:none"></span>
+        </div>
+        <p style="font-size:16px; line-height:1.65; margin:0">Na ciemnym plotnie nic ma barwe <span style="font-family:'Martian Mono',monospace; font-size:13px">--blue-lift</span>, bo <span style="font-family:'Martian Mono',monospace; font-size:13px">--blue</span> daje tam 2.2:1. Ciagla oznacza wspolny plik, kreskowana podobienstwo powyzej 0.75, ze strzalka odwolanie. Krawedzie nie animuja sie przy przeliczaniu ukladu: symulacja liczy sie w tle, plotno pokazuje napis <em>Ukladam graf</em>, a gotowy uklad pojawia sie w jednej klatce, <span style="font-family:'Martian Mono',monospace; font-size:13px">opacity</span> 200 ms. Zaden wierzcholek nie drga po ustawieniu.</p>
+        <p style="font-size:16px; line-height:1.65; margin:12px 0 0; color:oklch(0.45 0.02 250)"><strong style="font-weight:600">Reduced motion:</strong> symulacja dostaje twardy limit 60 iteracji i rysuje sie raz, bez przejscia krycia. Podswietlenie sasiadow przy wyborze zmienia sie natychmiast.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 7. DESIGN.MD ============ -->
+  <section id="designmd" style="margin-top:112px">
+    <div style="display:flex; align-items:baseline; gap:20px; border-bottom:1px solid oklch(0.62 0.015 250); padding-bottom:12px">
+      <span style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; color:oklch(0.47 0.12 253)">07</span>
+      <h2 style="font-size:27px; font-weight:600; margin:0">DESIGN.md</h2>
+      <span style="font-family:'Martian Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250); margin-left:auto">plik w repozytorium: <a href="DESIGN.md">DESIGN.md</a></span>
+    </div>
+    <pre style="font-family:'Martian Mono',monospace; font-size:13px; line-height:1.7; background:oklch(0.941 0.01 240); padding:24px; margin-top:28px; overflow-x:auto; white-space:pre-wrap">---
+name: Ariadne
+register: product
+personality: [attributed, deliberate, quiet]
+theme: light-only, dark graph canvas
+color:
+  plaster:        oklch(0.968 0.008 240)   # app background
+  plaster-raised: oklch(0.985 0.005 240)   # reading surface
+  plaster-sunk:   oklch(0.941 0.010 240)   # rails, hover, data blocks
+  ink:            oklch(0.260 0.020 250)   # 14.2:1 on plaster
+  ink-2:          oklch(0.450 0.020 250)   # 6.8:1
+  ink-3:          oklch(0.530 0.015 250)   # 4.8:1, text floor
+  edge:           oklch(0.620 0.015 250)   # 3.3:1, control borders
+  hairline:       oklch(0.860 0.010 250)   # 1.4:1, decoration only
+  blue:           oklch(0.470 0.120 253)   # 6.0:1, accent, confirmed, thread
+  blue-lift:      oklch(0.720 0.120 250)   # 6.0:1 on canvas only
+  ochre:          oklch(0.520 0.105 78)    # 4.9:1, proposed text
+  ochre-mark:     oklch(0.630 0.130 78)    # 3.2:1, marker fill only
+  iron:           oklch(0.505 0.150 27)    # 5.9:1, contradicted, deletions
+  slate:          oklch(0.500 0.012 250)   # 5.5:1, archived
+  canvas:         oklch(0.220 0.020 250)   # graph only
+  canvas-ink:     oklch(0.930 0.010 240)   # 15.8:1 on canvas
+type:
+  prose: Literata, latin-ext, weights 400/500/600
+  data:  Martian Mono, latin-ext, weights 400/500
+  scale: 43/34/27/21/17/15/13/11, ratio 1.26
+  measure: 68ch
+space: [2, 4, 8, 12, 16, 24, 32, 48, 72, 112]
+radius: [0, 2]
+motion:
+  state:  120ms cubic-bezier(0.22,1,0.36,1)
+  enter:  200ms cubic-bezier(0.22,1,0.36,1)
+  thread: 420ms cubic-bezier(0.16,1,0.3,1)
+a11y: WCAG 2.2 AA, status never color-only, reduced-motion honoured
+---
+
+# Overview
+
+Ariadne is a desktop window over a research archive, not a dashboard. It shows
+what a coding agent decided, when, in which files, and whether a human has
+vouched for it. Every screen is a catalogued surface: label on the left, value on
+the right, hairline between rows, no boxes around boxes.
+
+**The Instrument Rule.** Nothing on screen celebrates a number; every number is a
+reading you can act on.
+
+**The Attribution Rule.** No statement appears without its source, its date and
+its status in the same eyeful.
+
+**The Plain Note Rule.** Every label, empty state and status says in words what it
+is and what to do next, so the reader never has to infer meaning from a colour,
+an icon or a position.
+
+# Colors
+
+Four roles carry meaning and nothing else carries it: blue is the thread and
+`confirmed`, ochre is `proposed`, iron is `contradicted`, slate is `archived`.
+Neutrals are limestone plaster tinted 0.008 to 0.020 chroma toward the accent.
+Pure black and pure white are absent from the palette.
+
+**The Four Roles Rule.** A colour that does not name a status or the thread has no
+business being saturated.
+
+**The Marker Floor Rule.** Saturated ochre lives only in 10 px markers at 3.2:1;
+any ochre carrying text drops to 4.9:1.
+
+**The One Dark Surface Rule.** The graph canvas is the only dark region in the
+product, and it exists because thin lines between forty nodes need it.
+
+# Typography
+
+Literata sets every sentence a human reads; Martian Mono sets everything a
+machine produced: paths, hashes, dates, similarity, status names, form labels.
+Monospace labels are uppercase, tracked 0.12em, capped at 24 characters.
+
+**The Two Voices Rule.** Prose in the serif, data in the mono, and never the
+reverse.
+
+**The Measure Rule.** Body text is 17px/28px in a 68-character column, because a
+4000-character entry is a normal read, not an edge case.
+
+# Elevation
+
+There is one shadow in the product: `0 8px 24px oklch(0.26 0.02 250 / 0.14)`, worn
+by the command palette and the context menu only. Everything else separates by a
+1px border or by background step: plaster, plaster-sunk, plaster-raised.
+
+**The Paper Rule.** Panels are cut paper, not floating cards: a border, a
+background step, zero radius above 2px.
+
+**The Modal Last Rule.** A modal is the last resort, allowed only for bulk
+deletion; everything else resolves in place.
+
+# Components
+
+Fourteen components: TitleBar, SideRail, CommandPalette, ProjectRow, NodeRow,
+Reader, Provenance, StatusChip, Citation, DiffPair, QueueItem, GraphCanvas,
+CommandBlock, Banner, EmptyPlate, Field, Button. Each has rest, hover, focus,
+active, disabled and error where applicable; focus is always
+`outline: 2px var(--blue); outline-offset: 2px`.
+
+**The Shape Plus Word Rule.** Every status renders as marker shape plus written
+label plus, where it exists, its reason.
+
+**The Row Height Rule.** A node row is 44px and shows one sentence; reading the
+full entry happens in the Reader, never in the list.
+
+**The Terminal Once Rule.** Dark background plus monospace on a light app is
+honest exactly once: the onboarding command block.
+
+# Do's and Don'ts
+
+Do write the reason next to the status: `contradicted by entry 418`, not a red
+square. Do state what a toggle does in both positions. Do use exact timestamps.
+Do keep the queue ignorable and say so in words.
+
+Don't put a coloured bar thicker than 1px on the left of anything. Don't gradient
+text. Don't nest a card in a card. Don't use the blue thread as a divider. Don't
+congratulate, apologise or exclaim. Don't invent a fifth accent for a fifth
+meaning; add a shape instead.
+
+**The No Guessing Rule.** If a label, count or state could be misread by someone
+who has never seen this app, spell it out in a sentence instead.
+</pre>
+  </section>
+
+  <!-- ============ 8. NOT DESIGNED ============ -->
+  <section id="notdesigned" style="margin-top:112px">
+    <div style="display:flex; align-items:baseline; gap:20px; border-bottom:1px solid oklch(0.62 0.015 250); padding-bottom:12px">
+      <span style="font-family:'Martian Mono',monospace; font-size:13px; letter-spacing:0.12em; color:oklch(0.47 0.12 253)">08</span>
+      <h2 style="font-size:27px; font-weight:600; margin:0">Czego swiadomie nie zaprojektowalem</h2>
+    </div>
+    <div style="margin-top:28px; border-top:1px solid oklch(0.86 0.01 250)">
+      <div style="display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:24px; padding:14px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-family:'Martian Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(0.53 0.015 250)"><div>Rzecz</div><div>Dlaczego nie teraz</div><div>Kiedy wrocic</div></div>
+      <div style="display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:24px; padding:14px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px; line-height:1.6"><div style="font-weight:600">Wspolna baza dla kilku kont</div><div>Uzytkownikow jest wielu, kazdy ma wlasne konto i wlasne projekty, i wszyscy dostaja dokladnie te same osiem ekranow, bez podzialu na techniczna i nietechniczna osobe. Nie zaprojektowalem natomiast pracy kilku kont nad jednym projektem, bo backend nie ma czlonkostwa ani rol, a zaproszenia bez modelu uprawnien byly by wymyslaniem.</div><div>Gdy dwa konta beda musialy czytac i potwierdzac te sama baze, czyli przy pierwszym projekcie zespolowym.</div></div>
+      <div style="display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:24px; padding:14px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px; line-height:1.6"><div style="font-weight:600">Historia wersji wpisu</div><div>Nie wybralas jej do zakresu. Interfejs pokazuje date modyfikacji i kanal, wiec wiadomo, ze zmiana byla, ale nie da sie zobaczyc poprzedniej tresci.</div><div>Przy pierwszym przypadku, gdy bedziesz chciala cofnac zmiane starsza niz 10 sekund.</div></div>
+      <div style="display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:24px; padding:14px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px; line-height:1.6"><div style="font-weight:600">Graf calego projektu</div><div>Powyzej 150 wierzcholkow przestaje cokolwiek znaczyc, a krawedzie licza sie w locie. Zaprojektowany jest graf z zakresem, nie graf wszystkiego.</div><div>Gdy zakres sasiedztwa okaze sie za waski w praktyce, najwczesniej po 300 wpisach.</div></div>
+      <div style="display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:24px; padding:14px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px; line-height:1.6"><div style="font-weight:600">Plansza z portretem rzezby w ASCII</div><div>Chcesz ja i zgadzam sie na jedno miejsce, ale konwersja wymaga zrodlowego zdjecia, ktorego nie mam. Zamiast tego wchodzi labirynt kretenski rysowany jedna linia, bo to ta sama zasada bez podrabiania fotografii.</div><div>Gdy podrzucisz zdjecie rzezby: siatka 96 na 56 znakow, 12 stopni gestosci, jeden kolor tuszu, tylko ekran 01 i 02.</div></div>
+      <div style="display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:24px; padding:14px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px; line-height:1.6"><div style="font-weight:600">Filtry i szukanie na liscie wpisow</div><div>Zaprojektowane sa wiersz, czytnik i gestosc, ale nie panel filtrow, bo nie wiadomo, czy filtrowanie idzie po stronie serwera. To pytanie do backendu, nie do projektu.</div><div>Razem z endpointem czytania wpisow, patrz audyt A2.</div></div>
+      <div style="display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:24px; padding:14px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px; line-height:1.6"><div style="font-weight:600">Koszt i limity modelu</div><div>Klucz jest opcjonalny i nie ma danych o zuzyciu w API. Interfejs nie udaje, ze wie, ile wydales.</div><div>Gdy pojawi sie licznik zuzycia po stronie serwera.</div></div>
+      <div style="display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:24px; padding:14px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px; line-height:1.6"><div style="font-weight:600">Powiadomienia systemowe</div><div>Kolejka ma byc nieblokujaca. Powiadomienie o nowym wpisie zamienia ja w feed, czyli w to, czym Ariadne nie jest.</div><div>Prawdopodobnie nigdy. Wroc do tego tylko wtedy, gdy okaze sie, ze kolejka jest ignorowana miesiacami.</div></div>
+      <div style="display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:24px; padding:14px 0; border-bottom:1px solid oklch(0.86 0.01 250); font-size:16px; line-height:1.6"><div style="font-weight:600">Widok jednego pliku</div><div>Kusi, bo anchors to pliki, ale to zaczatek mapowania kodu, czyli tego, czym Ariadne swiadomie nie jest. Na razie plik jest tylko filtrem listy.</div><div>Gdy filtrowanie po pliku bedzie uzywane czesciej niz szukanie po znaczeniu.</div></div>
+    </div>
+    <p style="font-size:17px; line-height:1.65; max-width:68ch; margin:28px 0 0">Dwie rzeczy z tej listy sa pytaniami do backendu, nie do projektu: endpoint czytania wpisow (A2) i endpoint nadajacy status odwolany razem z polem <span style="font-family:'Martian Mono',monospace; font-size:14px">supersededBy</span> (A3). Bez nich ekrany 03, 04, 05, 06 i 07 nie maja z czego zyc.</p>
+  </section>
+</div>
+</x-dc>
+</body>
+</html>
