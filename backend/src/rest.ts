@@ -103,8 +103,13 @@ export function createRestApp() {
       const where = error.issues.map((i) => i.path.join(".") || "body").join(", ");
       return c.json({ error: "validation", message: `invalid or missing: ${where}` }, 400);
     }
-    // Includes the 401 the jwt middleware throws for a missing or expired token.
-    if (error instanceof HTTPException) return error.getResponse();
+    // The jwt middleware throws this for a missing or expired token, and Hono's
+    // own response body is plain text. Reshaped to the same JSON as every other
+    // error, so a client needs one parser rather than a special case for 401.
+    if (error instanceof HTTPException) {
+      const code = error.status === 401 ? "unauthorized" : "http_error";
+      return c.json({ error: code, message: error.message }, error.status);
+    }
     console.error("[rest] unexpected error:", error);
     return c.json({ error: "internal", message: "internal error, check the server logs" }, 500);
   });
