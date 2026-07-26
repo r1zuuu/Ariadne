@@ -2,6 +2,25 @@
 
 Warstwa pamieci dla LLM coderow. Nic ariadny: wychodzisz z sesji i wracasz dokladnie tam, gdzie skonczyles. Baza Postgres + pgvector na VPS jako jedyne zrodlo prawdy, aplikacja desktopowa Tauri 2 + Next.js jako klient, komunikacja coderow przez MCP, wyszukiwanie przez RAG z cytowaniem.
 
+## 0. Gdzie jestesmy, stan na 26.07.2026
+
+Branch: feature/step-5b-app-shell, odbity od feature/step-5a-rest-backend przed jego merge'em, wiec niesie tez caly 5a. Na main sa zmergowane kroki 1 do 4 (PR #1 do #4). PR dla 5a otwarty i niezamkniety. Kolejnosc przy scalaniu: najpierw 5a, potem 5b przerebasuje sie bez konfliktow, bo jedyny wspolny plik to ten.
+
+Zrobione i sprawdzone:
+- Kroki 1 do 4 zamkniete. Krok 4 potwierdzony na prawdziwym repo portfolio: coder laduje boot context, zapisuje decyzje, podsumowuje sesje, a nastepna sesja odpowiada z tego podsumowania i siega po search_context dzieki indexowi.
+- Krok 5a: 16 endpointow REST, auth na argon2id i JWT HS256, tokeny, projekty, feed do zatwierdzenia. scripts/verify-rest.ts, 58 sprawdzen przez app.request() Hono. REST i MCP na jednym porcie.
+- Krok 5b, ekrany 1 i 2: logowanie, rejestracja, trzy kroki onboardingu. Przejscie od rejestracji do skopiowanego polecenia przeklikane w przegladarce, a token z tego przejscia autoryzuje sie na /mcp i zwraca wpisany profil oraz zalozona karte. Kryterium 5b w tej czesci spelnione.
+- Projekt wizualny z Claude Design zaimportowany: PRODUCT.md i DESIGN.md w korzeniu, spec w design/. Tokeny przepisane do @theme, fonty w paczce lokalnie.
+
+Jak uruchomic: docker compose up -d dla bazy, npm run dev w backend (port 3000), npm run dev w frontend (port 3001). Konto stanislaw@rayzacher.pl, haslo 1234 (ustawione skryptem, wiec omija walidacje osmiu znakow z rejestracji; do zmiany przed VPS).
+
+Czego brakuje w 5b: powloki Tauri. src-tauri nie istnieje. Rust 1.97.1 i MSVC Build Tools sa zainstalowane, wiec to robota, nie blokada.
+
+Trzy decyzje czekaja na usera, wszystkie opisane dalej w planie:
+1. Onboarding nie wie, ze zostal juz przejsty, wiec kazde wejscie na /onboarding moze nadpisac profil pustym tekstem. Wykryte na zywo, profil odtworzony skryptem seed. Najprostszy warunek: pusta lista z GET /projects znaczy pierwsze uruchomienie. Do zrobienia teraz albo przy ekranie glownym, ktory te liste i tak wola.
+2. Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie.
+3. Kolejnosc: 5a.1 (brakujace endpointy czytania wpisow) kontra powloka Tauri. Bez 5a.1 ekrany 3 do 7 nie maja z czego zyc.
+
 ## 1. Problem i cel
 
 - Sesje LLM sie urywaja, kontekst nie zapisuje sie automatycznie, kolejna sesja marnuje tokeny na domyslanie sie, gdzie skonczono.
