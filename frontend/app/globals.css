@@ -137,6 +137,11 @@
       animation-duration: 0ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0ms !important;
+      /* Delays too, not just durations: the onboarding step marker waits 420ms
+         for the thread to finish drawing, and with the drawing gone that delay
+         would leave the marker blank for no reason. */
+      animation-delay: 0ms !important;
+      transition-delay: 0ms !important;
     }
   }
 }
