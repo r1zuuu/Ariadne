@@ -32,6 +32,9 @@ const httpServer = createServer(async (req, res) => {
   try {
     userId = await resolveUserByToken(token);
   } catch {
+    // Prefix only, never the whole token: enough to tell a wrong token from an
+    // unexpanded "${ARIADNE_TOKEN}" placeholder in a client config.
+    console.warn(`[auth] rejected token: ${token.length} chars, starts "${token.slice(0, 6)}"`);
     res.setHeader("WWW-Authenticate", "Bearer");
     return sendError(res, 401, "Invalid token. Generate a new one in the Ariadne app.");
   }
