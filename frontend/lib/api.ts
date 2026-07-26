@@ -77,7 +77,10 @@ export async function request<T>(path: string, options: Options = {}): Promise<T
 
   if (!res.ok) {
     const { error, message } = (payload ?? {}) as { error?: string; message?: string };
-    if (res.status === 401) clearToken();
+    // Only when the request actually carried a token. The reachability probe calls
+    // /me deliberately unauthenticated, so clearing on every 401 logged the user
+    // out on each visit to the entry screen.
+    if (res.status === 401 && token) clearToken();
     throw new ApiError("rejected", res.status, error ?? "internal", message ?? res.statusText);
   }
 
