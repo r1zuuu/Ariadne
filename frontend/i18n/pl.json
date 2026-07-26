@@ -59,22 +59,28 @@
       "note": "Ten tekst agent dostaje na starcie każdej sesji. Możesz go zmienić teraz i później w ustawieniach.",
       "q1": {
         "label": "ZAJĘCIE",
-        "hint": "Junior frontend developer, uczę się budując"
+        "hint": "Junior frontend developer, uczę się budując",
+        "question": "Czym się zajmujesz?"
       },
       "q2": {
         "label": "CO ZNASZ",
-        "hint": "Next.js, React, TypeScript, Tailwind"
+        "hint": "Next.js, React, TypeScript, Tailwind",
+        "question": "Czego już używasz?"
       },
       "q3": {
         "label": "STYL PRACY",
-        "hint": "Tłumacz decyzje, nie tylko kod. Najprostsze rozwiązanie wygrywa."
+        "hint": "Tłumacz decyzje, nie tylko kod. Najprostsze rozwiązanie wygrywa.",
+        "question": "Jak chcesz pracować?"
       },
       "q4": {
         "label": "JĘZYK",
-        "hint": "Rozmowa po polsku, kod i komentarze po angielsku"
+        "hint": "Rozmowa po polsku, kod i komentarze po angielsku",
+        "question": "W jakim języku rozmawiamy?"
       },
       "resultLabel": "PROFIL",
-      "optionalAnswer": "Możesz zostawić puste, wtedy ta część nie trafi do profilu."
+      "optionalAnswer": "Możesz zostawić puste, wtedy ta część nie trafi do profilu.",
+      "previewTitle": "PROFIL, JAK STOI",
+      "previewEmpty": "Tu pojawi się to, co wpiszesz. Agent dostaje ten tekst na starcie każdej sesji."
     },
     "project": {
       "title": "Pierwszy projekt",
@@ -101,7 +107,9 @@
       "error": {
         "name": "Projekt musi mieć nazwę.",
         "repoTaken": "Masz już projekt dla tego repozytorium."
-      }
+      },
+      "previewTitle": "KARTA PROJEKTU",
+      "previewEmpty": "Karta rośnie w miarę wypełniania. Agent czyta ją przy każdym pytaniu o ten projekt."
     },
     "agent": {
       "title": "Podłącz agenta",

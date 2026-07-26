@@ -35,26 +35,30 @@ export function ProfileStep({
   if (index < PROFILE_QUESTIONS.length) {
     const key = PROFILE_QUESTIONS[index];
     return (
-      <div className="divide-y divide-hairline border-y border-hairline">
-        <Field
+      // One question per view only works if the question IS the view. As an 11px
+      // label beside a 17px input it was the smallest thing on an empty screen.
+      <div>
+        <h1 className="max-w-[24ch] text-title">{t(`${key}.question`)}</h1>
+        <input
           id={key}
-          label={t(`${key}.label`)}
-          placeholder={t(`${key}.hint`)}
+          autoFocus
           value={answers[key]}
           onChange={(e) => onAnswer(key, e.target.value)}
-          note={t("optionalAnswer")}
-          autoFocus
+          placeholder={t(`${key}.hint`)}
+          className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3/55 focus:border-blue"
         />
+        <p className="pt-4 text-small text-ink-3">{t("optionalAnswer")}</p>
       </div>
     );
   }
 
   return (
     <div>
-      <div className="grid grid-cols-[132px_1fr] gap-x-6 border-y border-hairline py-5">
-        <div className="pt-1">
-          <Label htmlFor="profile">{t("resultLabel")}</Label>
-        </div>
+      <h1 className="max-w-[24ch] text-title">{t("title")}</h1>
+      <div className="pt-7">
+        <Label htmlFor="profile">{t("resultLabel")}</Label>
+      </div>
+      <div className="pt-3">
         <textarea
           id="profile"
           rows={7}
@@ -63,7 +67,7 @@ export function ProfileStep({
           maxLength={4000}
           value={profile}
           onChange={(e) => onProfile(e.target.value)}
-          className="w-full resize-y rounded-control border border-edge bg-plaster-raised px-4 py-3 text-body text-ink outline-none"
+          className="w-full resize-y rounded-control border border-edge bg-plaster-raised px-5 py-4 text-body text-ink outline-none transition-colors duration-state focus:border-blue"
           style={{ maxWidth: "68ch" }}
         />
       </div>
@@ -96,7 +100,9 @@ export function ProjectStep({
   const t = useTranslations("onboarding.project");
 
   return (
-    <div className="divide-y divide-hairline border-y border-hairline">
+    <div>
+      <h1 className="text-title">{t("title")}</h1>
+      <div className="mt-7 divide-y divide-hairline border-y border-hairline">
       <Field
         id="name"
         label={t("label.name")}
@@ -148,6 +154,7 @@ export function ProjectStep({
         onChange={(e) => onChange({ ograniczenia: e.target.value })}
         note={t("optional")}
       />
+      </div>
     </div>
   );
 }
@@ -172,7 +179,8 @@ export function AgentStep({
 
   return (
     <div>
-      <div className="border-y border-hairline">
+      <h1 className="text-title">{t("title")}</h1>
+      <div className="mt-7 border-y border-hairline">
         <Field id="agent" label={t("label")}>
           <div role="radiogroup" aria-labelledby="agent" className="flex flex-wrap gap-6 py-3">
             {AGENTS.map((option) => (

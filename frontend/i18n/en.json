@@ -59,22 +59,28 @@
       "note": "The agent receives this text at the start of every session. You can edit it now and later in settings.",
       "q1": {
         "label": "ROLE",
-        "hint": "Junior frontend developer, learning by building"
+        "hint": "Junior frontend developer, learning by building",
+        "question": "What do you do?"
       },
       "q2": {
         "label": "WHAT YOU KNOW",
-        "hint": "Next.js, React, TypeScript, Tailwind"
+        "hint": "Next.js, React, TypeScript, Tailwind",
+        "question": "What do you already use?"
       },
       "q3": {
         "label": "WORK STYLE",
-        "hint": "Explain the decisions, not just the code. The simplest thing that works wins."
+        "hint": "Explain the decisions, not just the code. The simplest thing that works wins.",
+        "question": "How do you want to work?"
       },
       "q4": {
         "label": "LANGUAGE",
-        "hint": "Talk in English, write code and comments in English"
+        "hint": "Talk in English, write code and comments in English",
+        "question": "Which language do we talk in?"
       },
       "resultLabel": "PROFILE",
-      "optionalAnswer": "You can leave this empty, then this part stays out of the profile."
+      "optionalAnswer": "You can leave this empty, then this part stays out of the profile.",
+      "previewTitle": "PROFILE SO FAR",
+      "previewEmpty": "What you type shows up here. The agent receives this text at the start of every session."
     },
     "project": {
       "title": "First project",
@@ -101,7 +107,9 @@
       "error": {
         "name": "A project needs a name.",
         "repoTaken": "You already have a project for this repository."
-      }
+      },
+      "previewTitle": "PROJECT CARD",
+      "previewEmpty": "The card grows as you fill it in. The agent reads it on every question about this project."
     },
     "agent": {
       "title": "Connect your agent",

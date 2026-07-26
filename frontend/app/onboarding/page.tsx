@@ -12,6 +12,7 @@ import {
   type Answers,
   type Card,
 } from "@/components/onboarding-steps";
+import { RecordPreview, type Entry } from "@/components/record-preview";
 import { ThreadProgress } from "@/components/thread-progress";
 import { TitleBar } from "@/components/title-bar";
 import { Banner, Button } from "@/components/ui";
@@ -125,59 +126,98 @@ export default function OnboardingScreen() {
     if (step === 3) return setStep(2);
   };
 
-  const title = step === 1 ? t("profile.title") : step === 2 ? t("project.title") : t("agent.title");
   const canGoBack = step > 1 || profileIndex > 0;
+
+  // The right column: what has been entered so far. It is here because two thirds
+  // of this screen was empty and the question "why am I typing this" had no
+  // answer on it.
+  const preview: { title: string; note?: string; entries: Entry[]; empty: string } =
+    step === 1
+      ? {
+          title: t("profile.previewTitle"),
+          note: t("profile.note"),
+          empty: t("profile.previewEmpty"),
+          entries: PROFILE_QUESTIONS.map((key) => ({
+            label: t(`profile.${key}.label`),
+            value: answers[key],
+          })),
+        }
+      : {
+          title: t("project.previewTitle"),
+          empty: t("project.previewEmpty"),
+          entries: [
+            { label: t("project.label.name"), value: card.name },
+            { label: t("project.label.repo"), value: card.repoRef },
+            { label: t("project.label.stack"), value: card.stack },
+            { label: t("project.label.etap"), value: t(`project.etap.${card.etap}`) },
+            { label: t("project.label.limits"), value: card.ograniczenia },
+          ],
+        };
 
   return (
     <div className="flex h-full flex-col">
       <TitleBar />
       {failure ? <Banner variant="error" what={failure} /> : null}
 
-      <main className="min-h-0 flex-1 overflow-y-auto px-8 pt-9">
-        <ThreadProgress step={step} />
+      <ThreadProgress step={step} />
 
-        <h1 className="pt-7 text-section">{title}</h1>
+      <main className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-x-16 px-8 pt-10 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div>
+            {step === 1 ? (
+              <ProfileStep
+                index={profileIndex}
+                answers={answers}
+                profile={profile}
+                onAnswer={(key, value) => setAnswers({ ...answers, [key]: value })}
+                onProfile={setProfile}
+              />
+            ) : step === 2 ? (
+              <ProjectStep
+                card={card}
+                error={fieldError}
+                onChange={(patch) => setCard({ ...card, ...patch })}
+              />
+            ) : (
+              <AgentStep
+                agent={agent}
+                token={token}
+                failed={tokenFailed}
+                onAgent={setAgent}
+                onRegenerate={() => void mint()}
+              />
+            )}
 
-        <div className="max-w-[720px] pt-6">
-          {step === 1 ? (
-            <ProfileStep
-              index={profileIndex}
-              answers={answers}
-              profile={profile}
-              onAnswer={(key, value) => setAnswers({ ...answers, [key]: value })}
-              onProfile={setProfile}
-            />
-          ) : step === 2 ? (
-            <ProjectStep
-              card={card}
-              error={fieldError}
-              onChange={(patch) => setCard({ ...card, ...patch })}
-            />
-          ) : (
-            <AgentStep
-              agent={agent}
-              token={token}
-              failed={tokenFailed}
-              onAgent={setAgent}
-              onRegenerate={() => void mint()}
-            />
-          )}
-        </div>
+            {/* Set off by a rule and a wider gap above: the actions are a
+                different kind of thing from the question, and uniform spacing was
+                making the whole screen read as one undifferentiated column. */}
+            <div className="mt-9 flex items-center gap-6 border-t border-hairline pb-10 pt-6">
+              <Button onClick={() => void advance()} disabled={busy}>
+                {step === 3 ? t("finish") : t("next")}
+              </Button>
+              {canGoBack ? (
+                <Button variant="quiet" onClick={back} disabled={busy}>
+                  {t("back")}
+                </Button>
+              ) : null}
+              {step < 3 ? (
+                <Button variant="quiet" className="ml-auto" onClick={() => router.push("/")} disabled={busy}>
+                  {t("skip")}
+                </Button>
+              ) : null}
+            </div>
+          </div>
 
-        <div className="flex max-w-[720px] items-center gap-6 pb-9 pt-7">
-          <Button onClick={() => void advance()} disabled={busy}>
-            {step === 3 ? t("finish") : t("next")}
-          </Button>
-          {canGoBack ? (
-            <Button variant="quiet" onClick={back} disabled={busy}>
-              {t("back")}
-            </Button>
-          ) : null}
-          {step < 3 ? (
-            <Button variant="quiet" className="ml-auto" onClick={() => router.push("/")} disabled={busy}>
-              {t("skip")}
-            </Button>
-          ) : null}
+          {/* Hidden below the two-column breakpoint rather than stacked: on a
+              narrow window the record would push the actions off the fold. */}
+          <div className="hidden lg:block">
+            <RecordPreview
+              title={preview.title}
+              note={preview.note}
+              entries={preview.entries}
+              emptyNote={preview.empty}
+            />
+          </div>
         </div>
       </main>
     </div>

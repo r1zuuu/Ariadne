@@ -2,16 +2,18 @@
 
 import { useTranslations } from "next-intl";
 
-// The signature, first of its three places. Three 10px markers 60px apart. The
-// thread is drawn only as far as the step you are on; past that the line is
-// hairline and carries no meaning.
+// The signature, first of its three places, as a band across the top of the
+// screen rather than three markers huddled in a corner.
 //
-// The written "step 2 of 3" is not a caption, it is the information. The line
-// only repeats it, which is why reduced motion can drop the drawing entirely
-// without anything being lost.
+// DESIGN.md fixes the marker at 10px and the gap at 60px, but the screen sketch
+// for step 02 draws the indicator spanning the content width. Those two disagree.
+// The marker token wins on size and the sketch wins on span: markers stay 10px,
+// the segments stretch. At 60px the whole indicator measured 140px in a 1500px
+// window and read as debris rather than as progress.
+//
+// The written "step 2 of 3" is the information. The line repeats it, which is why
+// reduced motion can drop the drawing without losing anything.
 
-const MARKER = 10;
-const GAP = 60;
 const TOTAL = 3;
 
 export function ThreadProgress({ step }: { step: 1 | 2 | 3 }) {
@@ -19,63 +21,56 @@ export function ThreadProgress({ step }: { step: 1 | 2 | 3 }) {
   const labels = [t("steps.profile"), t("steps.project"), t("steps.agent")];
 
   return (
-    <div>
-      <div className="flex items-center" role="presentation">
-        {labels.map((label, index) => {
-          const reached = index + 1 <= step;
-          return (
-            <div key={label} className="flex items-center">
-              <span
-                style={{
-                  width: MARKER,
-                  height: MARKER,
-                  // Fills once the segment leading to it has finished drawing.
-                  transitionDelay: index + 1 === step && step > 1 ? "var(--duration-thread)" : "0ms",
-                }}
-                className={`block shrink-0 transition-colors duration-state ease-out-quint ${
-                  reached ? "bg-blue" : "border border-edge bg-transparent"
-                }`}
-              />
-              {index < TOTAL - 1 ? (
-                <span
-                  style={{ width: GAP }}
-                  className="relative block h-px shrink-0 bg-hairline"
-                >
-                  {/* The drawn part of the thread, one pixel, growing from the
-                      left so it reads as being pulled forward. */}
+    <div className="border-b border-hairline bg-plaster-sunk px-8 py-5">
+      <div className="mx-auto flex max-w-[1180px] items-center gap-8">
+        <div className="flex flex-1 items-center">
+          {labels.map((label, index) => {
+            const reached = index + 1 <= step;
+            return (
+              <div key={label} className={index === 0 ? "flex items-center" : "flex flex-1 items-center"}>
+                {index > 0 ? (
+                  <span className="relative mx-4 block h-px flex-1 bg-hairline">
+                    {/* The drawn part of the thread, growing from the left so it
+                        reads as being pulled forward. */}
+                    <span
+                      className="absolute inset-0 origin-left bg-blue transition-transform ease-thread"
+                      style={{
+                        transform: index + 1 <= step ? "scaleX(1)" : "scaleX(0)",
+                        transitionDuration: "var(--duration-thread)",
+                      }}
+                    />
+                  </span>
+                ) : null}
+                <span className="flex items-center gap-3">
                   <span
-                    className="absolute inset-0 origin-left bg-blue transition-transform ease-thread"
                     style={{
-                      transform: index + 1 < step ? "scaleX(1)" : "scaleX(0)",
-                      transitionDuration: "var(--duration-thread)",
+                      width: 10,
+                      height: 10,
+                      // Fills once the segment leading to it has finished drawing.
+                      transitionDelay:
+                        index + 1 === step && step > 1 ? "var(--duration-thread)" : "0ms",
                     }}
+                    className={`block shrink-0 transition-colors duration-state ease-out-quint ${
+                      reached ? "bg-blue" : "border border-edge bg-transparent"
+                    }`}
                   />
+                  <span
+                    className={`font-data text-label uppercase tracking-[0.12em] ${
+                      reached ? "text-ink" : "text-ink-3"
+                    }`}
+                  >
+                    {label}
+                  </span>
                 </span>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+              </div>
+            );
+          })}
+        </div>
 
-      <div className="flex items-baseline" style={{ gap: GAP - 26 }}>
-        {labels.map((label, index) => (
-          <span
-            key={label}
-            style={{ minWidth: MARKER + 26 }}
-            className={`pt-3 font-data text-label uppercase tracking-[0.12em] ${
-              index + 1 <= step ? "text-ink" : "text-ink-3"
-            }`}
-          >
-            {label}
-          </span>
-        ))}
+        <span aria-live="polite" className="shrink-0 font-data text-data tabular text-ink-3">
+          {t("step", { current: String(step), total: String(TOTAL) })}
+        </span>
       </div>
-
-      {/* Announced, because the step number is the information the line only
-          repeats, and a screen reader gets nothing from the line. */}
-      <p aria-live="polite" className="pt-3 font-data text-data tabular text-ink-3">
-        {t("step", { current: String(step), total: String(TOTAL) })}
-      </p>
     </div>
   );
 }
