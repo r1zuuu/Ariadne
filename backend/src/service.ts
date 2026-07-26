@@ -28,6 +28,8 @@ export type SourceMeta = {
 
 const MAX_CONTENT_LENGTH = 4000;
 const NODE_TYPES = ["session_summary", "decision", "note"] as const;
+const INDEX_SIZE = 10;
+const HEADLINE_LENGTH = 120;
 const CHANNELS = ["coder", "app_chat", "app_form"] as const;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -230,8 +232,17 @@ export async function searchNodes(input: {
   }));
 }
 
+// Nodes have no title column: the first line of content already reads as one,
+// because that is how a summary of a decision naturally starts.
+function headline(content: string) {
+  const firstLine = content.split("\n", 1)[0].trim();
+  return firstLine.length > HEADLINE_LENGTH
+    ? `${firstLine.slice(0, HEADLINE_LENGTH)}...`
+    : firstLine;
+}
+
 // Boot context for a coder session start: user profile + project card +
-// last session summary (plan section 6).
+// last session summary + an index of what else is recorded (plan section 6).
 export async function getBootContext(input: { userId: string; repoRef: string }) {
   assertUuid(input.userId, "userId");
   const project = await resolveProjectByRepoRef(input.userId, input.repoRef);
@@ -255,6 +266,27 @@ export async function getBootContext(input: { userId: string; repoRef: string })
     .orderBy(desc(nodes.createdAt))
     .limit(1);
 
+  // Without this the graph is invisible: the boot payload looks complete, so the
+  // coder never calls search_context and answers from the code instead.
+  // ponytail: newest 10 headlines. Past roughly a hundred nodes that is a random
+  // sample rather than an index - then pick by anchors matching the files in play,
+  // or cluster by topic.
+  const index = await db
+    .select({ node_id: nodes.id, type: nodes.type, content: nodes.content })
+    .from(nodes)
+    .where(
+      and(
+        eq(nodes.projectId, project.id),
+        inArray(nodes.type, ["decision", "note"]),
+        // Contradicted ones are out too, not just archived: a headline carries no
+        // status, so a superseded one would read as current and get acted on
+        // without ever being opened. Its replacement is in the index anyway.
+        inArray(nodes.status, ["proposed", "confirmed"]),
+      ),
+    )
+    .orderBy(desc(nodes.createdAt))
+    .limit(INDEX_SIZE);
+
   return {
     profile: user.profile,
     project: {
@@ -268,6 +300,12 @@ export async function getBootContext(input: { userId: string; repoRef: string })
       etap: project.etap,
     },
     last_summary: lastSummary ?? null,
+    // Headlines only. The coder reads a relevant one and calls search_context.
+    index: index.map(({ node_id, type, content }) => ({
+      node_id,
+      type,
+      headline: headline(content),
+    })),
   };
 }
 

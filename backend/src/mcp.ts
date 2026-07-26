@@ -79,8 +79,11 @@ export function createMcpServer(userId: string): McpServer {
     "get_project_context",
     {
       description:
-        "Call this at the start of every session. Returns who the user is, what this " +
-        "project is, and the summary of the last session, so you know where work stopped.",
+        "Call this at the start of every session, before reading files or git history. " +
+        "Returns who the user is, what this project is, the summary of the last session, " +
+        "and an index of the decisions and notes already recorded here. The index holds " +
+        "headlines only: when one touches what you are about to do, call search_context " +
+        "to read the full entry before you act.",
       inputSchema: { repo_ref: repoRef },
     },
     ({ repo_ref }) => run(() => getBootContext({ userId, repoRef: repo_ref })),
