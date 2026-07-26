@@ -1,0 +1,115 @@
+{
+  "app": {
+    "name": "Ariadne",
+    "nameGreek": "Ἀριάδνη"
+  },
+  "auth": {
+    "title": "Entry to the base",
+    "titleRegister": "New account",
+    "label": {
+      "address": "ADDRESS",
+      "password": "PASSWORD",
+      "passwordAgain": "REPEAT PASSWORD"
+    },
+    "placeholder": {
+      "address": "you@domain.com"
+    },
+    "submit": "Enter",
+    "submitRegister": "Create account",
+    "submitBusy": "Checking",
+    "switchToRegister": "I do not have an account",
+    "switchToLogin": "I already have an account",
+    "server": {
+      "checking": "Checking the Ariadne server at {url}",
+      "up": "The Ariadne server at {url} is responding",
+      "down": "The Ariadne server at {url} is not responding",
+      "retry": "Try again"
+    },
+    "error": {
+      "credentials": "This address and password do not match. Check the password or create an account.",
+      "server": "The Ariadne server at {url} is not responding. Start it and try again.",
+      "emailTaken": "An account already uses this address. Enter it with your password.",
+      "emailShape": "That does not look like an email address. Check it.",
+      "passwordShort": "The password needs at least 8 characters.",
+      "passwordMismatch": "Both passwords have to match."
+    }
+  },
+  "onboarding": {
+    "step": "step {current} of {total}",
+    "steps": {
+      "profile": "PROFILE",
+      "project": "PROJECT",
+      "agent": "AGENT"
+    },
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip step 3",
+    "finish": "Start",
+    "profile": {
+      "title": "How you work",
+      "note": "The agent receives this text at the start of every session. You can edit it now and later in settings.",
+      "q1": {
+        "label": "WHAT YOU DO",
+        "hint": "Junior frontend developer, learning by building"
+      },
+      "q2": {
+        "label": "WHAT YOU KNOW",
+        "hint": "Next.js, React, TypeScript, Tailwind"
+      },
+      "q3": {
+        "label": "HOW YOU WANT TO WORK",
+        "hint": "Explain the decisions, not just the code. The simplest thing that works wins."
+      },
+      "q4": {
+        "label": "LANGUAGE",
+        "hint": "Talk in English, write code and comments in English"
+      },
+      "resultLabel": "PROFILE"
+    },
+    "project": {
+      "title": "First project",
+      "label": {
+        "name": "NAME",
+        "repo": "REPOSITORY",
+        "stack": "STACK",
+        "etap": "STAGE",
+        "limits": "CONSTRAINTS"
+      },
+      "hint": {
+        "name": "ariadne-core",
+        "repo": "github.com/you/project",
+        "stack": "Tauri 2, Next.js, Tailwind v4",
+        "limits": "What this project deliberately does not do"
+      },
+      "etap": {
+        "prototyp": "prototype",
+        "produkcja": "production",
+        "utrzymanie": "maintenance"
+      },
+      "required": "required",
+      "optional": "you can leave this empty",
+      "error": {
+        "name": "A project needs a name.",
+        "repoTaken": "You already have a project for this repository."
+      }
+    },
+    "agent": {
+      "title": "Connect your agent",
+      "label": "YOUR AGENT",
+      "what": "This command adds Ariadne to your agent as a memory source. The token is embedded in it and never touches your repository.",
+      "where": "Paste it in a terminal and press Enter. Not using a terminal? Skip this step, the app works without an agent.",
+      "tokenOnce": "You see this token now and never again. A lost token is replaced with a new one in settings.",
+      "copy": "Copy the command",
+      "copied": "Copied",
+      "regenerate": "Generate token",
+      "tokenFailed": "The token was not generated, so the command is not ready. Try again.",
+      "other": {
+        "note": "There is no ready-made command for this agent. Point it at the MCP server at {url} with an Authorization: Bearer header carrying the token below."
+      }
+    }
+  },
+  "common": {
+    "language": "LANGUAGE",
+    "loading": "Loading"
+  }
+}
