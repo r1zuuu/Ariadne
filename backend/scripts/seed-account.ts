@@ -1,10 +1,14 @@
-// Creates the real account and its first project card by hand; the app gets
-// registration and a project form in step 5. Re-runnable: refreshes the profile
-// and the card, leaves existing nodes untouched.
-// Run from backend/: npx tsx scripts/seed-account.ts
+// Creates the real account and its first project card by hand; the app gets a
+// registration form and a project form in step 5b. Re-runnable: refreshes the
+// profile and the card, leaves existing nodes untouched.
+// Run from backend/: npx tsx scripts/seed-account.ts [password]
+//
+// Pass a password to make the account usable through POST /auth/login. Without
+// one, a fresh row gets a placeholder hash that no password can match.
 process.loadEnvFile("../.env");
 
 const EMAIL = "stanislaw@rayzacher.pl";
+const PASSWORD = process.argv[2];
 
 const PROFILE = [
   "Stas (Stanislaw Rayzacher), junior frontend developer, uczy sie budujac.",
@@ -32,11 +36,17 @@ const { db } = await import("../src/db/client.js");
 const { projects, users } = await import("../src/db/schema.js");
 const { normalizeRepoRef } = await import("../src/service.js");
 
+const passwordHash = PASSWORD ? await (await import("@node-rs/argon2")).hash(PASSWORD) : null;
+
+// The hash is only rewritten when a password was given, so a re-run without one
+// cannot downgrade a real hash back to the placeholder.
 const [user] = await db
   .insert(users)
-  // Password auth arrives with the REST layer in step 5; MCP authenticates by token.
-  .values({ email: EMAIL, passwordHash: "set-in-step-5", profile: PROFILE })
-  .onConflictDoUpdate({ target: users.email, set: { profile: PROFILE } })
+  .values({ email: EMAIL, passwordHash: passwordHash ?? "no-password-set", profile: PROFILE })
+  .onConflictDoUpdate({
+    target: users.email,
+    set: passwordHash ? { profile: PROFILE, passwordHash } : { profile: PROFILE },
+  })
   .returning({ id: users.id });
 
 const card = { ...PROJECT, userId: user.id, repoRef: normalizeRepoRef(PROJECT.repoRef) };
@@ -51,5 +61,6 @@ const [project] = await db
 
 console.log(`user_id:    ${user.id}  (${EMAIL})`);
 console.log(`project_id: ${project.id}  (repo_ref: ${card.repoRef})`);
+console.log(`password:   ${passwordHash ? "set" : "not set, pass one as argv to enable login"}`);
 console.log(`next: npx tsx scripts/mint-token.ts ${EMAIL} "claude code"`);
 process.exit(0);

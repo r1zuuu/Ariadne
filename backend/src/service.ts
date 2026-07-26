@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { hash as hashPassword, verify as verifyArgon2 } from "@node-rs/argon2";
 import { and, cosineDistance, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "./db/client.js";
 import { apiTokens, codeAnchors, nodes, pendingActions, projects, users } from "./db/schema.js";
@@ -31,7 +32,12 @@ const NODE_TYPES = ["session_summary", "decision", "note"] as const;
 const INDEX_SIZE = 10;
 const HEADLINE_LENGTH = 120;
 const CHANNELS = ["coder", "app_chat", "app_form"] as const;
+const ETAPY = ["prototyp", "produkcja", "utrzymanie"] as const;
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_LABEL_LENGTH = 100;
+const FEED_LIMIT = 100;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateContent(raw: string): string {
   const content = raw?.trim() ?? "";
@@ -63,6 +69,12 @@ function assertAnchors(anchors: Anchor[]) {
       );
     }
   }
+}
+
+// Postgres unique_violation. Needed where onConflict is not available, i.e. on
+// UPDATE: changing a project's repo_ref can collide with another of its own.
+function isUniqueViolation(error: unknown): boolean {
+  return (error as { code?: string } | null)?.code === "23505";
 }
 
 async function assertProjectOwned(userId: string, projectId: string) {
@@ -487,6 +499,126 @@ export async function archiveNode(input: { userId: string; nodeId: string }) {
   await archiveNodeById(input.nodeId);
 }
 
+// --- Accounts and auth (plan section 10) ---
+
+// Emails are compared lowercased, otherwise "Stas@x.pl" and "stas@x.pl" become
+// two accounts and the unique index does not stop it.
+function normalizeEmail(raw: string): string {
+  return (raw ?? "").trim().toLowerCase();
+}
+
+export async function registerUser(input: {
+  email: string;
+  password: string;
+}): Promise<{ userId: string }> {
+  const email = normalizeEmail(input.email);
+  if (!EMAIL_RE.test(email)) {
+    throw new ServiceError("validation", "email does not look like an email address");
+  }
+  if ((input.password ?? "").length < MIN_PASSWORD_LENGTH) {
+    throw new ServiceError(
+      "validation",
+      `password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+    );
+  }
+
+  // Checked before hashing, not after: argon2 is deliberately expensive, and an
+  // unauthenticated caller should not be able to spend 19 MiB and a CPU burst per
+  // request just by resending an address that is already taken.
+  const [taken] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+  if (taken) throw new ServiceError("validation", "email already registered");
+
+  // @node-rs/argon2 defaults to argon2id with the OWASP-recommended cost
+  // (19 MiB, 2 iterations), so there is nothing to tune here.
+  const passwordHash = await hashPassword(input.password);
+  const [user] = await db
+    .insert(users)
+    .values({ email, passwordHash })
+    // The check above races; this is what actually keeps the address unique.
+    .onConflictDoNothing({ target: users.email })
+    .returning({ id: users.id });
+  if (!user) throw new ServiceError("validation", "email already registered");
+  return { userId: user.id };
+}
+
+// A stored hash that argon2 cannot parse (the seed script writes a placeholder)
+// makes verify throw; that is a failed login, not a server error.
+async function verifyPassword(storedHash: string, password: string): Promise<boolean> {
+  try {
+    return await verifyArgon2(storedHash, password);
+  } catch {
+    return false;
+  }
+}
+
+// ponytail: no rate limiting, so guessing against a known address is only slowed
+// by argon2 itself. Enough while this listens on localhost; put a per-IP limiter
+// in front of /auth before it faces the internet.
+export async function login(input: {
+  email: string;
+  password: string;
+}): Promise<{ userId: string }> {
+  const [user] = await db
+    .select({ id: users.id, passwordHash: users.passwordHash })
+    .from(users)
+    .where(eq(users.email, normalizeEmail(input.email)));
+
+  // One message for both unknown email and wrong password. Not to hide which is
+  // which - open registration already reveals taken emails - but so no caller can
+  // branch on the difference and turn the login form into an enumeration endpoint.
+  const rejected = new ServiceError("unauthorized", "invalid email or password");
+  if (!user) throw rejected;
+  if (!(await verifyPassword(user.passwordHash, input.password))) throw rejected;
+  return { userId: user.id };
+}
+
+export async function getAccount(userId: string) {
+  assertUuid(userId, "userId");
+  const [user] = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      profile: users.profile,
+      allPermission: users.allPermission,
+      createdAt: users.createdAt,
+    })
+    .from(users)
+    .where(eq(users.id, userId));
+  if (!user) throw new ServiceError("not_found", "user not found");
+  return user;
+}
+
+export async function updateProfile(input: { userId: string; profile: string }) {
+  assertUuid(input.userId, "userId");
+  // Unlike node content an empty profile is allowed: it is the default for a
+  // fresh account and onboarding fills it in later.
+  const profile = (input.profile ?? "").trim();
+  if (profile.length > MAX_CONTENT_LENGTH) {
+    throw new ServiceError(
+      "validation",
+      `profile has ${profile.length} chars, max is ${MAX_CONTENT_LENGTH}`,
+    );
+  }
+  const [updated] = await db
+    .update(users)
+    .set({ profile })
+    .where(eq(users.id, input.userId))
+    .returning({ profile: users.profile });
+  if (!updated) throw new ServiceError("not_found", "user not found");
+  return updated;
+}
+
+export async function setAllPermission(input: { userId: string; allPermission: boolean }) {
+  assertUuid(input.userId, "userId");
+  const [updated] = await db
+    .update(users)
+    .set({ allPermission: input.allPermission })
+    .where(eq(users.id, input.userId))
+    .returning({ allPermission: users.allPermission });
+  if (!updated) throw new ServiceError("not_found", "user not found");
+  return updated;
+}
+
 // --- MCP tokens (plan section 9) ---
 
 // The raw token is shown once at generation; only its sha256 reaches the DB,
@@ -508,4 +640,175 @@ export async function resolveUserByToken(rawToken: string): Promise<string> {
   if (!token) throw new ServiceError("unauthorized", "invalid token");
   await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, token.id));
   return token.userId;
+}
+
+// The only place the raw token exists after generation is this return value.
+// Whoever calls it has one chance to show it to the user.
+export async function createApiToken(input: { userId: string; label?: string }) {
+  assertUuid(input.userId, "userId");
+  const label = (input.label ?? "").trim().slice(0, MAX_LABEL_LENGTH);
+  const token = generateToken();
+  const [row] = await db
+    .insert(apiTokens)
+    .values({ userId: input.userId, tokenHash: hashToken(token), label })
+    .returning({ id: apiTokens.id, label: apiTokens.label, createdAt: apiTokens.createdAt });
+  return { ...row, token };
+}
+
+export async function listApiTokens(userId: string) {
+  assertUuid(userId, "userId");
+  // No tokenHash in the projection: nothing downstream has a use for it, and a
+  // hash that never leaves this module cannot leak through a response.
+  return db
+    .select({
+      id: apiTokens.id,
+      label: apiTokens.label,
+      createdAt: apiTokens.createdAt,
+      lastUsedAt: apiTokens.lastUsedAt,
+    })
+    .from(apiTokens)
+    .where(eq(apiTokens.userId, userId))
+    .orderBy(desc(apiTokens.createdAt));
+}
+
+// Revoking is a physical delete, unlike nodes: a token has no history worth
+// keeping and a revoked-but-present row is one bug away from still working.
+export async function deleteApiToken(input: { userId: string; tokenId: string }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.tokenId, "tokenId");
+  const [deleted] = await db
+    .delete(apiTokens)
+    .where(and(eq(apiTokens.id, input.tokenId), eq(apiTokens.userId, input.userId)))
+    .returning({ id: apiTokens.id });
+  if (!deleted) throw new ServiceError("not_found", "token not found for this user");
+}
+
+// --- Projects (plan section 10) ---
+
+export type ProjectCard = {
+  name: string;
+  repoRef: string;
+  opis?: string;
+  stack?: string;
+  dlaKogo?: string;
+  grupaOdbiorcza?: string | null;
+  konwencjeRef?: string | null;
+  ograniczenia?: string;
+  etap?: string;
+};
+
+function validateCard(card: Partial<ProjectCard>) {
+  if (card.name !== undefined && !card.name.trim()) {
+    throw new ServiceError("validation", "name must not be empty");
+  }
+  if (card.repoRef !== undefined && !card.repoRef.trim()) {
+    throw new ServiceError("validation", "repo_ref must not be empty");
+  }
+  if (card.etap !== undefined && !ETAPY.includes(card.etap as (typeof ETAPY)[number])) {
+    throw new ServiceError("validation", `etap must be one of: ${ETAPY.join(", ")}`);
+  }
+}
+
+export async function listProjects(userId: string) {
+  assertUuid(userId, "userId");
+  return db
+    .select()
+    .from(projects)
+    .where(eq(projects.userId, userId))
+    .orderBy(desc(projects.updatedAt));
+}
+
+export async function createProject(input: { userId: string; card: ProjectCard }) {
+  assertUuid(input.userId, "userId");
+  validateCard(input.card);
+  const repoRef = normalizeRepoRef(input.card.repoRef);
+  const [project] = await db
+    .insert(projects)
+    .values({ ...input.card, userId: input.userId, repoRef })
+    .onConflictDoNothing({ target: [projects.userId, projects.repoRef] })
+    .returning();
+  if (!project) {
+    throw new ServiceError("validation", `you already have a project for repo_ref ${repoRef}`);
+  }
+  return project;
+}
+
+export async function updateProject(input: {
+  userId: string;
+  projectId: string;
+  card: Partial<ProjectCard>;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  validateCard(input.card);
+  const patch = { ...input.card, updatedAt: new Date() };
+  if (input.card.repoRef !== undefined) patch.repoRef = normalizeRepoRef(input.card.repoRef);
+
+  try {
+    const [project] = await db
+      .update(projects)
+      .set(patch)
+      .where(and(eq(projects.id, input.projectId), eq(projects.userId, input.userId)))
+      .returning();
+    if (!project) throw new ServiceError("not_found", "project not found for this user");
+    return project;
+  } catch (error) {
+    // A repo_ref edit can land on another project of the same user.
+    if (isUniqueViolation(error)) {
+      throw new ServiceError("validation", "another project of yours already uses this repo_ref");
+    }
+    throw error;
+  }
+}
+
+// --- Review feed (plan section 10) ---
+
+// Everything waiting for a human: queued update/delete requests, plus nodes
+// whose status was never settled. Cross-project on purpose, it is one inbox.
+export async function getReviewFeed(userId: string) {
+  assertUuid(userId, "userId");
+
+  const queued = await db
+    .select({
+      id: pendingActions.id,
+      action: pendingActions.action,
+      payload: pendingActions.payload,
+      requestedBy: pendingActions.requestedBy,
+      createdAt: pendingActions.createdAt,
+      nodeId: nodes.id,
+      nodeType: nodes.type,
+      // The current content travels with the request so the app can show the
+      // change against what is stored, without a second round trip per row.
+      nodeContent: nodes.content,
+      projectId: projects.id,
+      projectName: projects.name,
+    })
+    .from(pendingActions)
+    .innerJoin(nodes, eq(nodes.id, pendingActions.nodeId))
+    .innerJoin(projects, eq(projects.id, nodes.projectId))
+    .where(and(eq(pendingActions.userId, userId), eq(pendingActions.status, "pending")))
+    .orderBy(desc(pendingActions.createdAt))
+    .limit(FEED_LIMIT);
+
+  const unsettled = await db
+    .select({
+      id: nodes.id,
+      type: nodes.type,
+      content: nodes.content,
+      status: nodes.status,
+      source: nodes.source,
+      createdAt: nodes.createdAt,
+      projectId: projects.id,
+      projectName: projects.name,
+    })
+    .from(nodes)
+    .innerJoin(projects, eq(projects.id, nodes.projectId))
+    .where(and(eq(nodes.userId, userId), inArray(nodes.status, ["proposed", "contradicted"])))
+    .orderBy(desc(nodes.createdAt))
+    .limit(FEED_LIMIT);
+
+  // ponytail: both lists capped at FEED_LIMIT with no paging. The screen is
+  // explicitly ignorable, so a long tail is not worth a cursor yet; add one when
+  // the count stops fitting on a screen.
+  return { pendingActions: queued, nodesToReview: unsettled };
 }

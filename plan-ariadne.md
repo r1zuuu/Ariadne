@@ -322,6 +322,14 @@ Auth: POST /auth/register (email, haslo), POST /auth/login -> JWT, haslo hashowa
 
 Wszystkie endpointy poza /auth/* wymagaja JWT i scopuja po user_id.
 
+Ustalenia z realizacji (krok 5a):
+- Odpowiedzi REST sa camelCase, w przeciwienstwie do snake_case w kontrakcie MCP. Jedynym klientem jest aplikacja w TypeScript, wiec warstwa konwersji byla by kodem bez odbiorcy.
+- Kazdy blad ma jeden kształt: { error, message }. Dotyczy tez odpowiedzi generowanych przez sam framework (401 z middleware JWT, 404 na nieznana sciezke, 413 na za duze body) - domyslnie sa plain text, co zmusza klienta do osobnego przypadku na status, ktory trafia najczesciej.
+- Ciało zapytania ograniczone do 64 kB. Limit jest wpiety tylko na prefiksy REST, nie na "*": /mcp oddaje surowy strumien transportowi SDK, a middleware czytajace body pierwsze zostawiloby transportowi puste wejscie.
+- JWT: HS256 przypiety po obu stronach (weryfikator ufajacy naglowkowi tokenu to droga do ataku na podmiane alg), waznosc 30 dni, bez refresh tokenow i bez listy odwolan.
+- GET /projects/:id nie istnieje. Lista zwraca pelne karty, wiec osobny odczyt jednego projektu byl by endpointem na zapas. Wroci w 5d razem z ekranem grafu, jesli okaze sie potrzebny.
+- REST i MCP dziela jeden port i jeden proces: /mcp jest trasa tej samej aplikacji Hono. Jedna rzecz do wystawienia na VPS.
+
 ## 11. Ekrany aplikacji (komplet MVP)
 
 1. Logowanie / rejestracja.
@@ -340,7 +348,8 @@ Nietechniczny user zyje w ekranach 3, 5, 6. Techniczny dodatkowo w 4 i 7. Nic wi
 - Embeddingi: gemini-embedding-001 z output_dimensionality: 768 (MRL, pelny wymiar 3072 sciety bez straty jakosci), zamrozone w vector(768). Koszt: 0.15 USD za 1M tokenow wejsciowych. Zmiana modelu = przeliczenie wszystkich wektorow skryptem (jedyna kosztowna zmiana, zaakceptowana swiadomie).
 - Tani LLM: gemini-2.5-flash-lite (0.10 USD wejscie, 0.40 USD wyjscie za 1M tokenow), ten sam klucz. Szacowany laczny koszt Gemini przy codziennym uzyciu: rzad 1-1.5 USD miesiecznie; istnieje darmowy tier Flash (tresci z darmowego tieru Google wykorzystuje do ulepszania produktow - decyzja swiadoma).
 - Indeks: HNSW vector_cosine_ops.
-- Backend: Node/TS. ORM: Drizzle (znany userowi stack). Framework HTTP: Hono albo Fastify.
+- Backend: Node/TS. ORM: Drizzle (znany userowi stack). Framework HTTP: Hono (wybrane w kroku 5a). Fastify odrzucony: system pluginow, dekoratorow i wlasny walidator schematow to wiecej pojec do nauki na te same 18 endpointow. Hono ma JWT i obsluge bledow w standardzie, a walidacja idzie przez zoda, ktory juz jest w projekcie, wiec nie doszedl zaden validator middleware.
+- Hasla: @node-rs/argon2, nie pakiet argon2. Ten sam argon2id, ale z prebuildami na Windows, wiec setup nie wymaga node-gyp ani Visual Studio Build Tools.
 - MCP: oficjalne SDK @modelcontextprotocol/sdk, transport streamable HTTP.
 - Hasla: argon2id. Tokeny MCP: 32 bajty losowe, w bazie sha256.
 - Tauri 2 + Next.js static export. Graf: react-force-graph.
@@ -399,9 +408,27 @@ Krok 4. Podpiecie Claude Code (pierwszy prawdziwy test).
 - Potwierdzone po dodaniu indexu: to samo pytanie, ktore wczesniej konczylo sie na boot contextcie, poszlo teraz get_project_context -> search_context -> weryfikacja w kodzie. Coder wzial z pamieci "gdzie patrzec i na co uwazac", a aktualny stan policzyl z repo (parytet kluczy i18n, lista slugow). Ten podzial rol jest docelowy: graf trzyma dlaczego, repo trzyma jak jest teraz.
 - KROK 4 GOTOWY.
 
-Krok 5. REST + aplikacja Tauri.
-- Endpointy sekcji 10, ekrany sekcji 11 w kolejnosci: auth -> onboarding -> ekran glowny -> chat RAG -> do potwierdzenia -> rozmawiaj z baza -> widok projektu z grafem.
-- Gotowe gdy: nietechniczna osoba przechodzi onboarding bez pomocy i zadaje pierwsze pytanie asystentowi.
+Krok 5. REST + aplikacja Tauri. Rozbity na cztery czesci, bo jako jeden branch to wiecej niz kroki 1-4 razem i decyzje przestaja byc widoczne.
+- Gotowe gdy (caly krok 5): nietechniczna osoba przechodzi onboarding bez pomocy i zadaje pierwsze pytanie asystentowi.
+
+Krok 5a. Backend REST bez czatow. GOTOWY.
+- Auth (rejestracja, login, argon2id, JWT), /me, tokeny MCP, projekty, feed do potwierdzenia. Bez /projects/:id/graph i bez /chat/*.
+- Gotowe gdy: przejscie rejestracja -> login -> token -> projekt dziala bez recznego dotykania bazy. Spelnione: scripts/verify-rest.ts, 58 sprawdzen przez app.request() Hono, bez portu i bez curla.
+- Dwa sprawdzenia sa tam z konkretnego powodu, nie dla liczby. Pierwsze czyta tablice tras z routera i wola kazda bez tokenu: trasa dopisana kiedys bez swojego prefiksu w PROTECTED_PREFIXES wywali sie tutaj, zamiast pojechac otwarta. Drugie dobija sie do kazdego zasobu tokenem drugiego uzytkownika i oczekuje 404, bo scope po user_id w warstwie serwisowej to jedyna rzecz miedzy dwoma kontami do czasu RLS w kroku 6.
+- Znalezione w self-review: brak limitu rozmiaru body, plain text w bledach generowanych przez framework, POST /tokens odrzucajacy puste body, middleware JWT wpiete w srodku pliku (w Hono middleware owija tylko trasy zarejestrowane po nim, wiec trasa dopisana w luce pojechala by bez autoryzacji), oraz argon2 liczony przed sprawdzeniem czy email jest zajety.
+
+Krok 5b. Powloka Tauri, logowanie, onboarding.
+- Ekrany 1 i 2 sekcji 11.
+- Gotowe gdy: przechodzisz od rejestracji do skopiowanego snippetu bez terminala.
+- Uwaga z kroku 4, do przemyslenia zanim powstanie ekran 2c: token w zmiennej srodowiskowej to najtrudniejszy moment calego onboardingu. setx nie dziala na juz otwarte procesy, terminal w VS Code dziedziczy env z chwili startu edytora, a serwery MCP z .mcp.json wymagaja jednorazowej zgody, ktorej brak nie daje zadnego bledu, tylko brak serwera. Alternatywa: token wpisany wprost do .mcp.json, kosztem sekretu w pliku projektu.
+
+Krok 5c. Chat RAG.
+- POST /chat/query ze streamingiem, ekran 5.
+- Gotowe gdy: pytanie o przeszlosc projektu dostaje odpowiedz z cytowaniami (zrodlo, data, anchors).
+
+Krok 5d. Graf i rozmawiaj z baza.
+- GET /projects/:id/graph (sekcja 8), POST /chat/edit, ekrany 4, 6 i 7.
+- Gotowe gdy: widzisz wezly projektu jako graf i poprawiasz wpis rozmowa.
 
 Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezycie, Row-Level Security, hook konca sesji dla Claude Code, obsluga coderow bez MCP (cienkie CLI).
 
