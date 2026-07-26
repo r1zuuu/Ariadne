@@ -43,8 +43,9 @@ const JWT_ALG = "HS256";
 // arrives into memory.
 const MAX_BODY_BYTES = 64 * 1024;
 
-// Every route below /auth needs a token, listed one prefix at a time. A single
-// catch-all would also cover /auth and lock out login.
+// Everything except /auth/* needs a token, listed one prefix at a time. A single
+// catch-all would have covered login too and locked everyone out of the one thing
+// they need before they have a token.
 const PROTECTED_PREFIXES = [
   "/me",
   "/me/*",
@@ -130,17 +131,20 @@ export function createRestApp() {
   // the one response a client cannot parse.
   app.notFound((c) => c.json({ error: "not_found", message: `no route for ${c.req.path}` }, 404));
 
-  // Registered before any route, because middleware only wraps what comes after
-  // it. Scoped to the REST prefixes on purpose: /mcp is added on this same app in
-  // index.ts and hands its raw request stream to the SDK transport, which would
-  // read an empty body if anything here consumed it first.
+  // All middleware goes here, above every route, because Hono only wraps what is
+  // registered after it. Sprinkled further down, one route added in the wrong
+  // place would quietly ship without a token check.
   const limit = bodyLimit({
     maxSize: MAX_BODY_BYTES,
     // Hono's default 413 body is plain text, same trap as the two above.
     onError: (c) =>
       c.json({ error: "too_large", message: `body must be under ${MAX_BODY_BYTES} bytes` }, 413),
   });
+  // Scoped to the REST prefixes, not "*": /mcp is added on this same app in
+  // index.ts and hands its raw request stream to the SDK transport, which would
+  // read an empty body if anything here consumed it first.
   for (const prefix of ["/auth/*", ...PROTECTED_PREFIXES]) app.use(prefix, limit);
+  for (const prefix of PROTECTED_PREFIXES) app.use(prefix, jwt({ secret, alg: JWT_ALG }));
 
   // --- Public: auth (plan section 10) ---
 
@@ -157,9 +161,6 @@ export function createRestApp() {
     const { userId } = await login({ email, password });
     return c.json({ token: await issueToken(userId) });
   });
-
-  const requireToken = jwt({ secret, alg: JWT_ALG });
-  for (const prefix of PROTECTED_PREFIXES) app.use(prefix, requireToken);
 
   // --- Account ---
 
