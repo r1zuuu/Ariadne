@@ -708,17 +708,6 @@ export async function listProjects(userId: string) {
     .orderBy(desc(projects.updatedAt));
 }
 
-export async function getProject(input: { userId: string; projectId: string }) {
-  assertUuid(input.userId, "userId");
-  assertUuid(input.projectId, "projectId");
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(and(eq(projects.id, input.projectId), eq(projects.userId, input.userId)));
-  if (!project) throw new ServiceError("not_found", "project not found for this user");
-  return project;
-}
-
 export async function createProject(input: { userId: string; card: ProjectCard }) {
   assertUuid(input.userId, "userId");
   validateCard(input.card);
