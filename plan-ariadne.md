@@ -471,3 +471,16 @@ Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym
 - Coderzy bez MCP: gdy zajdzie potrzeba.
 - Wlasny klucz Gemini per user vs wspolny klucz aplikacji: MVP na wspolnym, przelacznik w ustawieniach pozniej.
 - Tryb zespolowy: krok 7, z wycena. Budujemy dla jednego usera i dopiero on ma dzialac. Jedyny wyjatek to autor wpisu w warstwie wizualnej, bo retrofit tego jest drogi, a dopisanie darmowe.
+
+## 15. Frontend, pozniej
+
+Labirynt na ekranie wejscia, wersja rozswietlana kursorem. Dzis to statyczna plansza 440 px, jedna linia w blekicie egipskim, nic wychodzi dolem. Docelowo: duza plansza, ktora rozjasnia sie wokol kursora, tak zeby dalo sie wodzic po sciezce i zobaczyc, ze to naprawde jedna linia od wejscia do srodka.
+- Jak to zrobic: maska radialna sledzaca wskaznik nad tym samym pojedynczym path, jasnosc malejaca z odlegloscia, bez zmiany grubosci kreski i bez drugiego koloru. Ruch tylko na masce, wiec nic w ukladzie sie nie animuje. Przy prefers-reduced-motion maska nie sledzi, cala figura swieci rowno.
+- Warunek wstepny: prawdziwa topologia labiryntu kretenskiego, siedem obwodow, zamiast obecnego prostokatnego meandra. Dzis meander wystarcza, bo nikt po nim nie wodzi wzrokiem. Rozswietlanie zaprasza do wodzenia, a wtedy falszywa topologia zaczyna klamac: sciezka, ktora wyglada na przejscie, nie prowadzi do srodka. Oznaczone `ponytail:` w components/labyrinth-plate.tsx.
+- Kiedy wrocic: gdy ekran wejscia bedzie ostatnia rzecza do dopracowania, nie przed ekranami 3 do 8. To jest ozdoba z uzasadnieniem, ale nadal ozdoba, a piec ekranow czeka na endpointy z 5a.1.
+
+Inne pozycje frontendu, ktore czekaja na decyzje albo na dane:
+- Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie. OAuth w Tauri wymaga loopbacku albo deep linku plus endpointu providera.
+- Przelacznik motywu: spec go zabrania, ale aplikacja desktopowa na systemie ustawionym na ciemny bedzie razic. Do przegadania, gdy beda wszystkie ekrany, nie na sucho.
+- Zachowanie na bardzo szerokim oknie: tekst jest ograniczony do 68 znakow, wiec przy 3440 px zostaje duzo pustego tynku. Spec nie mowi, co ma sie tam dziac.
+- Przelacznik jezyka: dzis tylko przez localStorage, docelowo w ustawieniach, czyli ekran 8.
