@@ -417,9 +417,20 @@ Krok 5a. Backend REST bez czatow. GOTOWY.
 - Dwa sprawdzenia sa tam z konkretnego powodu, nie dla liczby. Pierwsze czyta tablice tras z routera i wola kazda bez tokenu: trasa dopisana kiedys bez swojego prefiksu w PROTECTED_PREFIXES wywali sie tutaj, zamiast pojechac otwarta. Drugie dobija sie do kazdego zasobu tokenem drugiego uzytkownika i oczekuje 404, bo scope po user_id w warstwie serwisowej to jedyna rzecz miedzy dwoma kontami do czasu RLS w kroku 6.
 - Znalezione w self-review: brak limitu rozmiaru body, plain text w bledach generowanych przez framework, POST /tokens odrzucajacy puste body, middleware JWT wpiete w srodku pliku (w Hono middleware owija tylko trasy zarejestrowane po nim, wiec trasa dopisana w luce pojechala by bez autoryzacji), oraz argon2 liczony przed sprawdzeniem czy email jest zajety.
 
+Krok 5a.1. Endpointy, ktorych sekcja 10 nie przewidziala. Znalezione przez audyt projektowy, nie przez implementacje.
+- GET /projects/:id/nodes: filtr po statusie, typie i pliku, kursor. Filtrowanie i sortowanie po stronie serwera, bo 40 pozycji w kolejce to nie gorna granica.
+- POST /search: to samo co search_context w MCP, ale dla aplikacji, ze similarity w zwrotce.
+- POST /nodes/:id/contradict z polem supersededBy. Status contradicted istnieje w modelu i nic go nie nadaje, a bez odnosnika do wpisu, ktory odwolal, ten status jest nieczytelny.
+- PUT /nodes/:id: czlowiek musi moc poprawic literowke. Proszenie o to modelu jest absurdem. Bez historii wersji, ale z data modyfikacji i kanalem edycji.
+- Dlaczego to blokuje: piec z osmiu ekranow zyje z listowania i szukania wpisow, a API ma tylko confirm i archive. Ekrany 3, 4, 5, 6 i 7 nie maja z czego zyc.
+
 Krok 5b. Powloka Tauri, logowanie, onboarding.
 - Ekrany 1 i 2 sekcji 11.
 - Gotowe gdy: przechodzisz od rejestracji do skopiowanego snippetu bez terminala.
+- Ekrany 1 i 2 GOTOWE i przejsciowo sprawdzone w przegladarce: rejestracja, cztery pytania profilu, karta projektu, token, polecenie. Token z tego przejscia autoryzuje sie na /mcp i get_project_context zwraca wpisany profil oraz zalozona karte. Kryterium spelnione.
+- Zostaje powloka Tauri (src-tauri). Rust 1.97.1 i MSVC Build Tools sa zainstalowane, wiec to robota, nie blokada.
+- Zostaje decyzja o logowaniu przez Google. Spec zaprojektowal je jako druga rownorzedna droge na ekranie 01, ale nie ma tego ani w sekcji 10, ani w backendzie, a OAuth w Tauri wymaga loopbacku albo deep linku plus endpointu po stronie serwera. Ekran zbudowany bez tego.
+- Znalezione przez otwarcie aplikacji, nie przez czytanie kodu: brak CORS (front na 3001 wola API na 3000, wiec kazde zapytanie bylo cross-origin i ekran mowil, ze serwer nie odpowiada), etykiety monospace lamiace sie na dwie linie w kolumnie 132 px, oraz stykajace sie dywizy w Martian Mono, przez ktore --scope czyta sie jak -scope.
 - Uwaga z kroku 4, do przemyslenia zanim powstanie ekran 2c: token w zmiennej srodowiskowej to najtrudniejszy moment calego onboardingu. setx nie dziala na juz otwarte procesy, terminal w VS Code dziedziczy env z chwili startu edytora, a serwery MCP z .mcp.json wymagaja jednorazowej zgody, ktorej brak nie daje zadnego bledu, tylko brak serwera. Alternatywa: token wpisany wprost do .mcp.json, kosztem sekretu w pliku projektu.
 
 Krok 5c. Chat RAG.
