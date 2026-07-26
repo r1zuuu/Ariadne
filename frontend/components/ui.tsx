@@ -27,7 +27,10 @@ export function Button({
   return (
     <button
       {...rest}
-      className={`h-[34px] rounded-control px-5 py-3 text-small font-medium transition-colors duration-state ease-out-quint disabled:cursor-not-allowed disabled:opacity-45 ${BUTTON_VARIANTS[variant]} ${rest.className ?? ""}`}
+      // Centred by flex rather than by padding. The inventory asks for 34px high
+      // with 8/16 padding, but the 15px label carries a 25px line-height, and
+      // 25 + 16 does not fit in 34: the text sank to the bottom of the box.
+      className={`inline-flex h-[34px] items-center justify-center rounded-control px-5 text-small font-medium leading-none transition-colors duration-state ease-out-quint disabled:cursor-not-allowed disabled:opacity-45 ${BUTTON_VARIANTS[variant]} ${rest.className ?? ""}`}
     >
       {children}
     </button>

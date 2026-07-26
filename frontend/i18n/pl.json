@@ -12,7 +12,10 @@
       "passwordAgain": "POWTÓRZ HASŁO"
     },
     "placeholder": {
-      "address": "ty@domena.pl"
+      "address": "ty@domena.pl",
+      "password": "••••••••",
+      "passwordNew": "co najmniej 8 znaków",
+      "passwordAgain": "••••••••"
     },
     "submit": "Wejdź",
     "submitRegister": "Załóż konto",

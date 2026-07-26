@@ -128,6 +128,7 @@ export default function EntryScreen() {
                 type="password"
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
                 required
+                placeholder={mode === "login" ? t("placeholder.password") : t("placeholder.passwordNew")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 error={error ?? undefined}
@@ -139,6 +140,7 @@ export default function EntryScreen() {
                   type="password"
                   autoComplete="new-password"
                   required
+                  placeholder={t("placeholder.passwordAgain")}
                   value={again}
                   onChange={(e) => setAgain(e.target.value)}
                 />

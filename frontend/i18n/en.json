@@ -12,7 +12,10 @@
       "passwordAgain": "REPEAT PASSWORD"
     },
     "placeholder": {
-      "address": "you@domain.com"
+      "address": "you@domain.com",
+      "password": "••••••••",
+      "passwordNew": "at least 8 characters",
+      "passwordAgain": "••••••••"
     },
     "submit": "Enter",
     "submitRegister": "Create account",
