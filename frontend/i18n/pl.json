@@ -23,7 +23,8 @@
       "checking": "Sprawdzam serwer Ariadne na {url}",
       "up": "Serwer Ariadne na {url} odpowiada",
       "down": "Serwer Ariadne na {url} nie odpowiada",
-      "retry": "Spróbuj ponownie"
+      "retry": "Spróbuj ponownie",
+      "downMeans": "Bez niego nie wejdziesz do bazy i nic się nie zapisze."
     },
     "error": {
       "credentials": "Ten adres i hasło nie pasują do siebie. Sprawdź hasło albo załóż konto.",
@@ -32,6 +33,11 @@
       "emailShape": "To nie wygląda na adres e-mail. Sprawdź go.",
       "passwordShort": "Hasło musi mieć co najmniej 8 znaków.",
       "passwordMismatch": "Oba hasła muszą być takie same."
+    },
+    "signedIn": {
+      "title": "Konto gotowe",
+      "note": "Konto istnieje, profil jest zapisany, a agent ma token. Ekran główny z listą projektów powstaje w następnym kroku, więc na razie nie ma gdzie dalej klikać.",
+      "leave": "Wyloguj się"
     }
   },
   "onboarding": {
@@ -49,7 +55,7 @@
       "title": "Kim jesteś przy pracy",
       "note": "Ten tekst agent dostaje na starcie każdej sesji. Możesz go zmienić teraz i później w ustawieniach.",
       "q1": {
-        "label": "CZYM SIĘ ZAJMUJESZ",
+        "label": "ZAJĘCIE",
         "hint": "Junior frontend developer, uczę się budując"
       },
       "q2": {
@@ -57,14 +63,15 @@
         "hint": "Next.js, React, TypeScript, Tailwind"
       },
       "q3": {
-        "label": "JAK CHCESZ PRACOWAĆ",
+        "label": "STYL PRACY",
         "hint": "Tłumacz decyzje, nie tylko kod. Najprostsze rozwiązanie wygrywa."
       },
       "q4": {
-        "label": "JĘZYK ROZMOWY",
+        "label": "JĘZYK",
         "hint": "Rozmowa po polsku, kod i komentarze po angielsku"
       },
-      "resultLabel": "PROFIL"
+      "resultLabel": "PROFIL",
+      "optionalAnswer": "Możesz zostawić puste, wtedy ta część nie trafi do profilu."
     },
     "project": {
       "title": "Pierwszy projekt",
@@ -105,7 +112,15 @@
       "tokenFailed": "Token się nie wygenerował, więc polecenie nie jest gotowe. Spróbuj jeszcze raz.",
       "other": {
         "note": "Dla tego agenta nie mamy gotowego polecenia. Skonfiguruj serwer MCP pod adresem {url} z nagłówkiem Authorization: Bearer i tokenem poniżej."
-      }
+      },
+      "copyUnavailable": "Kopiowanie jest niedostępne. Zaznacz polecenie i skopiuj ręcznie.",
+      "option": {
+        "claude-code": "Claude Code",
+        "codex": "Codex",
+        "other": "Inny"
+      },
+      "tokenWhat": "To jest twój token. Podaj go agentowi jako nagłówek Authorization: Bearer.",
+      "tokenWhere": "Skopiuj go teraz. Po opuszczeniu tego ekranu nie zobaczysz go ponownie."
     }
   },
   "common": {

@@ -23,7 +23,8 @@
       "checking": "Checking the Ariadne server at {url}",
       "up": "The Ariadne server at {url} is responding",
       "down": "The Ariadne server at {url} is not responding",
-      "retry": "Try again"
+      "retry": "Try again",
+      "downMeans": "Without it you cannot enter the base and nothing will be saved."
     },
     "error": {
       "credentials": "This address and password do not match. Check the password or create an account.",
@@ -32,6 +33,11 @@
       "emailShape": "That does not look like an email address. Check it.",
       "passwordShort": "The password needs at least 8 characters.",
       "passwordMismatch": "Both passwords have to match."
+    },
+    "signedIn": {
+      "title": "Account ready",
+      "note": "The account exists, the profile is saved and the agent has a token. The main screen with the project list is the next piece of work, so there is nowhere further to click yet.",
+      "leave": "Sign out"
     }
   },
   "onboarding": {
@@ -49,7 +55,7 @@
       "title": "How you work",
       "note": "The agent receives this text at the start of every session. You can edit it now and later in settings.",
       "q1": {
-        "label": "WHAT YOU DO",
+        "label": "ROLE",
         "hint": "Junior frontend developer, learning by building"
       },
       "q2": {
@@ -57,14 +63,15 @@
         "hint": "Next.js, React, TypeScript, Tailwind"
       },
       "q3": {
-        "label": "HOW YOU WANT TO WORK",
+        "label": "WORK STYLE",
         "hint": "Explain the decisions, not just the code. The simplest thing that works wins."
       },
       "q4": {
         "label": "LANGUAGE",
         "hint": "Talk in English, write code and comments in English"
       },
-      "resultLabel": "PROFILE"
+      "resultLabel": "PROFILE",
+      "optionalAnswer": "You can leave this empty, then this part stays out of the profile."
     },
     "project": {
       "title": "First project",
@@ -105,7 +112,15 @@
       "tokenFailed": "The token was not generated, so the command is not ready. Try again.",
       "other": {
         "note": "There is no ready-made command for this agent. Point it at the MCP server at {url} with an Authorization: Bearer header carrying the token below."
-      }
+      },
+      "copyUnavailable": "Copying is unavailable. Select the command and copy it by hand.",
+      "option": {
+        "claude-code": "Claude Code",
+        "codex": "Codex",
+        "other": "Other"
+      },
+      "tokenWhat": "This is your token. Give it to the agent as an Authorization: Bearer header.",
+      "tokenWhere": "Copy it now. Once you leave this screen you will not see it again."
     }
   },
   "common": {
