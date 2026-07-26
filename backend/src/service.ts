@@ -522,12 +522,19 @@ export async function registerUser(input: {
     );
   }
 
+  // Checked before hashing, not after: argon2 is deliberately expensive, and an
+  // unauthenticated caller should not be able to spend 19 MiB and a CPU burst per
+  // request just by resending an address that is already taken.
+  const [taken] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+  if (taken) throw new ServiceError("validation", "email already registered");
+
   // @node-rs/argon2 defaults to argon2id with the OWASP-recommended cost
   // (19 MiB, 2 iterations), so there is nothing to tune here.
   const passwordHash = await hashPassword(input.password);
   const [user] = await db
     .insert(users)
     .values({ email, passwordHash })
+    // The check above races; this is what actually keeps the address unique.
     .onConflictDoNothing({ target: users.email })
     .returning({ id: users.id });
   if (!user) throw new ServiceError("validation", "email already registered");
@@ -544,6 +551,9 @@ async function verifyPassword(storedHash: string, password: string): Promise<boo
   }
 }
 
+// ponytail: no rate limiting, so guessing against a known address is only slowed
+// by argon2 itself. Enough while this listens on localhost; put a per-IP limiter
+// in front of /auth before it faces the internet.
 export async function login(input: {
   email: string;
   password: string;
