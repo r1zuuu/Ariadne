@@ -2,7 +2,15 @@ import { createHash, randomBytes } from "node:crypto";
 import { hash as hashPassword, verify as verifyArgon2 } from "@node-rs/argon2";
 import { and, cosineDistance, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "./db/client.js";
-import { apiTokens, codeAnchors, nodes, pendingActions, projects, users } from "./db/schema.js";
+import {
+  apiTokens,
+  codeAnchors,
+  conversations,
+  nodes,
+  pendingActions,
+  projects,
+  users,
+} from "./db/schema.js";
 import { embed } from "./gemini.js";
 
 // Business logic lives here once; MCP tools and REST endpoints are thin
@@ -1042,6 +1050,158 @@ export async function getGraph(input: { userId: string; projectId: string }) {
         })),
     ],
   };
+}
+
+// --- Conversations (plan section 11, screens 5 and 6) ---
+
+export type ConversationKind = "ask" | "memory";
+const CONVERSATION_KINDS = ["ask", "memory"] as const;
+const TITLE_LENGTH = 70;
+const CONVERSATION_LIST_LIMIT = 20;
+const MAX_MESSAGES = 200;
+
+/** One turn. `sources` belongs to an answer, `proposals` to a memory reply. */
+export type ConversationMessage = {
+  role: "user" | "ariadne";
+  text: string;
+  sources?: unknown[];
+  proposals?: unknown[];
+};
+
+function assertKind(kind: string): asserts kind is ConversationKind {
+  if (!CONVERSATION_KINDS.includes(kind as ConversationKind)) {
+    throw new ServiceError("validation", `kind must be one of: ${CONVERSATION_KINDS.join(", ")}`);
+  }
+}
+
+// A label, not a summary. Cutting on a word boundary rather than mid-word,
+// because the alternative reads like a bug.
+function titleFrom(text: string): string {
+  const flat = text.trim().replace(/\s+/g, " ");
+  if (flat.length <= TITLE_LENGTH) return flat;
+  const cut = flat.slice(0, TITLE_LENGTH);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${lastSpace > TITLE_LENGTH / 2 ? cut.slice(0, lastSpace) : cut}…`;
+}
+
+function assertMessages(messages: unknown): asserts messages is ConversationMessage[] {
+  if (!Array.isArray(messages)) {
+    throw new ServiceError("validation", "messages must be an array");
+  }
+  if (messages.length > MAX_MESSAGES) {
+    throw new ServiceError("validation", `a conversation holds at most ${MAX_MESSAGES} messages`);
+  }
+  for (const message of messages) {
+    const turn = message as ConversationMessage;
+    if (turn?.role !== "user" && turn?.role !== "ariadne") {
+      throw new ServiceError("validation", "each message needs role 'user' or 'ariadne'");
+    }
+    if (typeof turn.text !== "string") {
+      throw new ServiceError("validation", "each message needs text");
+    }
+  }
+}
+
+export async function listConversations(input: {
+  userId: string;
+  projectId: string;
+  kind: string;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  assertKind(input.kind);
+  await assertProjectOwned(input.userId, input.projectId);
+
+  // Titles and timestamps only. The list is a way back into a conversation, and
+  // shipping every message of the last twenty would be most of the table.
+  return db
+    .select({
+      id: conversations.id,
+      title: conversations.title,
+      createdAt: conversations.createdAt,
+      updatedAt: conversations.updatedAt,
+    })
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.userId, input.userId),
+        eq(conversations.projectId, input.projectId),
+        eq(conversations.kind, input.kind),
+      ),
+    )
+    .orderBy(desc(conversations.updatedAt))
+    .limit(CONVERSATION_LIST_LIMIT);
+}
+
+export async function getConversation(input: { userId: string; conversationId: string }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.conversationId, "conversationId");
+
+  const [found] = await db
+    .select()
+    .from(conversations)
+    .where(
+      and(eq(conversations.id, input.conversationId), eq(conversations.userId, input.userId)),
+    );
+  if (!found) throw new ServiceError("not_found", "conversation not found for this user");
+  return found;
+}
+
+export async function createConversation(input: {
+  userId: string;
+  projectId: string;
+  kind: string;
+  messages: unknown;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  assertKind(input.kind);
+  assertMessages(input.messages);
+  await assertProjectOwned(input.userId, input.projectId);
+
+  const opening = input.messages.find((m) => m.role === "user");
+  if (!opening) {
+    throw new ServiceError("validation", "a conversation starts with a message from the user");
+  }
+
+  const [created] = await db
+    .insert(conversations)
+    .values({
+      userId: input.userId,
+      projectId: input.projectId,
+      kind: input.kind,
+      title: titleFrom(opening.text),
+      messages: input.messages,
+    })
+    .returning();
+  return created;
+}
+
+// Whole-array replace, not append: the client owns the transcript it is showing
+// and a partial append would need a turn index the client does not track.
+export async function appendToConversation(input: {
+  userId: string;
+  conversationId: string;
+  messages: unknown;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.conversationId, "conversationId");
+  assertMessages(input.messages);
+  // Ownership before the write, so another user's id fails as not_found rather
+  // than quietly updating nothing.
+  await getConversation({ userId: input.userId, conversationId: input.conversationId });
+
+  const [updated] = await db
+    .update(conversations)
+    .set({ messages: input.messages, updatedAt: new Date() })
+    .where(eq(conversations.id, input.conversationId))
+    .returning();
+  return updated;
+}
+
+export async function deleteConversation(input: { userId: string; conversationId: string }) {
+  await getConversation(input);
+  await db.delete(conversations).where(eq(conversations.id, input.conversationId));
 }
 
 export async function createProject(input: { userId: string; card: ProjectCard }) {

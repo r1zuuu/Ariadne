@@ -220,6 +220,56 @@ export type Proposal = {
   pendingActionId?: string;
 };
 
+// --- Conversations ---
+//
+// Both chats keep a transcript so that leaving a screen stops throwing the
+// exchange away. They share one endpoint and differ by `kind`: asking reads the
+// project's memory, adding writes to it.
+
+export type ConversationKind = "ask" | "memory";
+
+/** One turn. `sources` belongs to an answer, `proposals` to a memory reply. */
+export type ConversationMessage = {
+  role: "user" | "ariadne";
+  text: string;
+  sources?: Source[];
+  proposals?: Proposal[];
+};
+
+/** What the list endpoint returns: enough to offer a way back in, no messages. */
+export type ConversationSummary = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Conversation = ConversationSummary & {
+  projectId: string;
+  kind: ConversationKind;
+  messages: ConversationMessage[];
+};
+
+export const listConversations = (projectId: string, kind: ConversationKind) =>
+  request<ConversationSummary[]>(
+    `/conversations?${new URLSearchParams({ projectId, kind })}`,
+  );
+
+export const getConversation = (id: string) => request<Conversation>(`/conversations/${id}`);
+
+export const createConversation = (
+  projectId: string,
+  kind: ConversationKind,
+  messages: ConversationMessage[],
+) => request<Conversation>("/conversations", { method: "POST", body: { projectId, kind, messages } });
+
+/** The whole transcript, not a delta: the screen owns what it is showing. */
+export const saveConversation = (id: string, messages: ConversationMessage[]) =>
+  request<Conversation>(`/conversations/${id}`, { method: "PUT", body: { messages } });
+
+export const deleteConversation = (id: string) =>
+  request<void>(`/conversations/${id}`, { method: "DELETE" });
+
 export const chatEdit = (projectId: string, message: string, sessionId: string) =>
   request<{ reply: string; sources: Source[]; queued: Proposal[] }>("/chat/edit", {
     method: "POST",

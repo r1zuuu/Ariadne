@@ -139,3 +139,43 @@ export const pendingActions = pgTable(
     ),
   ],
 );
+
+// What the person said to Ariadne and what came back, kept so that closing a
+// screen stops throwing the exchange away.
+//
+// One table for both conversations in the app, separated by `kind`. Asking and
+// adding to memory are the same shape underneath (a person writes, Ariadne
+// answers); they differ only in what Ariadne does with the answer, and that
+// difference already lives in nodes and pending_actions.
+//
+// Messages are a jsonb array rather than their own table. A conversation is
+// always read whole, never queried across, and never edited in the middle, so
+// rows per message would buy joins nobody makes. Search across conversations,
+// if it is ever wanted, is what would justify splitting them out.
+export const conversations = pgTable(
+  "conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    // Trimmed from the opening message. No model call: a title is a label, and
+    // paying for one on every first message would be absurd.
+    title: text("title").notNull().default(""),
+    // [{ role, text, sources?, proposals? }]. Proposals hold node and pending
+    // action ids, never a copy of the status: the status changes in the review
+    // queue and a copy here would go stale the moment it is approved.
+    messages: jsonb("messages").notNull().default(sql`'[]'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // The list is always "this user, this project, this kind, newest first".
+    index("conversations_lookup").on(t.userId, t.projectId, t.kind, t.updatedAt.desc()),
+    check("conversations_kind_check", sql`${t.kind} IN ('ask','memory')`),
+  ],
+);

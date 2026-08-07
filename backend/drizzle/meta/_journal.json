@@ -15,6 +15,13 @@
       "when": 1786090741094,
       "tag": "0001_curved_mattie_franklin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786106502569,
+      "tag": "0002_soft_tiger_shark",
+      "breakpoints": true
     }
   ]
 }

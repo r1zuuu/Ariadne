@@ -15,14 +15,19 @@ import {
   archiveNode,
   confirmNode,
   contradictNode,
+  appendToConversation,
   createApiToken,
+  createConversation,
   createProject,
   deleteApiToken,
+  deleteConversation,
   editNode,
   getAccount,
+  getConversation,
   getGraph,
   getReviewFeed,
   listApiTokens,
+  listConversations,
   listNodes,
   listProjects,
   login,
@@ -75,6 +80,8 @@ const PROTECTED_PREFIXES = [
   "/nodes/*",
   "/search",
   "/chat/*",
+  "/conversations",
+  "/conversations/*",
 ];
 
 type Env = { Variables: { jwtPayload: { sub: string } } };
@@ -120,6 +127,23 @@ const searchSchema = z.object({
 const chatQuerySchema = z.object({
   projectId: z.string(),
   question: z.string(),
+});
+
+// The shape of a message is the service's rule (it owns the same check for the
+// create and the update path), so this layer only says that it is an array.
+const conversationQuery = z.object({
+  projectId: z.string(),
+  kind: z.string(),
+});
+
+const conversationSchema = z.object({
+  projectId: z.string(),
+  kind: z.string(),
+  messages: z.array(z.unknown()),
+});
+
+const transcriptSchema = z.object({
+  messages: z.array(z.unknown()),
 });
 
 const chatEditSchema = z.object({
@@ -343,6 +367,39 @@ export function createRestApp() {
 
   app.post("/nodes/:id/archive", async (c) => {
     await archiveNode({ userId: userId(c), nodeId: c.req.param("id") });
+    return c.body(null, 204);
+  });
+
+  // --- Conversation history (both chats keep a transcript) ---
+
+  app.get("/conversations", async (c) => {
+    const { projectId, kind } = conversationQuery.parse(c.req.query());
+    return c.json(await listConversations({ userId: userId(c), projectId, kind }));
+  });
+
+  app.get("/conversations/:id", async (c) =>
+    c.json(await getConversation({ userId: userId(c), conversationId: c.req.param("id") })),
+  );
+
+  app.post("/conversations", async (c) => {
+    const { projectId, kind, messages } = await readBody(c, conversationSchema);
+    return c.json(await createConversation({ userId: userId(c), projectId, kind, messages }));
+  });
+
+  // PUT, not PATCH: the body is the whole transcript, not a delta.
+  app.put("/conversations/:id", async (c) => {
+    const { messages } = await readBody(c, transcriptSchema);
+    return c.json(
+      await appendToConversation({
+        userId: userId(c),
+        conversationId: c.req.param("id"),
+        messages,
+      }),
+    );
+  });
+
+  app.delete("/conversations/:id", async (c) => {
+    await deleteConversation({ userId: userId(c), conversationId: c.req.param("id") });
     return c.body(null, 204);
   });
 
