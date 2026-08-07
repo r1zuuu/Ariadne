@@ -1,7 +1,12 @@
 {
   "app": {
     "name": "Ariadne",
-    "nameGreek": "Ἀριάδνη"
+    "nameGreek": "Ἀριάδνη",
+    "window": {
+      "minimize": "Minimise the window",
+      "maximize": "Maximise the window",
+      "close": "Close the window"
+    }
   },
   "auth": {
     "title": "Entry to the base",
