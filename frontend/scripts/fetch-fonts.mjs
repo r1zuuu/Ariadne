@@ -1,21 +1,28 @@
-// Downloads the two families into public/fonts and regenerates app/fonts.css.
+// Downloads the three families into public/fonts and regenerates app/fonts.css.
 // The app has to render with no network and under a strict CSP, so nothing is
-// fetched from Google at runtime. Both are variable fonts, so one file per
-// subset covers every weight the design system uses.
+// fetched from Google at runtime.
 // Run from frontend/: node scripts/fetch-fonts.mjs
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
-// greek is not vanity: Literata sets the Greek spelling of the product name, so
-// there is no third font just to render one word.
-const SUBSETS = new Set(["latin", "latin-ext", "greek"]);
+// Polish needs latin-ext. Greek was here for the Greek spelling of the product
+// name, which no screen ever rendered, so it went with Literata.
+const SUBSETS = new Set(["latin", "latin-ext"]);
 
+// Marcellus is one static weight by design, so the headline steps ask for 400
+// and never for bold: there is no 600 cut to load, only a synthesised one.
+// Geist and Martian Mono are variable, one file per subset covering every weight.
 const FAMILIES = [
-  ["literata", "Literata:opsz,wght@7..72,400..600"],
+  ["marcellus", "Marcellus"],
+  ["geist", "Geist:wght@100..900"],
   ["martian-mono", "Martian+Mono:wght@400..500"],
 ];
+
+// The generated CSS is the only index of what belongs here, so a family that
+// leaves the list must not leave its files behind.
+rmSync("public/fonts", { recursive: true, force: true });
 
 mkdirSync("public/fonts", { recursive: true });
 mkdirSync("app", { recursive: true });

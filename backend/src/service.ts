@@ -899,10 +899,36 @@ function validateCard(card: Partial<ProjectCard>) {
 
 export async function listProjects(userId: string) {
   assertUuid(userId, "userId");
+  // The two counts ride along because the only caller, the main screen, lists
+  // projects to answer "which one has something waiting for me". Fetching them
+  // per project would be one round trip per row for a number the list is never
+  // shown without.
+  //
+  // ponytail: counts pending_actions only through proposed nodes, because the
+  // chat that queues the other kind does not exist until step 5d. Add the
+  // pending_actions tally here when it does.
   return db
-    .select()
+    .select({
+      id: projects.id,
+      name: projects.name,
+      repoRef: projects.repoRef,
+      opis: projects.opis,
+      stack: projects.stack,
+      etap: projects.etap,
+      ograniczenia: projects.ograniczenia,
+      createdAt: projects.createdAt,
+      updatedAt: projects.updatedAt,
+      // Archived nodes are out of the count for the same reason they are out of
+      // the default list: they were taken back.
+      nodeCount: sql<number>`count(${nodes.id}) filter (where ${nodes.status} <> 'archived')::int`,
+      pendingCount: sql<number>`count(${nodes.id}) filter (where ${nodes.status} = 'proposed')::int`,
+    })
     .from(projects)
+    // Left, not inner: a project with no entries yet is exactly the one the
+    // empty state is written for, and an inner join would hide it.
+    .leftJoin(nodes, eq(nodes.projectId, projects.id))
     .where(eq(projects.userId, userId))
+    .groupBy(projects.id)
     .orderBy(desc(projects.updatedAt));
 }
 

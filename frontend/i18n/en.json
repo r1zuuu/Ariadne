@@ -41,11 +41,6 @@
       "emailShape": "That does not look like an email address. Check it.",
       "passwordShort": "The password needs at least 8 characters.",
       "passwordMismatch": "Both passwords have to match."
-    },
-    "signedIn": {
-      "title": "Account ready",
-      "note": "The account exists, the profile is saved and the agent has a token. The main screen with the project list is the next piece of work, so there is nowhere further to click yet.",
-      "leave": "Sign out"
     }
   },
   "onboarding": {
@@ -142,5 +137,32 @@
   "common": {
     "language": "LANGUAGE",
     "loading": "Loading"
+  },
+  "home": {
+    "since": "Since {at}",
+    "firstVisit": "Since your last visit",
+    "nothing": "Nothing has changed. The agent has not run a session in this project.",
+    "cut": "Showing {shown} of {total, plural, one {# entry} other {# entries}}.",
+    "projects": "Projects",
+    "entries": "{count, plural, =0 {no entries} one {# entry} other {# entries}}",
+    "waiting": "{count, plural, one {# waiting} other {# waiting}}",
+    "waitingNone": "nothing waiting",
+    "retry": "Check again",
+    "stale": "Data from {at}. The server is not responding, so it may be out of date.",
+    "staleUnknown": "your last visit",
+    "empty": {
+      "title": "The base is empty",
+      "note": "The first entries arrive on their own once the agent finishes a session in a connected project. There is nothing for you to do."
+    },
+    "status": {
+      "confirmed": "Confirmed",
+      "proposed": "Proposed",
+      "contradicted": "Contradicted",
+      "archived": "Archived"
+    },
+    "channel": {
+      "agent": "agent",
+      "you": "you"
+    }
   }
 }

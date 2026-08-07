@@ -6,7 +6,16 @@ import { useEffect, useState } from "react";
 import { LabyrinthPlate } from "@/components/labyrinth-plate";
 import { TitleBar, type ServerState } from "@/components/title-bar";
 import { Banner, Button, Field } from "@/components/ui";
-import { ApiError, clearToken, login, readToken, register, serverReachable, serverUrl, writeToken } from "@/lib/api";
+import {
+  ApiError,
+  listProjects,
+  login,
+  readToken,
+  register,
+  serverReachable,
+  serverUrl,
+  writeToken,
+} from "@/lib/api";
 
 // Screen 01. Let the owner into their own base in two fields, without telling
 // them what the product is.
@@ -29,12 +38,13 @@ export default function EntryScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [server, setServer] = useState<ServerState>("checking");
-  // Showing a login form to someone who already holds a token is the one thing
-  // this screen must not do. The main screen is the next piece of work, so until
-  // it exists this branch says where the flow stands instead of pretending.
-  const [signedIn, setSignedIn] = useState(false);
 
-  useEffect(() => setSignedIn(Boolean(readToken())), []);
+  // Showing a login form to someone who already holds a token is the one thing
+  // this screen must not do, so a held token leaves immediately and the form
+  // never paints.
+  useEffect(() => {
+    if (readToken()) router.replace("/home");
+  }, [router]);
 
   const probe = () => {
     setServer("checking");
@@ -58,7 +68,12 @@ export default function EntryScreen() {
     try {
       const { token } = mode === "login" ? await login(email, password) : await register(email, password);
       writeToken(token);
-      router.push("/onboarding");
+      // Onboarding is a one-time wizard, so only someone with no projects yet
+      // belongs in it. Registering always lands there; signing in only does on
+      // an account that never finished. Sending everyone through it is how a
+      // written profile used to get overwritten with an empty one.
+      const projects = mode === "register" ? [] : await listProjects();
+      router.push(projects.length ? "/home" : "/onboarding");
     } catch (caught) {
       setError(messageFor(caught, mode, t));
       if (caught instanceof ApiError && caught.failure === "unreachable") setServer("down");
@@ -87,27 +102,7 @@ export default function EntryScreen() {
         </div>
 
         <div className="min-w-0 max-w-[560px] flex-1">
-          <h1 className="text-section">
-            {signedIn ? t("signedIn.title") : mode === "login" ? t("title") : t("titleRegister")}
-          </h1>
-
-          {signedIn ? (
-            <div className="pt-6">
-              <p className="max-w-[68ch] text-body text-ink-2">{t("signedIn.note")}</p>
-              <div className="pt-6">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    clearToken();
-                    setSignedIn(false);
-                  }}
-                >
-                  {t("signedIn.leave")}
-                </Button>
-              </div>
-            </div>
-          ) : (
-          <>
+          <h1 className="text-section">{mode === "login" ? t("title") : t("titleRegister")}</h1>
 
           <form onSubmit={submit} className="pt-6">
             <div className="divide-y divide-hairline border-y border-hairline">
@@ -165,9 +160,6 @@ export default function EntryScreen() {
               </Button>
             </div>
           </form>
-
-          </>
-          )}
 
           <p className="pt-7 font-data text-data text-ink-3">
             {t(`server.${server}`, { url: HOST })}

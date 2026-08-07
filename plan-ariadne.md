@@ -4,23 +4,27 @@ Warstwa pamieci dla LLM coderow. Nic ariadny: wychodzisz z sesji i wracasz dokla
 
 ## 0. Gdzie jestesmy, stan na 07.08.2026
 
-Branch: feature/step-5b-app-shell, odbity od feature/step-5a-rest-backend przed jego merge'em, wiec niesie tez caly 5a. Na main sa zmergowane kroki 1 do 5a (PR #1 do #5). Do scalenia zostaje 5b: 22 commity ponad main, bez konfliktow, bo jedyny wspolny plik to ten.
+Branch: feature/screen-3-home. Na main sa zmergowane kroki 1 do 5b (PR #1 do #7). Do scalenia zostaje ekran glowny.
 
 Zrobione i sprawdzone:
 - Kroki 1 do 4 zamkniete. Krok 4 potwierdzony na prawdziwym repo portfolio: coder laduje boot context, zapisuje decyzje, podsumowuje sesje, a nastepna sesja odpowiada z tego podsumowania i siega po search_context dzieki indexowi.
 - Krok 5a: 16 endpointow REST, auth na argon2id i JWT HS256, tokeny, projekty, feed do zatwierdzenia. scripts/verify-rest.ts, 58 sprawdzen przez app.request() Hono. REST i MCP na jednym porcie.
-- Krok 5a.1: cztery endpointy czytania i poprawiania wpisow, na branchu feature/step-5a1-node-reads (wypchniety, czeka na PR). verify-rest.ts urosl do 97 sprawdzen.
+- Krok 5a.1: cztery endpointy czytania i poprawiania wpisow, zmergowane. verify-rest.ts urosl do 97 sprawdzen.
 - Krok 5b, ekrany 1 i 2: logowanie, rejestracja, trzy kroki onboardingu. Przejscie od rejestracji do skopiowanego polecenia przeklikane w przegladarce, a token z tego przejscia autoryzuje sie na /mcp i zwraca wpisany profil oraz zalozona karte. Kryterium 5b w tej czesci spelnione.
 - Projekt wizualny z Claude Design zaimportowany: PRODUCT.md i DESIGN.md w korzeniu, spec w design/. Tokeny przepisane do @theme, fonty w paczce lokalnie.
 - Krok 5b, powloka: src-tauri stoi, okno bez dekoracji z wlasnym paskiem tytulu. Przeciaganie, minimalizacja i maksymalizacja sprawdzone w oknie. Caly przebieg od logowania do skopiowanego polecenia MCP przeklikany juz nie w przegladarce, tylko w aplikacji.
 
 Jak uruchomic: docker compose up -d dla bazy, npm run dev w backend (port 3000), npm run tauri dev w frontend (podnosi Next na 3001 i otwiera okno; samo npm run dev daje ten sam frontend w przegladarce, tylko bez przyciskow okna). Konto stanislaw@rayzacher.pl, haslo 1234 (ustawione skryptem, wiec omija walidacje osmiu znakow z rejestracji; do zmiany przed VPS).
 
+- Ekran 3 (glowny): data ostatniego wejscia, zmiany w projekcie najnowsze na gorze, lista projektow z licznikami. GET /projects dowozi teraz nodeCount i pendingCount jednym zapytaniem. Nadpisywanie profilu przez powtorny onboarding naprawione: pusta lista projektow to warunek pierwszego uruchomienia, sprawdzany i na ekranie wejscia, i w samym onboardingu.
+- Fonty wymienione na trzy glosy: Marcellus na trzy stopnie naglowkowe (skanowane), Geist na wszystko czytane zdanie po zdaniu, Martian Mono bez zmian na dane. Literata wypadla, a z nia grecki subset, ktorego zaden ekran nie renderowal.
+
 Czego brakuje w 5b: nic. Krok domkniety.
 
-Dwie decyzje czekaja na usera, obie opisane dalej w planie:
-1. Onboarding nie wie, ze zostal juz przejsty, wiec kazde wejscie na /onboarding moze nadpisac profil pustym tekstem. Wykryte na zywo, profil odtworzony skryptem seed. Najprostszy warunek: pusta lista z GET /projects znaczy pierwsze uruchomienie. Do zrobienia teraz albo przy ekranie glownym, ktory te liste i tak wola.
-2. Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie.
+Jedna decyzja czeka na usera:
+1. Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie. Rekomendacja: wyciac z ekranu 01 i przeniesc do sekcji 14, bo OAuth w Tauri to loopback albo deep link plus endpoint providera, a konto na haslo juz dziala.
+
+Czego swiadomie nie ma w ekranie 3: kolumny nawigacyjnej z wariantu 2c i przycisku do pelnej listy wpisow. Oba prowadza do ekranow 4 do 8, ktorych nie ma. Wracaja razem z pierwszym z tych ekranow.
 
 ## 1. Problem i cel
 
