@@ -16,7 +16,15 @@ import { RecordPreview, type Entry } from "@/components/record-preview";
 import { ThreadProgress } from "@/components/thread-progress";
 import { TitleBar } from "@/components/title-bar";
 import { Banner, Button } from "@/components/ui";
-import { ApiError, createProject, mintToken, readToken, saveProfile, serverUrl } from "@/lib/api";
+import {
+  ApiError,
+  createProject,
+  listProjects,
+  mintToken,
+  readToken,
+  saveProfile,
+  serverUrl,
+} from "@/lib/api";
 
 // Screen 02. Collect a profile, create the first project, connect an agent, and
 // get out of the way.
@@ -47,10 +55,21 @@ export default function OnboardingScreen() {
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
-  // Nobody reaches onboarding without a token, so arriving without one means a
-  // reload after the session went away.
+  // Two ways to be in the wrong place. Without a token the session went away
+  // during a reload. With projects already on the account this is a second run
+  // of a one-time wizard, and step 1 ends in saveProfile(), so letting it play
+  // through would overwrite a written profile with whatever is typed here,
+  // including nothing. An empty project list is what "first run" means.
   useEffect(() => {
-    if (!readToken()) router.replace("/");
+    if (!readToken()) {
+      router.replace("/");
+      return;
+    }
+    // A server that cannot be reached must not lock the owner out of their own
+    // onboarding, so only a definite answer redirects.
+    void listProjects()
+      .then((rows) => rows.length && router.replace("/home"))
+      .catch(() => {});
   }, [router]);
 
   const mint = async () => {
@@ -106,7 +125,7 @@ export default function OnboardingScreen() {
         return;
       }
 
-      router.push("/");
+      router.push("/home");
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === "validation" && step === 2) {
         setFieldError(/repo_ref/.test(caught.message) ? t("project.error.repoTaken") : caught.message);
@@ -201,7 +220,7 @@ export default function OnboardingScreen() {
                 </Button>
               ) : null}
               {step < 3 ? (
-                <Button variant="quiet" className="ml-auto" onClick={() => router.push("/")} disabled={busy}>
+                <Button variant="quiet" className="ml-auto" onClick={() => router.push("/home")} disabled={busy}>
                   {t("skip")}
                 </Button>
               ) : null}

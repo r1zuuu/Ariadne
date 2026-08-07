@@ -116,6 +116,24 @@ export type Project = {
   stack: string;
   etap: string;
   ograniczenia: string;
+  updatedAt: string;
+  /** Everything not archived. Absent on the row POST /projects hands back. */
+  nodeCount?: number;
+  /** The 'proposed' slice of the above, the number the main screen acts on. */
+  pendingCount?: number;
+};
+
+export type NodeStatus = "proposed" | "confirmed" | "contradicted" | "archived";
+
+export type Node = {
+  id: string;
+  type: "session_summary" | "decision" | "note";
+  content: string;
+  status: NodeStatus;
+  // 'coder' is the agent writing after a session; the other two are the person
+  // in this window. The main screen only needs that distinction.
+  source: { channel: "coder" | "app_chat" | "app_form"; session_id: string };
+  createdAt: string;
 };
 
 export const login = (email: string, password: string) =>
@@ -129,8 +147,19 @@ export const getAccount = () => request<Account>("/me");
 export const saveProfile = (profile: string) =>
   request<{ profile: string }>("/me/profile", { method: "PUT", body: { profile } });
 
-export const createProject = (card: Partial<Project> & { name: string; repoRef: string }) =>
+export const listProjects = () => request<Project[]>("/projects");
+
+export const createProject = (card: { name: string; repoRef: string } & Partial<ProjectCard>) =>
   request<Project>("/projects", { method: "POST", body: card });
+
+type ProjectCard = { opis: string; stack: string; etap: string; ograniczenia: string };
+
+// The main screen asks for one more row than it shows, which is how it knows
+// whether to offer "show all" without also asking for a count.
+export const listNodes = (projectId: string, limit: number) =>
+  request<{ nodes: Node[]; nextCursor: string | null }>(
+    `/projects/${projectId}/nodes?limit=${limit}`,
+  );
 
 export const mintToken = (label: string) =>
   request<{ id: string; label: string; token: string }>("/tokens", { method: "POST", body: { label } });
