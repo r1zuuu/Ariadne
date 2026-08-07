@@ -932,6 +932,98 @@ export async function listProjects(userId: string) {
     .orderBy(desc(projects.updatedAt));
 }
 
+// Two kinds of edge, computed on the fly rather than stored, because both are
+// derivable and a stored copy would need invalidating on every write (plan
+// section 8). They differ in meaning, so the screen draws them differently:
+// a shared file is a fact, a similarity is a guess.
+const SIMILARITY_FLOOR = 0.75;
+const NEIGHBOURS = 3;
+
+export async function getGraph(input: { userId: string; projectId: string }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  await assertProjectOwned(input.userId, input.projectId);
+
+  const graphNodes = await db
+    .select({
+      id: nodes.id,
+      type: nodes.type,
+      content: nodes.content,
+      status: nodes.status,
+      createdAt: nodes.createdAt,
+    })
+    .from(nodes)
+    .where(
+      and(
+        eq(nodes.projectId, input.projectId),
+        eq(nodes.userId, input.userId),
+        ne(nodes.status, "archived"),
+      ),
+    )
+    .orderBy(desc(nodes.createdAt));
+
+  if (graphNodes.length < 2) return { nodes: graphNodes, edges: [] };
+
+  // a1.node_id < a2.node_id keeps one row per pair instead of both directions.
+  // The paths are aggregated rather than returned one per row: two entries that
+  // touch four of the same files are one relationship, and four parallel lines
+  // between the same two circles is not a drawing of anything.
+  const shared = await db.execute<{ from_id: string; to_id: string; paths: string[] }>(sql`
+    SELECT a1.node_id AS from_id, a2.node_id AS to_id,
+           array_agg(DISTINCT a1.path ORDER BY a1.path) AS paths
+    FROM code_anchors a1
+    JOIN code_anchors a2 ON a1.path = a2.path AND a1.node_id < a2.node_id
+    JOIN nodes n1 ON n1.id = a1.node_id
+    JOIN nodes n2 ON n2.id = a2.node_id
+    WHERE n1.project_id = ${input.projectId} AND n2.project_id = ${input.projectId}
+      AND n1.status <> 'archived' AND n2.status <> 'archived'
+    GROUP BY a1.node_id, a2.node_id
+  `);
+
+  // Nearest neighbours per node, not every pair over the floor: without the cap
+  // a project where everything is about one subject comes back as a ball of
+  // wool. LATERAL runs the top-N once per node and uses the HNSW index.
+  const similar = await db.execute<{ from_id: string; to_id: string; similarity: number }>(sql`
+    SELECT DISTINCT
+      LEAST(n.id, m.id)::text AS from_id,
+      GREATEST(n.id, m.id)::text AS to_id,
+      m.similarity
+    FROM nodes n
+    CROSS JOIN LATERAL (
+      SELECT o.id, 1 - (o.embedding <=> n.embedding) AS similarity
+      FROM nodes o
+      WHERE o.project_id = n.project_id AND o.id <> n.id AND o.status <> 'archived'
+      ORDER BY o.embedding <=> n.embedding
+      LIMIT ${NEIGHBOURS}
+    ) m
+    WHERE n.project_id = ${input.projectId} AND n.user_id = ${input.userId}
+      AND n.status <> 'archived' AND m.similarity >= ${SIMILARITY_FLOOR}
+  `);
+
+  // A pair that shares a file needs no second line saying it also reads alike.
+  const byFile = new Set(shared.rows.map((r) => `${r.from_id}|${r.to_id}`));
+
+  return {
+    nodes: graphNodes,
+    edges: [
+      ...shared.rows.map((r) => ({
+        kind: "file" as const,
+        from: r.from_id,
+        to: r.to_id,
+        paths: r.paths,
+      })),
+      ...similar.rows
+        .filter((r) => !byFile.has(`${r.from_id}|${r.to_id}`))
+        .map((r) => ({
+          kind: "similarity" as const,
+          from: r.from_id,
+          to: r.to_id,
+          similarity: Number(r.similarity),
+        })),
+    ],
+  };
+}
+
 export async function createProject(input: { userId: string; card: ProjectCard }) {
   assertUuid(input.userId, "userId");
   validateCard(input.card);
