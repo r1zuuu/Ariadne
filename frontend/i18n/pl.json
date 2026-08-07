@@ -164,5 +164,79 @@
       "agent": "agent",
       "you": "ty"
     }
+  },
+  "nav": {
+    "project": "Projekt",
+    "home": "Przegląd",
+    "assistant": "Asystent",
+    "database": "Baza",
+    "pending": "Do zatwierdzenia",
+    "signOut": "Wyloguj się",
+    "needsProject": "Najpierw wybierz projekt"
+  },
+  "assistant": {
+    "title": "Zapytaj asystenta",
+    "empty": "Zapytaj o przeszłość projektu. Odpowiedź powstaje wyłącznie z zapisanych wpisów, a pod nią zobaczysz, z których.",
+    "placeholder": "Dlaczego zdecydowaliśmy się na...",
+    "ask": "Zapytaj",
+    "asking": "Szukam",
+    "sources": "Na podstawie",
+    "nothingRecorded": "Nic na ten temat nie zostało zapisane."
+  },
+  "database": {
+    "title": "Rozmawiaj z bazą",
+    "note": "Napisz, co się zmieniło. Nic nie zostanie zapisane od razu: dostaniesz propozycje do zatwierdzenia.",
+    "placeholder": "Odwołujemy decyzję o...",
+    "send": "Wyślij",
+    "sending": "Myślę",
+    "thinking": "Czytam wpisy...",
+    "nothingProposed": "Nic tu nie wymaga zmiany.",
+    "queuedNote": "Propozycje czekają.",
+    "queuedLink": "Przejrzyj je",
+    "action": {
+      "update": "Poprawka wpisu",
+      "delete": "Do usunięcia",
+      "create": "Nowy wpis"
+    }
+  },
+  "pending": {
+    "title": "Do zatwierdzenia",
+    "loading": "Wczytuję...",
+    "empty": "Nic nie czeka. Ten ekran możesz ignorować, nic tu nie blokuje pracy.",
+    "queued": "Proponowane zmiany",
+    "entries": "Wpisy do przejrzenia",
+    "action": {
+      "update": "Poprawka",
+      "delete": "Usunięcie"
+    },
+    "approve": "Zatwierdź",
+    "reject": "Odrzuć",
+    "confirm": "Potwierdź",
+    "archive": "Do archiwum"
+  },
+  "project": {
+    "title": "Projekt",
+    "loading": "Wczytuję...",
+    "label": {
+      "name": "Nazwa",
+      "repo": "Repozytorium",
+      "stack": "Stack",
+      "etap": "Etap",
+      "opis": "Opis",
+      "limits": "Ograniczenia"
+    },
+    "etap": {
+      "prototyp": "Prototyp",
+      "produkcja": "Produkcja",
+      "utrzymanie": "Utrzymanie"
+    },
+    "repoFixed": "Nie do zmiany: po tym adresie agent rozpoznaje projekt.",
+    "save": "Zapisz kartę",
+    "saving": "Zapisuję",
+    "saved": "Zapisane",
+    "graph": "Graf wpisów",
+    "graphEmpty": "Graf pojawi się, gdy będą wpisy.",
+    "graphHint": "Kliknij węzeł, żeby zobaczyć treść wpisu.",
+    "graphLabel": "Graf: {nodes} wpisów, {edges} połączeń"
   }
 }

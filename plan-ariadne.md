@@ -19,7 +19,11 @@ Jak uruchomic: docker compose up -d dla bazy, npm run dev w backend (port 3000),
 - Ekran 3 (glowny): data ostatniego wejscia, zmiany w projekcie najnowsze na gorze, lista projektow z licznikami. GET /projects dowozi teraz nodeCount i pendingCount jednym zapytaniem. Nadpisywanie profilu przez powtorny onboarding naprawione: pusta lista projektow to warunek pierwszego uruchomienia, sprawdzany i na ekranie wejscia, i w samym onboardingu.
 - Fonty wymienione na trzy glosy: Marcellus na trzy stopnie naglowkowe (skanowane), Geist na wszystko czytane zdanie po zdaniu, Martian Mono bez zmian na dane. Literata wypadla, a z nia grecki subset, ktorego zaden ekran nie renderowal.
 
+- Kroki 5c i 5d: GET /projects/:id/graph, POST /chat/query (streaming NDJSON), POST /chat/edit. Ekrany 4, 5, 6 i 7 stoja, plus kolumna nawigacji i wylogowanie. Caly lancuch przeklikany w oknie: pytanie do asystenta dostaje odpowiedz z cytowaniami, rozmowa z baza tworzy propozycje, a ekran zatwierdzania je rozstrzyga.
+
 Czego brakuje w 5b: nic. Krok domkniety.
+
+Zostaje z MVP: ekran 8 (ustawienia: profil, tokeny, all-permission).
 
 Jedna decyzja czeka na usera:
 1. Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie. Rekomendacja: wyciac z ekranu 01 i przeniesc do sekcji 14, bo OAuth w Tauri to loopback albo deep link plus endpoint providera, a konto na haslo juz dziala.
@@ -370,7 +374,8 @@ Nietechniczny user zyje w ekranach 3, 5, 6. Techniczny dodatkowo w 4 i 7. Nic wi
 ## 12. Decyzje techniczne
 
 - Embeddingi: gemini-embedding-001 z output_dimensionality: 768 (MRL, pelny wymiar 3072 sciety bez straty jakosci), zamrozone w vector(768). Koszt: 0.15 USD za 1M tokenow wejsciowych. Zmiana modelu = przeliczenie wszystkich wektorow skryptem (jedyna kosztowna zmiana, zaakceptowana swiadomie).
-- Tani LLM: gemini-2.5-flash-lite (0.10 USD wejscie, 0.40 USD wyjscie za 1M tokenow), ten sam klucz. Szacowany laczny koszt Gemini przy codziennym uzyciu: rzad 1-1.5 USD miesiecznie; istnieje darmowy tier Flash (tresci z darmowego tieru Google wykorzystuje do ulepszania produktow - decyzja swiadoma).
+- Tani LLM: gemini-3.5-flash-lite. Plan zakladal gemini-2.5-flash-lite, ale API odmawia go nowym kluczom ("no longer available to new users"), choc nadal wymienia go na liscie modeli. Przypiety do wersji, nie do aliasu -latest, zeby odpowiedzi nie zmienialy ksztaltu w terminie Google. Ponizsze koszty sa z 2.5 i nie byly przeliczane.
+- Stary zapis kosztow: gemini-2.5-flash-lite (0.10 USD wejscie, 0.40 USD wyjscie za 1M tokenow), ten sam klucz. Szacowany laczny koszt Gemini przy codziennym uzyciu: rzad 1-1.5 USD miesiecznie; istnieje darmowy tier Flash (tresci z darmowego tieru Google wykorzystuje do ulepszania produktow - decyzja swiadoma).
 - Indeks: HNSW vector_cosine_ops.
 - Backend: Node/TS. ORM: Drizzle (znany userowi stack). Framework HTTP: Hono (wybrane w kroku 5a). Fastify odrzucony: system pluginow, dekoratorow i wlasny walidator schematow to wiecej pojec do nauki na te same 18 endpointow. Hono ma JWT i obsluge bledow w standardzie, a walidacja idzie przez zoda, ktory juz jest w projekcie, wiec nie doszedl zaden validator middleware.
 - Hasla: @node-rs/argon2, nie pakiet argon2. Ten sam argon2id, ale z prebuildami na Windows, wiec setup nie wymaga node-gyp ani Visual Studio Build Tools.

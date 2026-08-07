@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -5,6 +6,7 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { jwt, sign } from "hono/jwt";
 import * as z from "zod/v4";
+import { answerQuestion, proposeEdits } from "./chat.js";
 import {
   type NodeStatus,
   type NodeType,
@@ -18,6 +20,7 @@ import {
   deleteApiToken,
   editNode,
   getAccount,
+  getGraph,
   getReviewFeed,
   listApiTokens,
   listNodes,
@@ -71,6 +74,7 @@ const PROTECTED_PREFIXES = [
   "/pending/*",
   "/nodes/*",
   "/search",
+  "/chat/*",
 ];
 
 type Env = { Variables: { jwtPayload: { sub: string } } };
@@ -109,6 +113,19 @@ const searchSchema = z.object({
   projectId: z.string(),
   query: z.string(),
   k: z.number().optional(),
+});
+
+// Length and emptiness are the service's rule, shared with the other caller, so
+// these only say what the field is.
+const chatQuerySchema = z.object({
+  projectId: z.string(),
+  question: z.string(),
+});
+
+const chatEditSchema = z.object({
+  projectId: z.string(),
+  message: z.string(),
+  sessionId: z.string().optional(),
 });
 
 // A query string carries text or nothing, so limit is coerced here. status and
@@ -323,6 +340,62 @@ export function createRestApp() {
   app.post("/nodes/:id/archive", async (c) => {
     await archiveNode({ userId: userId(c), nodeId: c.req.param("id") });
     return c.body(null, 204);
+  });
+
+  // --- Graph and the two chats (plan section 11, screens 4, 5 and 6) ---
+
+  app.get("/projects/:id/graph", async (c) =>
+    c.json(await getGraph({ userId: userId(c), projectId: c.req.param("id") })),
+  );
+
+  // NDJSON, not SSE: one JSON object per line is the whole protocol, the browser
+  // needs no EventSource (which cannot carry an Authorization header anyway),
+  // and the client reads it with a split on newline.
+  app.post("/chat/query", async (c) => {
+    const { projectId, question } = await readBody(c, chatQuerySchema);
+    const stream = answerQuestion({ userId: userId(c), projectId, question });
+
+    // The first chunk is awaited before the response starts, so a failure in
+    // retrieval still arrives as a normal JSON error with a status code rather
+    // than as a 200 that dies mid-body.
+    const first = await stream.next();
+
+    return c.body(
+      new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder();
+          const write = (value: unknown) =>
+            controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`));
+          try {
+            if (!first.done) write(first.value);
+            for await (const chunk of stream) write(chunk);
+          } catch (caught) {
+            // The status line is long gone by now, so the only honest place left
+            // to report a mid-stream failure is inside the stream.
+            write({ type: "error", message: caught instanceof Error ? caught.message : "stream failed" });
+          } finally {
+            controller.close();
+          }
+        },
+      }),
+      200,
+      { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" },
+    );
+  });
+
+  app.post("/chat/edit", async (c) => {
+    const { projectId, message, sessionId } = await readBody(c, chatEditSchema);
+    return c.json(
+      await proposeEdits({
+        userId: userId(c),
+        projectId,
+        message,
+        // One conversation is one session, so entries created from it group the
+        // way a coder's session does. The client owns the id; the server has no
+        // conversation table to look one up in.
+        sessionId: sessionId ?? randomUUID(),
+      }),
+    );
   });
 
   return app;

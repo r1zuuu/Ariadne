@@ -164,5 +164,79 @@
       "agent": "agent",
       "you": "you"
     }
+  },
+  "nav": {
+    "project": "Project",
+    "home": "Overview",
+    "assistant": "Assistant",
+    "database": "Base",
+    "pending": "To approve",
+    "signOut": "Sign out",
+    "needsProject": "Choose a project first"
+  },
+  "assistant": {
+    "title": "Ask the assistant",
+    "empty": "Ask about the project's past. The answer is built only from recorded entries, and you will see which ones underneath it.",
+    "placeholder": "Why did we decide to...",
+    "ask": "Ask",
+    "asking": "Looking",
+    "sources": "Based on",
+    "nothingRecorded": "Nothing has been recorded about this."
+  },
+  "database": {
+    "title": "Talk to the base",
+    "note": "Write what changed. Nothing is saved straight away: you get proposals to approve.",
+    "placeholder": "We are reversing the decision to...",
+    "send": "Send",
+    "sending": "Thinking",
+    "thinking": "Reading entries...",
+    "nothingProposed": "Nothing here needs changing.",
+    "queuedNote": "Proposals are waiting.",
+    "queuedLink": "Review them",
+    "action": {
+      "update": "Entry correction",
+      "delete": "To delete",
+      "create": "New entry"
+    }
+  },
+  "pending": {
+    "title": "To approve",
+    "loading": "Loading...",
+    "empty": "Nothing is waiting. You can ignore this screen; nothing here blocks your work.",
+    "queued": "Proposed changes",
+    "entries": "Entries to review",
+    "action": {
+      "update": "Correction",
+      "delete": "Deletion"
+    },
+    "approve": "Approve",
+    "reject": "Reject",
+    "confirm": "Confirm",
+    "archive": "Archive"
+  },
+  "project": {
+    "title": "Project",
+    "loading": "Loading...",
+    "label": {
+      "name": "Name",
+      "repo": "Repository",
+      "stack": "Stack",
+      "etap": "Stage",
+      "opis": "Description",
+      "limits": "Constraints"
+    },
+    "etap": {
+      "prototyp": "Prototype",
+      "produkcja": "Production",
+      "utrzymanie": "Maintenance"
+    },
+    "repoFixed": "Fixed: this is the address an agent recognises the project by.",
+    "save": "Save card",
+    "saving": "Saving",
+    "saved": "Saved",
+    "graph": "Entry graph",
+    "graphEmpty": "The graph appears once there are entries.",
+    "graphHint": "Click a node to read its entry.",
+    "graphLabel": "Graph: {nodes} entries, {edges} links"
   }
 }
