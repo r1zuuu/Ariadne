@@ -4,7 +4,7 @@
 process.loadEnvFile("../.env");
 
 const { db } = await import("../src/db/client.js");
-const { users, projects } = await import("../src/db/schema.js");
+const { nodes, users, projects } = await import("../src/db/schema.js");
 const { eq } = await import("drizzle-orm");
 const service = await import("../src/service.js");
 
@@ -89,6 +89,24 @@ await service.archiveNode({ userId: user.id, nodeId });
 const archived = await service.searchNodes({ userId: user.id, projectId: project.id, query: "hono", k: 10 });
 if (archived.some((r) => r.id === nodeId)) throw new Error("archived node must not appear in search");
 console.log("  update->approve->recompute, confirm, archive: OK");
+
+// The replaces path, which the REST script cannot reach: nodes are only ever
+// written through MCP. It runs one transaction that inserts the new node and
+// points the old one at it, and nothing else proves that order holds.
+const [replaced] = await service.searchNodes({ userId: user.id, projectId: project.id, query: "drizzle studio", k: 1 });
+const successor = await service.createNode({
+  userId: user.id,
+  projectId: project.id,
+  type: "note",
+  content: "Drizzle Studio odpalamy przez npx, nie instalujemy go globalnie",
+  source,
+  replacesNodeId: replaced.id,
+});
+if (successor.contradictedNodeId !== replaced.id) throw new Error("replaces should report what it contradicted");
+const [old] = await db.select().from(nodes).where(eq(nodes.id, replaced.id));
+if (old.status !== "contradicted") throw new Error("the replaced node should end up contradicted");
+if (old.supersededBy !== successor.nodeId) throw new Error("the replaced node should point at its successor");
+console.log("  replaces -> contradicted with a link to the successor: OK");
 
 console.log("\nDONE - oceń kolejność wyników powyżej");
 process.exit(0);

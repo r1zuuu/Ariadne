@@ -1,13 +1,17 @@
-// Step-5a "done when" check (plan section 13). Drives the REST app through
-// Hono's app.request(), so it needs no listening port and no curl.
+// Step-5a and 5a.1 "done when" check (plan section 13). Drives the REST app
+// through Hono's app.request(), so it needs no listening port and no curl.
 // Run from backend/: npx tsx scripts/verify-rest.ts
 // Idempotent: drops both check users (cascade wipes their data) before starting.
+// Needs Gemini: /search and a content edit compute a real embedding, which is the
+// point of those two - a stale vector is invisible until a search goes wrong.
 import assert from "node:assert/strict";
 
 process.loadEnvFile("../.env");
 
 const { db } = await import("../src/db/client.js");
-const { nodes, pendingActions, projects, users } = await import("../src/db/schema.js");
+const { codeAnchors, nodes, pendingActions, projects, users } = await import(
+  "../src/db/schema.js"
+);
 const { eq, inArray } = await import("drizzle-orm");
 const { createRestApp } = await import("../src/rest.js");
 
@@ -254,6 +258,241 @@ check(
   0,
 );
 
+// --- Listing, search, edit and contradict (plan step 5a.1) ---
+
+// Its own project, so the counts below depend on this seed alone and not on what
+// an earlier section happened to leave in the first one.
+const listProjectId: string = (
+  await call("/projects", {
+    method: "POST",
+    token,
+    body: { name: "Lista", repoRef: "github.com/r1zuuu/Lista" },
+  })
+).body.id;
+
+// Explicit timestamps, so "newest first" and the cursor have a known order to
+// prove. Left to defaultNow() every row of one insert shares a timestamp.
+const day = (n: number) => new Date(Date.UTC(2026, 0, n));
+const seeded = await db
+  .insert(nodes)
+  .values([
+    {
+      userId,
+      projectId: listProjectId,
+      type: "decision",
+      content: "Drizzle zamiast Prismy",
+      embedding,
+      createdAt: day(1),
+    },
+    {
+      userId,
+      projectId: listProjectId,
+      type: "note",
+      content: "Hono trzyma REST i MCP na jednym porcie",
+      status: "confirmed",
+      embedding,
+      createdAt: day(2),
+    },
+    {
+      userId,
+      projectId: listProjectId,
+      type: "note",
+      content: "Stary wybor: Express",
+      status: "archived",
+      embedding,
+      createdAt: day(3),
+    },
+    {
+      userId,
+      projectId: listProjectId,
+      type: "session_summary",
+      content: "Sesja: skonczylismy na kursorze",
+      embedding,
+      createdAt: day(4),
+    },
+    {
+      userId,
+      projectId: listProjectId,
+      type: "decision",
+      content: "Migracje generuje drizzle-kit",
+      embedding,
+      createdAt: day(5),
+    },
+    {
+      userId,
+      projectId: listProjectId,
+      type: "note",
+      content: "Tokeny MCP trzymamy jako sha256",
+      embedding,
+      createdAt: day(6),
+    },
+  ])
+  .returning({ id: nodes.id, content: nodes.content });
+const [decision, , archived, summary, superseder] = seeded;
+await db.insert(codeAnchors).values({ nodeId: decision.id, path: "src/db/schema.ts" });
+
+const listedNodes = await call(`/projects/${listProjectId}/nodes`, { token });
+check("listing skips archived by default", listedNodes.body.nodes.length, 5);
+check("newest first", listedNodes.body.nodes[0].content, "Tokeny MCP trzymamy jako sha256");
+check("one page holds everything, so no cursor", listedNodes.body.nextCursor, null);
+check(
+  "archived is reachable when asked for by name",
+  (await call(`/projects/${listProjectId}/nodes?status=archived`, { token })).body.nodes[0].id,
+  archived.id,
+);
+check(
+  "filtering by type",
+  (await call(`/projects/${listProjectId}/nodes?type=decision`, { token })).body.nodes.length,
+  2,
+);
+const byFile = await call(`/projects/${listProjectId}/nodes?file=src/db/schema.ts`, { token });
+check("filtering by anchored file", byFile.body.nodes.length, 1);
+check("and the anchor travels with the node", byFile.body.nodes[0].anchors[0].path, "src/db/schema.ts");
+check(
+  "an unknown status is rejected",
+  (await call(`/projects/${listProjectId}/nodes?status=zombie`, { token })).status,
+  400,
+);
+check(
+  "a cursor from nowhere is rejected",
+  (await call(`/projects/${listProjectId}/nodes?cursor=not-a-cursor`, { token })).status,
+  400,
+);
+check(
+  "a limit outside the range is rejected",
+  (await call(`/projects/${listProjectId}/nodes?limit=500`, { token })).status,
+  400,
+);
+
+const first = await call(`/projects/${listProjectId}/nodes?limit=2`, { token });
+check("a page stops at the limit", first.body.nodes.length, 2);
+assert.ok(first.body.nextCursor, "a full page hands out a cursor");
+const second = await call(
+  `/projects/${listProjectId}/nodes?limit=2&cursor=${encodeURIComponent(first.body.nextCursor)}`,
+  { token },
+);
+check("the next page picks up where it stopped", second.body.nodes.length, 2);
+check(
+  "and repeats nothing",
+  second.body.nodes.some((n: { id: string }) =>
+    first.body.nodes.some((f: { id: string }) => f.id === n.id),
+  ),
+  false,
+);
+const third = await call(
+  `/projects/${listProjectId}/nodes?limit=2&cursor=${encodeURIComponent(second.body.nextCursor)}`,
+  { token },
+);
+check("the last page holds the remainder", third.body.nodes.length, 1);
+check("and hands out no cursor", third.body.nextCursor, null);
+
+const searched = await call("/search", {
+  method: "POST",
+  token,
+  body: { projectId: listProjectId, query: "czym zastapilismy Prisme", k: 3 },
+});
+check("search returns 200", searched.status, 200);
+check("no more hits than asked for", searched.body.length, 3);
+check("every hit carries its similarity", typeof searched.body[0].similarity, "number");
+check(
+  "and no archived node is among them",
+  searched.body.some((n: { status: string }) => n.status === "archived"),
+  false,
+);
+check(
+  "an empty query is rejected",
+  (await call("/search", { method: "POST", token, body: { projectId: listProjectId, query: "  " } }))
+    .status,
+  400,
+);
+
+const [{ embedding: beforeEdit }] = await db
+  .select({ embedding: nodes.embedding })
+  .from(nodes)
+  .where(eq(nodes.id, decision.id));
+const edited = await call(`/nodes/${decision.id}`, {
+  method: "PUT",
+  token,
+  body: {
+    content: "Drizzle zamiast Prismy, bo migracje sa czytelne",
+    anchors: [{ path: "backend/src/db/schema.ts" }],
+  },
+});
+check(
+  "an edit returns the stored node",
+  edited.body.content,
+  "Drizzle zamiast Prismy, bo migracje sa czytelne",
+);
+check("stamped with the channel that edited it", edited.body.source.edited_via, "app_form");
+check("anchors are replaced, not added to", edited.body.anchors.length, 1);
+check("with the new path", edited.body.anchors[0].path, "backend/src/db/schema.ts");
+const [{ embedding: afterEdit }] = await db
+  .select({ embedding: nodes.embedding })
+  .from(nodes)
+  .where(eq(nodes.id, decision.id));
+check("a content edit recomputes the embedding", afterEdit![0] === beforeEdit![0], false);
+check(
+  "an edit with nothing in it is rejected",
+  (await call(`/nodes/${decision.id}`, { method: "PUT", token, body: {} })).status,
+  400,
+);
+
+check(
+  "contradicting returns 204",
+  (await call(`/nodes/${decision.id}/contradict`, {
+    method: "POST",
+    token,
+    body: { supersededBy: superseder.id },
+  })).status,
+  204,
+);
+const contradicted = await call(`/projects/${listProjectId}/nodes?status=contradicted`, { token });
+check("the node now says what overruled it", contradicted.body.nodes[0].supersededBy, superseder.id);
+check(
+  "contradicting the same node twice is rejected",
+  (await call(`/nodes/${decision.id}/contradict`, {
+    method: "POST",
+    token,
+    body: { supersededBy: superseder.id },
+  })).status,
+  400,
+);
+check(
+  "a node cannot supersede itself",
+  (await call(`/nodes/${summary.id}/contradict`, {
+    method: "POST",
+    token,
+    body: { supersededBy: summary.id },
+  })).status,
+  400,
+);
+
+// A reference across projects would render as a dead link on the record screen.
+const otherProject = await call("/projects", {
+  method: "POST",
+  token,
+  body: { name: "Other", repoRef: "github.com/r1zuuu/Other" },
+});
+const [elsewhere] = await db
+  .insert(nodes)
+  .values({
+    userId,
+    projectId: otherProject.body.id,
+    type: "note",
+    content: "Wpis z innego projektu",
+    embedding,
+  })
+  .returning({ id: nodes.id });
+check(
+  "the superseding node must sit in the same project",
+  (await call(`/nodes/${summary.id}/contradict`, {
+    method: "POST",
+    token,
+    body: { supersededBy: elsewhere.id },
+  })).status,
+  400,
+);
+
 // --- Nothing of one user is reachable with another user's token ---
 
 const theirToken: string = (
@@ -281,6 +520,38 @@ check(
 check(
   "another user cannot archive my node",
   (await call(`/nodes/${proposed.id}/archive`, { method: "POST", token: theirToken })).status,
+  404,
+);
+check(
+  "another user cannot list my project's nodes",
+  (await call(`/projects/${projectId}/nodes`, { token: theirToken })).status,
+  404,
+);
+check(
+  "another user cannot search my project",
+  (await call("/search", {
+    method: "POST",
+    token: theirToken,
+    body: { projectId, query: "cokolwiek" },
+  })).status,
+  404,
+);
+check(
+  "another user cannot edit my node",
+  (await call(`/nodes/${summary.id}`, {
+    method: "PUT",
+    token: theirToken,
+    body: { content: "Przejete" },
+  })).status,
+  404,
+);
+check(
+  "another user cannot contradict my node",
+  (await call(`/nodes/${summary.id}/contradict`, {
+    method: "POST",
+    token: theirToken,
+    body: { supersededBy: superseder.id },
+  })).status,
   404,
 );
 check("my project is still mine", (await call("/projects", { token })).body[0].name, "Check");
