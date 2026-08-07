@@ -21,8 +21,9 @@ color:
   canvas:         oklch(0.220 0.020 250)   # graph only
   canvas-ink:     oklch(0.930 0.010 240)   # 15.8:1 on canvas
 type:
-  prose: Literata, latin-ext, weights 400/500/600
-  data:  Martian Mono, latin-ext, weights 400/500
+  heading: Marcellus, latin-ext, weight 400 only
+  prose:   Geist, latin-ext, weights 100-900
+  data:    Martian Mono, latin-ext, weights 400/500
   scale: 43/34/27/21/17/15/13/11, ratio 1.26
   measure: 68ch
 space: [2, 4, 8, 12, 16, 24, 32, 48, 72, 112]
@@ -69,12 +70,20 @@ product, and it exists because thin lines between forty nodes need it.
 
 # Typography
 
-Literata sets every sentence a human reads; Martian Mono sets everything a
-machine produced: paths, hashes, dates, similarity, status names, form labels.
-Monospace labels are uppercase, tracked 0.12em, capped at 24 characters.
+Three families, split by what the reader does with the text. Marcellus sets the
+three headline steps, which are scanned to find a place on the screen. Geist
+sets every sentence read word by word, including what a person types into a
+field. Martian Mono sets everything a machine produced: paths, hashes, dates,
+similarity, status names, form labels. Monospace labels are uppercase, tracked
+0.12em, capped at 24 characters.
 
-**The Two Voices Rule.** Prose in the serif, data in the mono, and never the
-reverse.
+**The Three Voices Rule.** Headings in the serif, prose in the sans, data in the
+mono, and never the reverse. The split is by use, not by size: a 21px lead is
+prose because it is read, and a 27px section heading is scanned.
+
+**The One Weight Rule.** Marcellus ships a single cut, so the headline steps ask
+for 400. A heading never gets bold, because there is no bold to get: the
+renderer would smear the regular one.
 
 **The Measure Rule.** Body text is 17px/28px in a 68-character column, because a
 4000-character entry is a normal read, not an edge case.

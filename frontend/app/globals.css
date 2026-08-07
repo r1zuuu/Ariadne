@@ -31,23 +31,30 @@
   --color-canvas: oklch(0.22 0.02 250); /* graph only, not a second theme */
   --color-canvas-ink: oklch(0.93 0.01 240); /* 15.8:1 on canvas */
 
-  /* Type. Two families, seven steps, ratio 1.26. Prose in the serif, data in
-     the mono, never the reverse. */
-  --font-prose: Literata, Georgia, serif;
+  /* Type. Three families, seven steps, ratio 1.26. The split is by how the text
+     is used, not by how big it is: Marcellus sets the three headline steps,
+     which are scanned rather than read, and Geist sets everything a person
+     actually reads word by word, down to what they type into a field. Data
+     stays in the mono. */
+  --font-heading: Marcellus, Georgia, serif;
+  --font-prose: Geist, ui-sans-serif, system-ui, sans-serif;
   --font-data: "Martian Mono", ui-monospace, monospace;
 
+  /* The headline steps sit at 400 because Marcellus ships one weight. Asking
+     for 600 would not load a bold cut, it would let the renderer smear the
+     regular one. */
   --text-display: 43px;
   --text-display--line-height: 49px;
-  --text-display--font-weight: 600;
+  --text-display--font-weight: 400;
   --text-display--letter-spacing: -0.01em;
 
   --text-title: 34px;
   --text-title--line-height: 41px;
-  --text-title--font-weight: 600;
+  --text-title--font-weight: 400;
 
   --text-section: 27px;
   --text-section--line-height: 34px;
-  --text-section--font-weight: 600;
+  --text-section--font-weight: 400;
 
   --text-lead: 21px;
   --text-lead--line-height: 32px;
@@ -115,6 +122,17 @@
     /* The window is a desktop app, not a document: no rubber-band scroll on the
        shell itself, individual panes scroll instead. */
     overflow: hidden;
+  }
+
+  /* The three headline steps carry their family, so a heading is Marcellus by
+     being a heading rather than by remembering a second class. Attached to the
+     step and not to h1/h2/h3, because the step is the design decision and the
+     tag is whatever the document outline needs. These set no font-family of
+     their own, so the utility never fights this. */
+  .text-display,
+  .text-title,
+  .text-section {
+    font-family: var(--font-heading);
   }
 
   /* Visible on every surface it can land on, which includes the dark graph
