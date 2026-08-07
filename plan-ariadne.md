@@ -9,17 +9,18 @@ Branch: feature/step-5b-app-shell, odbity od feature/step-5a-rest-backend przed 
 Zrobione i sprawdzone:
 - Kroki 1 do 4 zamkniete. Krok 4 potwierdzony na prawdziwym repo portfolio: coder laduje boot context, zapisuje decyzje, podsumowuje sesje, a nastepna sesja odpowiada z tego podsumowania i siega po search_context dzieki indexowi.
 - Krok 5a: 16 endpointow REST, auth na argon2id i JWT HS256, tokeny, projekty, feed do zatwierdzenia. scripts/verify-rest.ts, 58 sprawdzen przez app.request() Hono. REST i MCP na jednym porcie.
+- Krok 5a.1: cztery endpointy czytania i poprawiania wpisow, na branchu feature/step-5a1-node-reads (wypchniety, czeka na PR). verify-rest.ts urosl do 97 sprawdzen.
 - Krok 5b, ekrany 1 i 2: logowanie, rejestracja, trzy kroki onboardingu. Przejscie od rejestracji do skopiowanego polecenia przeklikane w przegladarce, a token z tego przejscia autoryzuje sie na /mcp i zwraca wpisany profil oraz zalozona karte. Kryterium 5b w tej czesci spelnione.
 - Projekt wizualny z Claude Design zaimportowany: PRODUCT.md i DESIGN.md w korzeniu, spec w design/. Tokeny przepisane do @theme, fonty w paczce lokalnie.
+- Krok 5b, powloka: src-tauri stoi, okno bez dekoracji z wlasnym paskiem tytulu. Przeciaganie, minimalizacja i maksymalizacja sprawdzone w oknie. Caly przebieg od logowania do skopiowanego polecenia MCP przeklikany juz nie w przegladarce, tylko w aplikacji.
 
-Jak uruchomic: docker compose up -d dla bazy, npm run dev w backend (port 3000), npm run dev w frontend (port 3001). Konto stanislaw@rayzacher.pl, haslo 1234 (ustawione skryptem, wiec omija walidacje osmiu znakow z rejestracji; do zmiany przed VPS).
+Jak uruchomic: docker compose up -d dla bazy, npm run dev w backend (port 3000), npm run tauri dev w frontend (podnosi Next na 3001 i otwiera okno; samo npm run dev daje ten sam frontend w przegladarce, tylko bez przyciskow okna). Konto stanislaw@rayzacher.pl, haslo 1234 (ustawione skryptem, wiec omija walidacje osmiu znakow z rejestracji; do zmiany przed VPS).
 
-Czego brakuje w 5b: powloki Tauri. src-tauri nie istnieje. Rust 1.97.1 i MSVC Build Tools sa zainstalowane, wiec to robota, nie blokada.
+Czego brakuje w 5b: nic. Krok domkniety.
 
-Trzy decyzje czekaja na usera, wszystkie opisane dalej w planie:
+Dwie decyzje czekaja na usera, obie opisane dalej w planie:
 1. Onboarding nie wie, ze zostal juz przejsty, wiec kazde wejscie na /onboarding moze nadpisac profil pustym tekstem. Wykryte na zywo, profil odtworzony skryptem seed. Najprostszy warunek: pusta lista z GET /projects znaczy pierwsze uruchomienie. Do zrobienia teraz albo przy ekranie glownym, ktory te liste i tak wola.
 2. Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie.
-3. Kolejnosc: 5a.1 (brakujace endpointy czytania wpisow) kontra powloka Tauri. Bez 5a.1 ekrany 3 do 7 nie maja z czego zyc.
 
 ## 1. Problem i cel
 
@@ -447,7 +448,8 @@ Krok 5b. Powloka Tauri, logowanie, onboarding.
 - Ekrany 1 i 2 sekcji 11.
 - Gotowe gdy: przechodzisz od rejestracji do skopiowanego snippetu bez terminala.
 - Ekrany 1 i 2 GOTOWE i przejsciowo sprawdzone w przegladarce: rejestracja, cztery pytania profilu, karta projektu, token, polecenie. Token z tego przejscia autoryzuje sie na /mcp i get_project_context zwraca wpisany profil oraz zalozona karte. Kryterium spelnione.
-- Zostaje powloka Tauri (src-tauri). Rust 1.97.1 i MSVC Build Tools sa zainstalowane, wiec to robota, nie blokada.
+- Powloka Tauri GOTOWA. Okno bez dekoracji, wlasny pasek tytulu z trzema przyciskami, caly przebieg przeklikany w aplikacji az do polecenia claude mcp add.
+- Czego nie widac z kodu, a zjadlo czas: domyslny zbior uprawnien core:window daje same gettery. Minimalizacja, maksymalizacja, zamkniecie i przeciaganie okna wymagaja czterech osobnych wpisow w capabilities, inaczej przyciski rzucaja "not allowed" dopiero na kliknieciu. Do tego isTauri() wolane w renderze rozjezdza hydracje, bo statyczny eksport prerenderuje sie w Node, gdzie powloki nie ma.
 - Zostaje decyzja o logowaniu przez Google. Spec zaprojektowal je jako druga rownorzedna droge na ekranie 01, ale nie ma tego ani w sekcji 10, ani w backendzie, a OAuth w Tauri wymaga loopbacku albo deep linku plus endpointu po stronie serwera. Ekran zbudowany bez tego.
 - Znalezione przez otwarcie aplikacji, nie przez czytanie kodu: brak CORS (front na 3001 wola API na 3000, wiec kazde zapytanie bylo cross-origin i ekran mowil, ze serwer nie odpowiada), etykiety monospace lamiace sie na dwie linie w kolumnie 132 px, oraz stykajace sie dywizy w Martian Mono, przez ktore --scope czyta sie jak -scope.
 - Uwaga z kroku 4, do przemyslenia zanim powstanie ekran 2c: token w zmiennej srodowiskowej to najtrudniejszy moment calego onboardingu. setx nie dziala na juz otwarte procesy, terminal w VS Code dziedziczy env z chwili startu edytora, a serwery MCP z .mcp.json wymagaja jednorazowej zgody, ktorej brak nie daje zadnego bledu, tylko brak serwera. Alternatywa: token wpisany wprost do .mcp.json, kosztem sekretu w pliku projektu.
