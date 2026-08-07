@@ -2,6 +2,26 @@
 
 Warstwa pamieci dla LLM coderow. Nic ariadny: wychodzisz z sesji i wracasz dokladnie tam, gdzie skonczyles. Baza Postgres + pgvector na VPS jako jedyne zrodlo prawdy, aplikacja desktopowa Tauri 2 + Next.js jako klient, komunikacja coderow przez MCP, wyszukiwanie przez RAG z cytowaniem.
 
+## 0. Gdzie jestesmy, stan na 07.08.2026
+
+Branch: feature/step-5b-app-shell, odbity od feature/step-5a-rest-backend przed jego merge'em, wiec niesie tez caly 5a. Na main sa zmergowane kroki 1 do 5a (PR #1 do #5). Do scalenia zostaje 5b: 22 commity ponad main, bez konfliktow, bo jedyny wspolny plik to ten.
+
+Zrobione i sprawdzone:
+- Kroki 1 do 4 zamkniete. Krok 4 potwierdzony na prawdziwym repo portfolio: coder laduje boot context, zapisuje decyzje, podsumowuje sesje, a nastepna sesja odpowiada z tego podsumowania i siega po search_context dzieki indexowi.
+- Krok 5a: 16 endpointow REST, auth na argon2id i JWT HS256, tokeny, projekty, feed do zatwierdzenia. scripts/verify-rest.ts, 58 sprawdzen przez app.request() Hono. REST i MCP na jednym porcie.
+- Krok 5a.1: cztery endpointy czytania i poprawiania wpisow, na branchu feature/step-5a1-node-reads (wypchniety, czeka na PR). verify-rest.ts urosl do 97 sprawdzen.
+- Krok 5b, ekrany 1 i 2: logowanie, rejestracja, trzy kroki onboardingu. Przejscie od rejestracji do skopiowanego polecenia przeklikane w przegladarce, a token z tego przejscia autoryzuje sie na /mcp i zwraca wpisany profil oraz zalozona karte. Kryterium 5b w tej czesci spelnione.
+- Projekt wizualny z Claude Design zaimportowany: PRODUCT.md i DESIGN.md w korzeniu, spec w design/. Tokeny przepisane do @theme, fonty w paczce lokalnie.
+- Krok 5b, powloka: src-tauri stoi, okno bez dekoracji z wlasnym paskiem tytulu. Przeciaganie, minimalizacja i maksymalizacja sprawdzone w oknie. Caly przebieg od logowania do skopiowanego polecenia MCP przeklikany juz nie w przegladarce, tylko w aplikacji.
+
+Jak uruchomic: docker compose up -d dla bazy, npm run dev w backend (port 3000), npm run tauri dev w frontend (podnosi Next na 3001 i otwiera okno; samo npm run dev daje ten sam frontend w przegladarce, tylko bez przyciskow okna). Konto stanislaw@rayzacher.pl, haslo 1234 (ustawione skryptem, wiec omija walidacje osmiu znakow z rejestracji; do zmiany przed VPS).
+
+Czego brakuje w 5b: nic. Krok domkniety.
+
+Dwie decyzje czekaja na usera, obie opisane dalej w planie:
+1. Onboarding nie wie, ze zostal juz przejsty, wiec kazde wejscie na /onboarding moze nadpisac profil pustym tekstem. Wykryte na zywo, profil odtworzony skryptem seed. Najprostszy warunek: pusta lista z GET /projects znaczy pierwsze uruchomienie. Do zrobienia teraz albo przy ekranie glownym, ktory te liste i tak wola.
+2. Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie.
+
 ## 1. Problem i cel
 
 - Sesje LLM sie urywaja, kontekst nie zapisuje sie automatycznie, kolejna sesja marnuje tokeny na domyslanie sie, gdzie skonczono.
@@ -417,9 +437,21 @@ Krok 5a. Backend REST bez czatow. GOTOWY.
 - Dwa sprawdzenia sa tam z konkretnego powodu, nie dla liczby. Pierwsze czyta tablice tras z routera i wola kazda bez tokenu: trasa dopisana kiedys bez swojego prefiksu w PROTECTED_PREFIXES wywali sie tutaj, zamiast pojechac otwarta. Drugie dobija sie do kazdego zasobu tokenem drugiego uzytkownika i oczekuje 404, bo scope po user_id w warstwie serwisowej to jedyna rzecz miedzy dwoma kontami do czasu RLS w kroku 6.
 - Znalezione w self-review: brak limitu rozmiaru body, plain text w bledach generowanych przez framework, POST /tokens odrzucajacy puste body, middleware JWT wpiete w srodku pliku (w Hono middleware owija tylko trasy zarejestrowane po nim, wiec trasa dopisana w luce pojechala by bez autoryzacji), oraz argon2 liczony przed sprawdzeniem czy email jest zajety.
 
+Krok 5a.1. Endpointy, ktorych sekcja 10 nie przewidziala. Znalezione przez audyt projektowy, nie przez implementacje.
+- GET /projects/:id/nodes: filtr po statusie, typie i pliku, kursor. Filtrowanie i sortowanie po stronie serwera, bo 40 pozycji w kolejce to nie gorna granica.
+- POST /search: to samo co search_context w MCP, ale dla aplikacji, ze similarity w zwrotce.
+- POST /nodes/:id/contradict z polem supersededBy. Status contradicted istnieje w modelu i nic go nie nadaje, a bez odnosnika do wpisu, ktory odwolal, ten status jest nieczytelny.
+- PUT /nodes/:id: czlowiek musi moc poprawic literowke. Proszenie o to modelu jest absurdem. Bez historii wersji, ale z data modyfikacji i kanalem edycji.
+- Dlaczego to blokuje: piec z osmiu ekranow zyje z listowania i szukania wpisow, a API ma tylko confirm i archive. Ekrany 3, 4, 5, 6 i 7 nie maja z czego zyc.
+
 Krok 5b. Powloka Tauri, logowanie, onboarding.
 - Ekrany 1 i 2 sekcji 11.
 - Gotowe gdy: przechodzisz od rejestracji do skopiowanego snippetu bez terminala.
+- Ekrany 1 i 2 GOTOWE i przejsciowo sprawdzone w przegladarce: rejestracja, cztery pytania profilu, karta projektu, token, polecenie. Token z tego przejscia autoryzuje sie na /mcp i get_project_context zwraca wpisany profil oraz zalozona karte. Kryterium spelnione.
+- Powloka Tauri GOTOWA. Okno bez dekoracji, wlasny pasek tytulu z trzema przyciskami, caly przebieg przeklikany w aplikacji az do polecenia claude mcp add.
+- Czego nie widac z kodu, a zjadlo czas: domyslny zbior uprawnien core:window daje same gettery. Minimalizacja, maksymalizacja, zamkniecie i przeciaganie okna wymagaja czterech osobnych wpisow w capabilities, inaczej przyciski rzucaja "not allowed" dopiero na kliknieciu. Do tego isTauri() wolane w renderze rozjezdza hydracje, bo statyczny eksport prerenderuje sie w Node, gdzie powloki nie ma.
+- Zostaje decyzja o logowaniu przez Google. Spec zaprojektowal je jako druga rownorzedna droge na ekranie 01, ale nie ma tego ani w sekcji 10, ani w backendzie, a OAuth w Tauri wymaga loopbacku albo deep linku plus endpointu po stronie serwera. Ekran zbudowany bez tego.
+- Znalezione przez otwarcie aplikacji, nie przez czytanie kodu: brak CORS (front na 3001 wola API na 3000, wiec kazde zapytanie bylo cross-origin i ekran mowil, ze serwer nie odpowiada), etykiety monospace lamiace sie na dwie linie w kolumnie 132 px, oraz stykajace sie dywizy w Martian Mono, przez ktore --scope czyta sie jak -scope.
 - Uwaga z kroku 4, do przemyslenia zanim powstanie ekran 2c: token w zmiennej srodowiskowej to najtrudniejszy moment calego onboardingu. setx nie dziala na juz otwarte procesy, terminal w VS Code dziedziczy env z chwili startu edytora, a serwery MCP z .mcp.json wymagaja jednorazowej zgody, ktorej brak nie daje zadnego bledu, tylko brak serwera. Alternatywa: token wpisany wprost do .mcp.json, kosztem sekretu w pliku projektu.
 
 Krok 5c. Chat RAG.
@@ -432,6 +464,24 @@ Krok 5d. Graf i rozmawiaj z baza.
 
 Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezycie, Row-Level Security, hook konca sesji dla Claude Code, obsluga coderow bez MCP (cienkie CLI).
 
+Krok 7 (kierunek, nie zadanie). Tryb zespolowy: jeden projekt, kilka osob, wspolna baza kontekstu.
+
+Dlaczego to jest prawdopodobnie wlasciwy produkt, a wersja jednoosobowa prototypem: solo Ariadne konkuruje z wlasna pamiecia usera, ktory polowe decyzji z zeszlego tygodnia i tak pamieta. W zespole ta konkurencja znika, bo decyzja kolegi z wtorku nie jest w polowie zapamietana, ona jest calkowicie niewidzialna. CLAUDE.md w repo trzyma reguly, nie powody, i nikt go nie aktualizuje po rozmowie na Slacku. Do tego kazda osoba ma wlasnego agenta, a kazdy agent startuje od zera: piec osob to piec agentow codziennie odgadujacych ten sam kontekst. Oszczednosc mnozy sie przez liczbe ludzi.
+
+Czego to kosztuje, zeby nie wygladalo na dolozenie tabelki:
+- Model danych stoi na zalozeniu "wszystko nalezy do jednego usera". projects ma unikalnosc na (user_id, repo_ref), nodes maja user_id, kazda funkcja w service.ts filtruje po user_id. Wlasciciel projektu przenosi sie z usera na zespol, dochodzi tabela czlonkostw i zaproszenia, a kazde zapytanie idzie do przepisania. To nie zmiana dodajaca, to przepisanie modelu bezpieczenstwa.
+- scripts/verify-rest.ts ma blok, ktory dobija sie do kazdego zasobu tokenem drugiego usera i wymaga 404. Tryb zespolowy odwraca to twierdzenie, wiec ten blok tez idzie do przepisania. To dobre miejsce, zeby zobaczyc skale zmiany.
+- Row-Level Security przestaje byc "miloby bylo" z kroku 6 i staje sie wymogiem. Przy jednym userze blad w scope przecieka jego dane do niego samego. W zespole przecieka miedzy ludzmi, przy wielu zespolach miedzy firmami.
+- Hosting przestaje byc lokalnym Dockerem: prawdziwy serwer, zaproszenia, mail, reset hasla, w koncu rozliczenia.
+
+Najtrudniejszy problem nie jest techniczny, jest znaczeniowy. Statusy zakladaja jedna osobe decydujaca: proposed to "nikt tego nie ocenil", confirmed to "ja potwierdzilem". W zespole natychmiast pada pytanie, kto potwierdza. Jesli kazdy, to confirmed nic nie znaczy, bo junior potwierdzi decyzje architektoniczna, ktorej nie rozumie. Jesli tylko wlasciciel, to jest waskim gardlem i kolejka rosnie do stu pozycji. Do tego dwie osoby zapisza tego samego dnia dwie sprzeczne decyzje, obie proposed, obie szczere, i nie ma automatu, ktory to rozstrzygnie. Bez odpowiedzi na to pytanie tryb zespolowy nie ma sensu, choćby cala schema byla gotowa.
+
+Czego w trybie zespolowym NIE robimy na start: uprawnien per rola. Wartosc siedzi we wspolnym czytaniu i w przypisanym zapisie, nie w macierzy uprawnien. Role to osobna warstwa i typowo pierwsza rzecz, ktora niepotrzebnie zabija projekt na tym etapie.
+
+Uboczny skutek: spis treści w boot contextcie (sekcja 6) ma sufit przy okolo stu wezlach. Solo dobije sie do niego po miesiacach, w piecioosobowym zespole po tygodniu. Tryb zespolowy przyspiesza problem, ktory jest juz zapisany.
+
+Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym: uklad rekordu pokazuje autora wpisu obok zrodla, daty i projektu. Dopisanie tego teraz jest darmowe, doklejanie kolumny "kto" do osmiu gotowych ekranow pozniej nie jest. I nie jest to projektowanie na zapas, bo PRODUCT.md juz stanowi, ze kazdy rekord nosi swoja metryczke, a autor jest brakujacym elementem tej metryczki.
+
 ## 14. Swiadomie odlozone
 
 - Mapowanie codebase (AST, call graph): nigdy, to inny projekt (Graphify).
@@ -441,3 +491,17 @@ Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezy
 - Historia wersji tresci wezla: gdy okaze sie potrzebna.
 - Coderzy bez MCP: gdy zajdzie potrzeba.
 - Wlasny klucz Gemini per user vs wspolny klucz aplikacji: MVP na wspolnym, przelacznik w ustawieniach pozniej.
+- Tryb zespolowy: krok 7, z wycena. Budujemy dla jednego usera i dopiero on ma dzialac. Jedyny wyjatek to autor wpisu w warstwie wizualnej, bo retrofit tego jest drogi, a dopisanie darmowe.
+
+## 15. Frontend, pozniej
+
+Labirynt na ekranie wejscia, wersja rozswietlana kursorem. Dzis to statyczna plansza 440 px, jedna linia w blekicie egipskim, nic wychodzi dolem. Docelowo: duza plansza, ktora rozjasnia sie wokol kursora, tak zeby dalo sie wodzic po sciezce i zobaczyc, ze to naprawde jedna linia od wejscia do srodka.
+- Jak to zrobic: maska radialna sledzaca wskaznik nad tym samym pojedynczym path, jasnosc malejaca z odlegloscia, bez zmiany grubosci kreski i bez drugiego koloru. Ruch tylko na masce, wiec nic w ukladzie sie nie animuje. Przy prefers-reduced-motion maska nie sledzi, cala figura swieci rowno.
+- Warunek wstepny: prawdziwa topologia labiryntu kretenskiego, siedem obwodow, zamiast obecnego prostokatnego meandra. Dzis meander wystarcza, bo nikt po nim nie wodzi wzrokiem. Rozswietlanie zaprasza do wodzenia, a wtedy falszywa topologia zaczyna klamac: sciezka, ktora wyglada na przejscie, nie prowadzi do srodka. Oznaczone `ponytail:` w components/labyrinth-plate.tsx.
+- Kiedy wrocic: gdy ekran wejscia bedzie ostatnia rzecza do dopracowania, nie przed ekranami 3 do 8. To jest ozdoba z uzasadnieniem, ale nadal ozdoba, a piec ekranow czeka na endpointy z 5a.1.
+
+Inne pozycje frontendu, ktore czekaja na decyzje albo na dane:
+- Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie. OAuth w Tauri wymaga loopbacku albo deep linku plus endpointu providera.
+- Przelacznik motywu: spec go zabrania, ale aplikacja desktopowa na systemie ustawionym na ciemny bedzie razic. Do przegadania, gdy beda wszystkie ekrany, nie na sucho.
+- Zachowanie na bardzo szerokim oknie: tekst jest ograniczony do 68 znakow, wiec przy 3440 px zostaje duzo pustego tynku. Spec nie mowi, co ma sie tam dziac.
+- Przelacznik jezyka: dzis tylko przez localStorage, docelowo w ustawieniach, czyli ekran 8.

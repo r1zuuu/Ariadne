@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { jwt, sign } from "hono/jwt";
 import * as z from "zod/v4";
@@ -42,6 +43,13 @@ const JWT_ALG = "HS256";
 // card is a handful of short fields. Without a cap the adapter buffers whatever
 // arrives into memory.
 const MAX_BODY_BYTES = 64 * 1024;
+// The app is a different origin from the API even on one machine: Next dev serves
+// 3001 and the packaged Tauri window serves a custom protocol. An allowlist rather
+// than "*", because these responses carry a bearer token and the set of callers is
+// known and small.
+const ALLOWED_ORIGINS = (
+  process.env.CORS_ORIGINS ?? "http://localhost:3001,http://tauri.localhost,tauri://localhost"
+).split(",");
 
 // Everything except /auth/* needs a token, listed one prefix at a time. A single
 // catch-all would have covered login too and locked everyone out of the one thing
@@ -143,6 +151,18 @@ export function createRestApp() {
   // Scoped to the REST prefixes, not "*": /mcp is added on this same app in
   // index.ts and hands its raw request stream to the SDK transport, which would
   // read an empty body if anything here consumed it first.
+  // Ahead of the token check, so a rejected preflight does not come back as a 401
+  // the browser then hides behind an opaque CORS error.
+  for (const prefix of ["/auth/*", ...PROTECTED_PREFIXES]) {
+    app.use(
+      prefix,
+      cors({
+        origin: ALLOWED_ORIGINS,
+        allowHeaders: ["Content-Type", "Authorization"],
+        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      }),
+    );
+  }
   for (const prefix of ["/auth/*", ...PROTECTED_PREFIXES]) app.use(prefix, limit);
   for (const prefix of PROTECTED_PREFIXES) app.use(prefix, jwt({ secret, alg: JWT_ALG }));
 
