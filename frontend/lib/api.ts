@@ -134,6 +134,8 @@ export type Node = {
   // in this window. The main screen only needs that distinction.
   source: { channel: "coder" | "app_chat" | "app_form"; session_id: string };
   createdAt: string;
+  /** Equal to createdAt until someone edits or settles the entry. */
+  updatedAt: string;
 };
 
 export const login = (email: string, password: string) =>
@@ -157,12 +159,21 @@ type ProjectCard = { opis: string; stack: string; etap: string; ograniczenia: st
 export const updateProject = (id: string, card: Partial<ProjectCard & { name: string }>) =>
   request<Project>(`/projects/${id}`, { method: "PUT", body: card });
 
-// The main screen asks for one more row than it shows, which is how it knows
-// whether to offer "show all" without also asking for a count.
-export const listNodes = (projectId: string, limit: number) =>
-  request<{ nodes: Node[]; nextCursor: string | null }>(
-    `/projects/${projectId}/nodes?limit=${limit}`,
+// `sort` picks the question being asked: "created" is newest thought first,
+// "updated" is what has been touched lately, which is a different list once
+// entries start getting corrected.
+export const listNodes = (
+  projectId: string,
+  limit: number,
+  options: { type?: Node["type"]; sort?: "created" | "updated" } = {},
+) => {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (options.type) query.set("type", options.type);
+  if (options.sort) query.set("sort", options.sort);
+  return request<{ nodes: Node[]; nextCursor: string | null }>(
+    `/projects/${projectId}/nodes?${query}`,
   );
+};
 
 export const mintToken = (label: string) =>
   request<{ id: string; label: string; token: string }>("/tokens", { method: "POST", body: { label } });

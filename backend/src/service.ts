@@ -283,6 +283,13 @@ export async function listNodes(input: {
   file?: string;
   cursor?: string;
   limit?: number;
+  /**
+   * 'created' is the reading order: newest thought first. 'updated' answers a
+   * different question, "what has been touched lately", which an entry written
+   * a month ago and corrected yesterday only appears in under this order.
+   * Paging stays on created, so this is a first-page-only sort.
+   */
+  sort?: "created" | "updated";
 }) {
   assertUuid(input.userId, "userId");
   assertUuid(input.projectId, "projectId");
@@ -319,20 +326,33 @@ export async function listNodes(input: {
   }
   if (input.cursor) filters.push(afterCursor(input.cursor));
 
+  // The cursor is built from createdAt, so paging and 'updated' cannot be mixed:
+  // rejected here rather than silently returning a window that skips rows.
+  if (input.cursor && input.sort === "updated") {
+    throw new ServiceError("validation", "sort=updated cannot be paged; it has no cursor");
+  }
+
   const rows = await db
     .select(NODE_COLUMNS)
     .from(nodes)
     .where(and(...filters))
     // id breaks ties: two nodes written in the same millisecond would otherwise
     // come back in an arbitrary order and the cursor could skip or repeat one.
-    .orderBy(desc(nodes.createdAt), desc(nodes.id))
+    .orderBy(
+      input.sort === "updated" ? desc(nodes.updatedAt) : desc(nodes.createdAt),
+      desc(nodes.id),
+    )
     .limit(limit + 1); // one extra row answers "is there a next page" without a count
 
   const page = rows.slice(0, limit);
   const last = page.at(-1);
+  // No cursor under sort=updated: it encodes createdAt, so handing one out here
+  // would produce a token that pages through a different ordering than the one
+  // it came from.
+  const pageable = input.sort !== "updated" && rows.length > limit && last;
   return {
     nodes: await attachAnchors(page),
-    nextCursor: rows.length > limit && last ? `${last.createdAt.toISOString()}|${last.id}` : null,
+    nextCursor: pageable && last ? `${last.createdAt.toISOString()}|${last.id}` : null,
   };
 }
 

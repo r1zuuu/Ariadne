@@ -9,8 +9,8 @@
     }
   },
   "auth": {
-    "title": "Wejście do bazy",
-    "titleRegister": "Nowe konto",
+    "title": "Zaloguj się",
+    "titleRegister": "Załóż konto",
     "label": {
       "address": "ADRES",
       "password": "HASŁO",
@@ -25,8 +25,8 @@
     "submit": "Wejdź",
     "submitRegister": "Załóż konto",
     "submitBusy": "Sprawdzam",
-    "switchToRegister": "Nie mam konta",
-    "switchToLogin": "Mam już konto",
+    "switchToRegister": "Zarejestruj się",
+    "switchToLogin": "Zaloguj się",
     "server": {
       "checking": "Sprawdzam serwer Ariadne na {url}",
       "up": "Serwer Ariadne na {url} odpowiada",
@@ -41,7 +41,12 @@
       "emailShape": "To nie wygląda na adres e-mail. Sprawdź go.",
       "passwordShort": "Hasło musi mieć co najmniej 8 znaków.",
       "passwordMismatch": "Oba hasła muszą być takie same."
-    }
+    },
+    "lead": "Wróć do kontekstu swoich projektów.",
+    "leadRegister": "Kilka minut i Ariadne zacznie pamiętać za Ciebie.",
+    "tagline": "Twoja nić przez kontekst projektu.",
+    "noAccount": "Nie masz jeszcze konta?",
+    "haveAccount": "Masz już konto?"
   },
   "onboarding": {
     "step": "krok {current} z {total}",
@@ -151,8 +156,9 @@
     "stale": "Dane z {at}. Serwer nie odpowiada, więc mogą być nieaktualne.",
     "staleUnknown": "ostatniego wejścia",
     "empty": {
-      "title": "Baza jest pusta",
-      "note": "Pierwsze wpisy pojawią się same, kiedy agent skończy sesję w podpiętym projekcie. Nie musisz nic robić."
+      "title": "Nie masz jeszcze projektu",
+      "note": "Projekt to miejsce, w którym Ariadne trzyma decyzje i ustalenia. Załóż pierwszy, żeby zacząć.",
+      "action": "Załóż projekt"
     },
     "status": {
       "confirmed": "Potwierdzony",
@@ -163,56 +169,121 @@
     "channel": {
       "agent": "agent",
       "you": "ty"
+    },
+    "askTitle": "Czego chcesz się dowiedzieć?",
+    "askLead": "Ariadne odpowiada na podstawie zapisanych decyzji, ustaleń i kontekstu tego projektu.",
+    "askPlaceholder": "Zapytaj o decyzje, ustalenia albo ograniczenia tego projektu...",
+    "askHint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
+    "ask": "Zapytaj",
+    "asking": "Szukam",
+    "suggest1": "Jakie decyzje podjęliśmy ostatnio?",
+    "suggest2": "Dlaczego wybraliśmy ten stack?",
+    "suggest3": "Jakie ograniczenia ma ten projekt?",
+    "suggest4": "Co zmieniło się ostatnio?",
+    "decisions": "Ostatnie ustalenia",
+    "decisionsEmpty": "Nie masz jeszcze zapisanych decyzji.",
+    "decisionsEmptyNote": "Pierwsze pojawią się same, kiedy agent skończy sesję. Możesz też opisać ustalenie sam w zakładce Dodaj kontekst.",
+    "activity": "Ostatnia aktywność",
+    "activityEmpty": "Nic się jeszcze nie działo.",
+    "activityEmptyNote": "Tu zobaczysz, co zostało dodane, zmienione i zatwierdzone.",
+    "activityAdded": "dodano",
+    "activityChanged": "zmieniono",
+    "waitingTitle": "Do zatwierdzenia",
+    "waitingEmpty": "Nic nie czeka.",
+    "waitingEmptyNote": "Kiedy agent albo rozmowa zaproponują zmianę, pojawi się tutaj.",
+    "waitingAll": "Zobacz wszystkie",
+    "about": "O projekcie",
+    "aboutStage": "Etap",
+    "aboutRepo": "Repozytorium",
+    "aboutStack": "Stack",
+    "aboutLimits": "Ograniczenia",
+    "aboutEmpty": "Karta projektu jest pusta.",
+    "aboutEdit": "Uzupełnij kartę",
+    "openProject": "Otwórz projekt",
+    "seen": "Ostatnio tu byłeś {at}",
+    "seenFirst": "Pierwsze wejście",
+    "loading": "Wczytuję...",
+    "pendingAction": {
+      "update": "Poprawka",
+      "delete": "Usunięcie"
     }
   },
   "nav": {
     "project": "Projekt",
     "home": "Przegląd",
-    "assistant": "Asystent",
-    "database": "Baza",
+    "assistant": "Zapytaj",
+    "database": "Dodaj kontekst",
     "pending": "Do zatwierdzenia",
     "signOut": "Wyloguj się",
-    "needsProject": "Najpierw wybierz projekt"
+    "needsProject": "Najpierw wybierz projekt",
+    "noProject": "Brak projektu"
   },
   "assistant": {
-    "title": "Zapytaj asystenta",
+    "title": "Zapytaj Ariadne o swój projekt",
     "empty": "Zapytaj o przeszłość projektu. Odpowiedź powstaje wyłącznie z zapisanych wpisów, a pod nią zobaczysz, z których.",
-    "placeholder": "Dlaczego zdecydowaliśmy się na...",
+    "placeholder": "O co chcesz zapytać?",
     "ask": "Zapytaj",
     "asking": "Szukam",
     "sources": "Na podstawie",
-    "nothingRecorded": "Nic na ten temat nie zostało zapisane."
+    "nothingRecorded": "Nic na ten temat nie zostało jeszcze zapisane.",
+    "lead": "Ariadne odpowiada na podstawie zapisanych decyzji, ustaleń i kontekstu tego projektu.",
+    "hint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
+    "sourcesCount": "{count, plural, one {Na podstawie # wpisu} few {Na podstawie # wpisów} many {Na podstawie # wpisów} other {Na podstawie # wpisu}}",
+    "nothingRecordedNote": "Ariadne odpowiada tylko z zapisanego kontekstu, więc nie zgaduje. Możesz dodać tę informację w zakładce Dodaj kontekst.",
+    "newQuestion": "Nowe pytanie",
+    "suggest1": "Jakie decyzje podjęliśmy ostatnio?",
+    "suggest2": "Dlaczego wybraliśmy ten stack?",
+    "suggest3": "Jakie ograniczenia ma ten projekt?"
   },
   "database": {
-    "title": "Rozmawiaj z bazą",
+    "title": "Dodaj informację do kontekstu",
     "note": "Napisz, co się zmieniło. Nic nie zostanie zapisane od razu: dostaniesz propozycje do zatwierdzenia.",
-    "placeholder": "Odwołujemy decyzję o...",
-    "send": "Wyślij",
-    "sending": "Myślę",
-    "thinking": "Czytam wpisy...",
+    "placeholder": "Np. Zmieniliśmy bibliotekę formularzy z X na Y, bo...",
+    "send": "Przygotuj wpis",
+    "sending": "Przygotowuję",
+    "thinking": "Czytam kontekst projektu...",
     "nothingProposed": "Nic tu nie wymaga zmiany.",
     "queuedNote": "Propozycje czekają.",
-    "queuedLink": "Przejrzyj je",
+    "queuedLink": "Przejrzyj propozycje",
     "action": {
       "update": "Poprawka wpisu",
       "delete": "Do usunięcia",
       "create": "Nowy wpis"
-    }
+    },
+    "lead": "Opisz decyzję, zmianę lub ustalenie. Ariadne przygotuje propozycję wpisu do zatwierdzenia, nic nie zostanie zapisane automatycznie.",
+    "hint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
+    "suggest1": "Zmieniliśmy bibliotekę formularzy z X na Y.",
+    "suggest2": "Nie używamy backendu, aplikacja zostaje statyczna.",
+    "suggest3": "Case studies odkładamy na później.",
+    "nothingProposedNote": "Ariadne nie znalazła w tej wypowiedzi nic, co trzeba zapisać albo poprawić.",
+    "willSave": "Zostanie zapisane",
+    "awaiting": "Czeka na zatwierdzenie",
+    "toast": "Propozycja została utworzona i czeka na zatwierdzenie."
   },
   "pending": {
     "title": "Do zatwierdzenia",
     "loading": "Wczytuję...",
-    "empty": "Nic nie czeka. Ten ekran możesz ignorować, nic tu nie blokuje pracy.",
+    "empty": "Nic nie czeka na decyzję.",
     "queued": "Proponowane zmiany",
     "entries": "Wpisy do przejrzenia",
     "action": {
-      "update": "Poprawka",
-      "delete": "Usunięcie"
+      "update": "Poprawka wpisu",
+      "delete": "Usunięcie wpisu"
     },
     "approve": "Zatwierdź",
     "reject": "Odrzuć",
     "confirm": "Potwierdź",
-    "archive": "Do archiwum"
+    "archive": "Do archiwum",
+    "lead": "Nic nie trafia do pamięci projektu bez Twojej zgody. Ten ekran możesz zostawić na później.",
+    "emptyNote": "Kiedy agent albo rozmowa zaproponują zmianę, pojawi się tutaj.",
+    "count": "{count, plural, one {# oczekuje} few {# oczekują} many {# oczekuje} other {# oczekuje}}",
+    "before": "Teraz",
+    "after": "Po zmianie",
+    "toastApproved": "Zmiana została zastosowana.",
+    "toastRejected": "Propozycja została odrzucona.",
+    "toastConfirmed": "Wpis dodano do kontekstu projektu.",
+    "toastArchived": "Wpis trafił do archiwum.",
+    "toastFailed": "Nie udało się. Spróbuj jeszcze raz."
   },
   "project": {
     "title": "Projekt",
@@ -231,12 +302,39 @@
       "utrzymanie": "Utrzymanie"
     },
     "repoFixed": "Nie do zmiany: po tym adresie agent rozpoznaje projekt.",
-    "save": "Zapisz kartę",
+    "save": "Zapisz zmiany",
     "saving": "Zapisuję",
     "saved": "Zapisane",
     "graph": "Graf wpisów",
     "graphEmpty": "Graf pojawi się, gdy będą wpisy.",
     "graphHint": "Kliknij węzeł, żeby zobaczyć treść wpisu.",
-    "graphLabel": "Graf: {nodes} wpisów, {edges} połączeń"
+    "graphLabel": "Graf: {nodes} wpisów, {edges} połączeń",
+    "edit": "Edytuj projekt",
+    "cancel": "Anuluj",
+    "about": "O projekcie",
+    "aboutEmpty": "Brak opisu. Napisz w jednym zdaniu, po co jest ten projekt.",
+    "tech": "Technologie",
+    "techEmpty": "Nie wpisano jeszcze stacku.",
+    "repo": "Repozytorium",
+    "limits": "Ograniczenia i ważne zasady",
+    "limitsNote": "To czyta agent przed każdą sesją.",
+    "limitsEmpty": "Brak ograniczeń. Tu wpisz zasady, których agent ma się trzymać.",
+    "toastSaved": "Zmiany w projekcie zostały zapisane.",
+    "graphLead": "Linia ciągła: wspólny plik. Linia przerywana: podobna treść.",
+    "graphEmptyNote": "Każdy zapisany wpis to punkt, a połączenia liczą się same."
+  },
+  "entry": {
+    "type": {
+      "decision": "Decyzja",
+      "session_summary": "Podsumowanie sesji",
+      "note": "Notatka"
+    },
+    "showMore": "Pokaż więcej",
+    "showLess": "Zwiń",
+    "by": {
+      "coder": "agent",
+      "app_chat": "rozmowa",
+      "app_form": "formularz"
+    }
   }
 }

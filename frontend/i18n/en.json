@@ -9,8 +9,8 @@
     }
   },
   "auth": {
-    "title": "Entry to the base",
-    "titleRegister": "New account",
+    "title": "Sign in",
+    "titleRegister": "Create an account",
     "label": {
       "address": "ADDRESS",
       "password": "PASSWORD",
@@ -25,8 +25,8 @@
     "submit": "Enter",
     "submitRegister": "Create account",
     "submitBusy": "Checking",
-    "switchToRegister": "I do not have an account",
-    "switchToLogin": "I already have an account",
+    "switchToRegister": "Sign up",
+    "switchToLogin": "Sign in",
     "server": {
       "checking": "Checking the Ariadne server at {url}",
       "up": "The Ariadne server at {url} is responding",
@@ -41,7 +41,12 @@
       "emailShape": "That does not look like an email address. Check it.",
       "passwordShort": "The password needs at least 8 characters.",
       "passwordMismatch": "Both passwords have to match."
-    }
+    },
+    "lead": "Pick your projects back up where you left them.",
+    "leadRegister": "A few minutes and Ariadne starts remembering for you.",
+    "tagline": "Your thread through the project's context.",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?"
   },
   "onboarding": {
     "step": "step {current} of {total}",
@@ -151,8 +156,9 @@
     "stale": "Data from {at}. The server is not responding, so it may be out of date.",
     "staleUnknown": "your last visit",
     "empty": {
-      "title": "The base is empty",
-      "note": "The first entries arrive on their own once the agent finishes a session in a connected project. There is nothing for you to do."
+      "title": "No project yet",
+      "note": "A project is where Ariadne keeps decisions and agreements. Create your first one to start.",
+      "action": "Create a project"
     },
     "status": {
       "confirmed": "Confirmed",
@@ -163,56 +169,121 @@
     "channel": {
       "agent": "agent",
       "you": "you"
+    },
+    "askTitle": "What do you want to know?",
+    "askLead": "Ariadne answers from the decisions, agreements and context recorded for this project.",
+    "askPlaceholder": "Ask about decisions, agreements or constraints in this project...",
+    "askHint": "Enter sends, Shift + Enter starts a new line",
+    "ask": "Ask",
+    "asking": "Looking",
+    "suggest1": "What did we decide recently?",
+    "suggest2": "Why did we choose this stack?",
+    "suggest3": "What constraints does this project have?",
+    "suggest4": "What changed recently?",
+    "decisions": "Recent decisions",
+    "decisionsEmpty": "No decisions recorded yet.",
+    "decisionsEmptyNote": "The first ones arrive on their own once an agent finishes a session. You can also write one yourself under Add context.",
+    "activity": "Recent activity",
+    "activityEmpty": "Nothing has happened yet.",
+    "activityEmptyNote": "This is where you will see what was added, changed and approved.",
+    "activityAdded": "added",
+    "activityChanged": "changed",
+    "waitingTitle": "To approve",
+    "waitingEmpty": "Nothing is waiting.",
+    "waitingEmptyNote": "When an agent or a conversation proposes a change, it shows up here.",
+    "waitingAll": "See all",
+    "about": "About the project",
+    "aboutStage": "Stage",
+    "aboutRepo": "Repository",
+    "aboutStack": "Stack",
+    "aboutLimits": "Constraints",
+    "aboutEmpty": "The project card is empty.",
+    "aboutEdit": "Fill in the card",
+    "openProject": "Open project",
+    "seen": "You were last here {at}",
+    "seenFirst": "First visit",
+    "loading": "Loading...",
+    "pendingAction": {
+      "update": "Correction",
+      "delete": "Deletion"
     }
   },
   "nav": {
     "project": "Project",
     "home": "Overview",
-    "assistant": "Assistant",
-    "database": "Base",
+    "assistant": "Ask",
+    "database": "Add context",
     "pending": "To approve",
     "signOut": "Sign out",
-    "needsProject": "Choose a project first"
+    "needsProject": "Choose a project first",
+    "noProject": "No project"
   },
   "assistant": {
-    "title": "Ask the assistant",
+    "title": "Ask Ariadne about your project",
     "empty": "Ask about the project's past. The answer is built only from recorded entries, and you will see which ones underneath it.",
-    "placeholder": "Why did we decide to...",
+    "placeholder": "What would you like to ask?",
     "ask": "Ask",
     "asking": "Looking",
     "sources": "Based on",
-    "nothingRecorded": "Nothing has been recorded about this."
+    "nothingRecorded": "Nothing has been recorded about this yet.",
+    "lead": "Ariadne answers from the decisions, agreements and context recorded for this project.",
+    "hint": "Enter sends, Shift + Enter starts a new line",
+    "sourcesCount": "{count, plural, one {Based on # entry} other {Based on # entries}}",
+    "nothingRecordedNote": "Ariadne only answers from recorded context, so it does not guess. You can add this under Add context.",
+    "newQuestion": "New question",
+    "suggest1": "What did we decide recently?",
+    "suggest2": "Why did we choose this stack?",
+    "suggest3": "What constraints does this project have?"
   },
   "database": {
-    "title": "Talk to the base",
+    "title": "Add information to the context",
     "note": "Write what changed. Nothing is saved straight away: you get proposals to approve.",
-    "placeholder": "We are reversing the decision to...",
-    "send": "Send",
-    "sending": "Thinking",
-    "thinking": "Reading entries...",
+    "placeholder": "E.g. We switched the form library from X to Y, because...",
+    "send": "Prepare entry",
+    "sending": "Preparing",
+    "thinking": "Reading the project's context...",
     "nothingProposed": "Nothing here needs changing.",
     "queuedNote": "Proposals are waiting.",
-    "queuedLink": "Review them",
+    "queuedLink": "Review proposals",
     "action": {
       "update": "Entry correction",
       "delete": "To delete",
       "create": "New entry"
-    }
+    },
+    "lead": "Describe a decision, a change or an agreement. Ariadne prepares a proposed entry for approval; nothing is saved automatically.",
+    "hint": "Enter sends, Shift + Enter starts a new line",
+    "suggest1": "We switched the form library from X to Y.",
+    "suggest2": "We are not using a backend; the app stays static.",
+    "suggest3": "Case studies are postponed.",
+    "nothingProposedNote": "Ariadne found nothing in this that needs recording or correcting.",
+    "willSave": "Will be saved",
+    "awaiting": "Waiting for approval",
+    "toast": "The proposal was created and is waiting for approval."
   },
   "pending": {
     "title": "To approve",
     "loading": "Loading...",
-    "empty": "Nothing is waiting. You can ignore this screen; nothing here blocks your work.",
+    "empty": "Nothing is waiting for a decision.",
     "queued": "Proposed changes",
     "entries": "Entries to review",
     "action": {
-      "update": "Correction",
-      "delete": "Deletion"
+      "update": "Entry correction",
+      "delete": "Entry deletion"
     },
     "approve": "Approve",
     "reject": "Reject",
     "confirm": "Confirm",
-    "archive": "Archive"
+    "archive": "Archive",
+    "lead": "Nothing enters the project's memory without your say-so. You can leave this screen for later.",
+    "emptyNote": "When an agent or a conversation proposes a change, it shows up here.",
+    "count": "{count, plural, one {# waiting} other {# waiting}}",
+    "before": "Now",
+    "after": "After the change",
+    "toastApproved": "The change has been applied.",
+    "toastRejected": "The proposal was rejected.",
+    "toastConfirmed": "Entry added to the project context.",
+    "toastArchived": "The entry was archived.",
+    "toastFailed": "That did not work. Try again."
   },
   "project": {
     "title": "Project",
@@ -231,12 +302,39 @@
       "utrzymanie": "Maintenance"
     },
     "repoFixed": "Fixed: this is the address an agent recognises the project by.",
-    "save": "Save card",
+    "save": "Save changes",
     "saving": "Saving",
     "saved": "Saved",
     "graph": "Entry graph",
     "graphEmpty": "The graph appears once there are entries.",
     "graphHint": "Click a node to read its entry.",
-    "graphLabel": "Graph: {nodes} entries, {edges} links"
+    "graphLabel": "Graph: {nodes} entries, {edges} links",
+    "edit": "Edit project",
+    "cancel": "Cancel",
+    "about": "About the project",
+    "aboutEmpty": "No description. Say in one sentence what this project is for.",
+    "tech": "Technologies",
+    "techEmpty": "No stack recorded yet.",
+    "repo": "Repository",
+    "limits": "Constraints and rules",
+    "limitsNote": "The agent reads this before every session.",
+    "limitsEmpty": "No constraints. Put the rules the agent should follow here.",
+    "toastSaved": "Project changes saved.",
+    "graphLead": "Solid line: a shared file. Dashed line: similar content.",
+    "graphEmptyNote": "Every recorded entry is a point, and the links compute themselves."
+  },
+  "entry": {
+    "type": {
+      "decision": "Decision",
+      "session_summary": "Session summary",
+      "note": "Note"
+    },
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "by": {
+      "coder": "agent",
+      "app_chat": "conversation",
+      "app_form": "form"
+    }
   }
 }

@@ -4,19 +4,25 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell, readActiveProject } from "@/components/app-shell";
-import { Button } from "@/components/ui";
+import { Composer } from "@/components/composer";
+import { useToast } from "@/components/toast";
+import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { chatEdit, type Proposal } from "@/lib/api";
 
-// Screen 06. Talk to the base and it proposes changes instead of making them.
-// Nothing here writes: every proposal lands in the review queue, which is the
-// same queue a coder's proposals land in, and screen 07 is where they are
-// settled. The link at the bottom of a reply is not a courtesy, it is the only
-// place the work finishes.
+// Screen 06. Where knowledge goes in, as opposed to the assistant, where it
+// comes out. That distinction was the screen's whole problem: it was called
+// "talk to the base" and the placeholder was a sentence fragment, so nobody
+// could tell the two apart.
+//
+// Nothing here writes. Every proposal goes to the review queue, and the card
+// says so in words next to a link to the queue.
 
 type Turn = { message: string; reply?: string; queued?: Proposal[]; error?: string };
 
 export default function DatabaseScreen() {
   const t = useTranslations("database");
+  const toast = useToast();
+
   const [projectId, setProjectId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState("");
   const [message, setMessage] = useState("");
@@ -26,16 +32,12 @@ export default function DatabaseScreen() {
   useEffect(() => {
     setProjectId(readActiveProject());
     // One conversation is one session, so entries created from it group the way
-    // a coder's session does. Generated here because the server has no
-    // conversation table to look one up in.
+    // a coder's session does.
     setSessionId(crypto.randomUUID());
   }, []);
 
-  const send = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const said = message.trim();
-    if (!said || !projectId || busy) return;
-
+  const send = async (said: string) => {
+    if (!projectId) return;
     setMessage("");
     setBusy(true);
     const index = turns.length;
@@ -47,6 +49,7 @@ export default function DatabaseScreen() {
     try {
       const answer = await chatEdit(projectId, said, sessionId);
       patch({ reply: answer.reply, queued: answer.queued });
+      if (answer.queued.length) toast(t("toast"));
     } catch (caught) {
       patch({ error: caught instanceof Error ? caught.message : String(caught) });
     } finally {
@@ -57,75 +60,84 @@ export default function DatabaseScreen() {
   return (
     <AppShell>
       <div className="mx-auto max-w-[760px]">
-        <h1 className="text-section">{t("title")}</h1>
-        <p className="max-w-[68ch] pt-3 text-body text-ink-2">{t("note")}</p>
+        <PageHeader title={t("title")} lead={t("lead")} />
 
-        <div className="pt-7">
-          <ul className="flex flex-col gap-9">
-            {turns.map((turn, i) => (
-              <li key={i}>
-                <p className="text-lead text-ink">{turn.message}</p>
-                {turn.error ? (
-                  <p className="pt-4 text-body text-iron">{turn.error}</p>
-                ) : turn.reply ? (
-                  <>
-                    <p className="pt-4 text-body text-ink">{turn.reply}</p>
-                    {turn.queued?.length ? (
-                      <Queued proposals={turn.queued} />
-                    ) : (
-                      <p className="pt-3 text-small text-ink-3">{t("nothingProposed")}</p>
-                    )}
-                  </>
-                ) : (
-                  <p className="pt-4 text-body text-ink-3">{t("thinking")}</p>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <form
+        <Composer
+          value={message}
+          onChange={setMessage}
           onSubmit={send}
-          className="sticky bottom-0 -mx-8 -mb-9 mt-7 flex items-end gap-4 border-t border-hairline bg-plaster px-8 py-5"
-        >
-          <input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={t("placeholder")}
-            disabled={!projectId}
-            className="flex-1 border-b border-edge bg-transparent pb-2 text-body text-ink outline-none transition-colors placeholder:text-ink-3/55 focus:border-blue"
-          />
-          <Button type="submit" disabled={busy || !message.trim() || !projectId}>
-            {busy ? t("sending") : t("send")}
-          </Button>
-        </form>
+          placeholder={t("placeholder")}
+          submitLabel={t("send")}
+          busyLabel={t("sending")}
+          hint={t("hint")}
+          busy={busy}
+          disabled={!projectId}
+          rows={4}
+          autoFocus
+          suggestions={turns.length ? [] : [t("suggest1"), t("suggest2"), t("suggest3")]}
+        />
+
+        <ul className="flex flex-col gap-9 pt-10">
+          {turns.map((turn, i) => (
+            <li key={i}>
+              <p className="rounded-card bg-plaster-sunk px-6 py-4 text-body font-medium text-ink">
+                {turn.message}
+              </p>
+
+              {turn.error ? (
+                <p className="pt-4 text-body text-iron">{turn.error}</p>
+              ) : turn.reply ? (
+                <>
+                  <p className="pt-4 text-body leading-8 text-ink">{turn.reply}</p>
+                  {turn.queued?.length ? (
+                    <Queued proposals={turn.queued} />
+                  ) : (
+                    <div className="pt-4">
+                      <EmptyState title={t("nothingProposed")} note={t("nothingProposedNote")} />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="pt-4 text-body text-ink-3">{t("thinking")}</p>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
     </AppShell>
   );
 }
 
+// What will be saved, exactly as it will be saved. This is the screen's promise:
+// you see the text before it becomes part of the project's memory.
 function Queued({ proposals }: { proposals: Proposal[] }) {
   const t = useTranslations("database");
   return (
-    <div className="mt-4 border-l-2 border-ochre pl-5">
+    <div className="pt-4">
+      <p className="pb-2 font-data text-label uppercase tracking-[0.12em] text-ink-3">
+        {t("willSave")}
+      </p>
       <ul className="flex flex-col gap-3">
         {proposals.map((proposal) => (
           <li key={`${proposal.action}-${proposal.nodeId}`}>
-            <p className="font-data text-label uppercase tracking-[0.12em] text-ochre">
-              {t(`action.${proposal.action}`)}
-            </p>
-            <p className="line-clamp-3 pt-1 text-small text-ink-2">{proposal.content}</p>
+            <Card className="border-ochre/30 p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone="ochre">{t(`action.${proposal.action}`)}</Badge>
+                <Badge tone="neutral">{t("awaiting")}</Badge>
+              </div>
+              <p className="whitespace-pre-wrap pt-3 text-small leading-6 text-ink">
+                {proposal.content}
+              </p>
+            </Card>
           </li>
         ))}
       </ul>
-      {/* Proposals are inert until settled, so the screen says where that
-          happens rather than leaving them looking applied. */}
-      <p className="pt-4 text-small text-ink-3">
-        {t("queuedNote")}{" "}
-        <Link href="/pending" className="text-blue underline underline-offset-2">
-          {t("queuedLink")}
-        </Link>
-      </p>
+      <Link
+        href="/pending"
+        className="mt-3 inline-block text-small text-blue underline underline-offset-2"
+      >
+        {t("queuedLink")}
+      </Link>
     </div>
   );
 }

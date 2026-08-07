@@ -2,9 +2,10 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
-import { AppShell } from "@/components/app-shell";
-import { StatusMark } from "@/components/status-mark";
-import { Button } from "@/components/ui";
+import { AppShell, queueChanged } from "@/components/app-shell";
+import { EntryCard, headline } from "@/components/entry-card";
+import { useToast } from "@/components/toast";
+import { Badge, Button, Card, EmptyState, PageHeader, SectionHeader } from "@/components/ui";
 import {
   approvePending,
   archiveNode,
@@ -19,16 +20,20 @@ import {
 // not one list: a queued action wants yes or no on a change someone proposed,
 // and an unsettled entry wants yes or no on whether it is true.
 //
-// The screen is ignorable by design. Nothing blocks on it, which is why there
-// is no count shouting at the top and no ordering by urgency.
+// Grouped by project, because the queue is account-wide and a card with no
+// project on it is a card you cannot act on. The group heading carries the name
+// and the count; the cards below it then do not have to repeat either.
+//
+// The screen is ignorable by design and says so under the title.
 
 export default function PendingScreen() {
   const t = useTranslations("pending");
-  const tHome = useTranslations("home");
+  const toast = useToast();
 
-  const [feed, setFeed] = useState<{ pendingActions: PendingAction[]; nodesToReview: ReviewNode[] } | null>(
-    null,
-  );
+  const [feed, setFeed] = useState<{
+    pendingActions: PendingAction[];
+    nodesToReview: ReviewNode[];
+  } | null>(null);
   const [working, setWorking] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -39,117 +44,200 @@ export default function PendingScreen() {
 
   useEffect(load, [load]);
 
-  // Every button on this screen is the same shape: run one call, then refetch.
-  // Refetching rather than patching state locally, because approving an update
-  // can change a node that the second list is also showing.
-  const act = async (key: string, run: () => Promise<void>) => {
+  // Every button here is the same shape: run one call, say what happened,
+  // refetch. Refetching rather than patching locally, because approving an
+  // update changes a node the second list may also be showing.
+  const act = async (key: string, run: () => Promise<void>, message: string) => {
     setWorking(key);
     try {
       await run();
+      toast(message);
       load();
+      // The column's counter lives outside this tree and would otherwise keep
+      // showing the number from page load.
+      queueChanged();
+    } catch {
+      toast(t("toastFailed"), "error");
     } finally {
       setWorking(null);
     }
   };
 
+  const groups = feed ? groupByProject(feed) : [];
   const empty = feed && !feed.pendingActions.length && !feed.nodesToReview.length;
 
   return (
     <AppShell>
       <div className="mx-auto max-w-[860px]">
-        <h1 className="text-section">{t("title")}</h1>
+        <PageHeader title={t("title")} lead={t("lead")} />
 
         {feed === null ? (
-          <p className="pt-6 text-body text-ink-3">{t("loading")}</p>
+          <p className="text-body text-ink-3">{t("loading")}</p>
         ) : empty ? (
-          <p className="max-w-[68ch] pt-5 text-body text-ink-2">{t("empty")}</p>
+          <EmptyState title={t("empty")} note={t("emptyNote")} />
         ) : (
-          <>
-            {feed.pendingActions.length ? (
-              <section className="pt-7">
-                <h2 className="text-lead">{t("queued")}</h2>
-                <ul className="mt-5 border-t border-hairline">
-                  {feed.pendingActions.map((action) => (
-                    <li key={action.id} className="border-b border-hairline py-5">
-                      <p className="font-data text-label uppercase tracking-[0.12em] text-ochre">
-                        {t(`action.${action.action}`)} · {action.projectName} · {action.requestedBy}
-                      </p>
+          <div className="flex flex-col gap-10">
+            {groups.map((group) => (
+              <section key={group.project}>
+                <div className="flex items-baseline gap-3 pb-4">
+                  <h2 className="text-lead text-ink">{group.project}</h2>
+                  <Badge tone="ochre">
+                    {t("count", { count: group.actions.length + group.nodes.length })}
+                  </Badge>
+                </div>
 
-                      {/* Old above new, both in full. A change to a recorded
-                          decision is read, not skimmed, so nothing is collapsed
-                          behind a toggle. */}
-                      <p className="whitespace-pre-wrap pt-3 text-small text-ink-3 line-through decoration-iron/40">
-                        {action.nodeContent}
-                      </p>
-                      {action.payload?.content ? (
-                        <p className="whitespace-pre-wrap pt-3 text-body text-ink">
-                          {action.payload.content}
-                        </p>
-                      ) : null}
+                {group.actions.length ? (
+                  <div className="pb-6">
+                    <SectionHeader title={t("queued")} />
+                    <ul className="flex flex-col gap-3">
+                      {group.actions.map((action) => (
+                        <li key={action.id}>
+                          <ActionCard
+                            action={action}
+                            busy={working === action.id}
+                            onApprove={() =>
+                              void act(action.id, () => approvePending(action.id), t("toastApproved"))
+                            }
+                            onReject={() =>
+                              void act(action.id, () => rejectPending(action.id), t("toastRejected"))
+                            }
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
 
-                      <div className="flex gap-4 pt-4">
-                        <Button
-                          disabled={working === action.id}
-                          onClick={() => void act(action.id, () => approvePending(action.id))}
-                        >
-                          {t("approve")}
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          disabled={working === action.id}
-                          onClick={() => void act(action.id, () => rejectPending(action.id))}
-                        >
-                          {t("reject")}
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                {group.nodes.length ? (
+                  <div>
+                    <SectionHeader title={t("entries")} />
+                    <ul className="flex flex-col gap-3">
+                      {group.nodes.map((node) => (
+                        <li key={node.id}>
+                          <EntryCard
+                            entry={node}
+                            meta={`${new Date(node.createdAt).toISOString().slice(0, 10)} · ${node.projectName}`}
+                            actions={
+                              <>
+                                {/* A contradicted entry is already settled: it
+                                    was overruled by another entry, and
+                                    confirming it would put two contradicting
+                                    entries on equal footing. */}
+                                {node.status === "proposed" ? (
+                                  <Button
+                                    loading={working === node.id}
+                                    onClick={() =>
+                                      void act(node.id, () => confirmNode(node.id), t("toastConfirmed"))
+                                    }
+                                  >
+                                    {t("confirm")}
+                                  </Button>
+                                ) : null}
+                                <Button
+                                  variant="secondary"
+                                  loading={working === node.id}
+                                  onClick={() =>
+                                    void act(node.id, () => archiveNode(node.id), t("toastArchived"))
+                                  }
+                                >
+                                  {t("archive")}
+                                </Button>
+                              </>
+                            }
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </section>
-            ) : null}
-
-            {feed.nodesToReview.length ? (
-              <section className="pt-9">
-                <h2 className="text-lead">{t("entries")}</h2>
-                <ul className="mt-5 border-t border-hairline">
-                  {feed.nodesToReview.map((node) => (
-                    <li key={node.id} className="border-b border-hairline py-5">
-                      <div className="flex items-center gap-3">
-                        <StatusMark status={node.status} label={tHome(`status.${node.status}`)} />
-                        <span className="font-data text-label uppercase tracking-[0.12em] text-ink-3">
-                          {tHome(`status.${node.status}`)} · {node.projectName}
-                        </span>
-                      </div>
-                      <p className="whitespace-pre-wrap pt-3 text-body text-ink">{node.content}</p>
-
-                      <div className="flex gap-4 pt-4">
-                        {/* A contradicted entry is already settled: it was
-                            overruled by another entry, and confirming it would
-                            put two contradicting entries on equal footing. */}
-                        {node.status === "proposed" ? (
-                          <Button
-                            disabled={working === node.id}
-                            onClick={() => void act(node.id, () => confirmNode(node.id))}
-                          >
-                            {t("confirm")}
-                          </Button>
-                        ) : null}
-                        <Button
-                          variant="secondary"
-                          disabled={working === node.id}
-                          onClick={() => void act(node.id, () => archiveNode(node.id))}
-                        >
-                          {t("archive")}
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
-          </>
+            ))}
+          </div>
         )}
       </div>
     </AppShell>
   );
+}
+
+function ActionCard({
+  action,
+  busy,
+  onApprove,
+  onReject,
+}: {
+  action: PendingAction;
+  busy: boolean;
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  const t = useTranslations("pending");
+  const tEntry = useTranslations("entry");
+
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone={action.action === "delete" ? "iron" : "ochre"}>
+          {t(`action.${action.action}`)}
+        </Badge>
+        <span className="font-data text-data text-ink-3">
+          {new Date(action.createdAt).toISOString().slice(0, 10)} ·{" "}
+          {tEntry(`by.${action.requestedBy === "coder" ? "coder" : "app_chat"}`)}
+        </span>
+      </div>
+
+      <p className="pt-3 text-body font-medium leading-7 text-ink">
+        {headline(action.payload?.content ?? action.nodeContent)}
+      </p>
+
+      {/* Side by side, both labelled. Struck-through text above replacement text
+          reads as one paragraph with a line through half of it; two labelled
+          columns read as a change. */}
+      {action.payload?.content ? (
+        <div className="grid gap-3 pt-4 sm:grid-cols-2">
+          <div className="rounded-control bg-plaster-sunk/70 p-4">
+            <p className="pb-2 font-data text-label uppercase tracking-[0.12em] text-ink-3">
+              {t("before")}
+            </p>
+            <p className="line-clamp-6 whitespace-pre-wrap text-small leading-6 text-ink-3">
+              {action.nodeContent}
+            </p>
+          </div>
+          <div className="rounded-control border border-blue/20 bg-blue/5 p-4">
+            <p className="pb-2 font-data text-label uppercase tracking-[0.12em] text-blue">
+              {t("after")}
+            </p>
+            <p className="line-clamp-6 whitespace-pre-wrap text-small leading-6 text-ink">
+              {action.payload.content}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <p className="line-clamp-4 whitespace-pre-wrap pt-3 text-small leading-6 text-ink-2">
+          {action.nodeContent}
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-3 pt-4">
+        <Button loading={busy} onClick={onApprove}>
+          {t("approve")}
+        </Button>
+        <Button variant="secondary" loading={busy} onClick={onReject}>
+          {t("reject")}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+// The feed arrives as two flat account-wide lists; the screen needs them per
+// project. Order follows first appearance, which is newest-first from the API.
+function groupByProject(feed: { pendingActions: PendingAction[]; nodesToReview: ReviewNode[] }) {
+  const groups = new Map<string, { project: string; actions: PendingAction[]; nodes: ReviewNode[] }>();
+  const of = (name: string) => {
+    if (!groups.has(name)) groups.set(name, { project: name, actions: [], nodes: [] });
+    return groups.get(name)!;
+  };
+  for (const action of feed.pendingActions) of(action.projectName).actions.push(action);
+  for (const node of feed.nodesToReview) of(node.projectName).nodes.push(node);
+  return [...groups.values()];
 }

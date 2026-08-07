@@ -4,7 +4,18 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { AppShell, readActiveProject } from "@/components/app-shell";
 import { NodeGraph } from "@/components/node-graph";
-import { Button, Field } from "@/components/ui";
+import { useToast } from "@/components/toast";
+import {
+  Badge,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Input,
+  PageHeader,
+  SectionHeader,
+  Textarea,
+} from "@/components/ui";
 import {
   getGraph,
   listProjects,
@@ -14,58 +25,170 @@ import {
   type Project,
 } from "@/lib/api";
 
-// Screen 04. The project card, editable, and the graph of its entries.
+// Screen 04. The project as a profile to read, not a form to fill in.
 //
-// The card is edited in place rather than behind a modal: it is the one piece
-// of text in the product a person writes about their own project, and putting
-// it behind a button made it feel like configuration.
+// It used to open as six inputs, which gave every field the same weight and made
+// the card look like configuration. Reading is the common case: you come here to
+// check what the agent is told about this project. Editing is a mode you enter.
 
 export default function ProjectScreen() {
   const t = useTranslations("project");
+  const toast = useToast();
 
   const [project, setProject] = useState<Project | null>(null);
-  const [draft, setDraft] = useState<Partial<Project>>({});
   const [graph, setGraph] = useState<{ nodes: Node[]; edges: GraphEdge[] } | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     const id = readActiveProject();
     if (!id) return;
     void listProjects()
-      .then((rows) => {
-        const found = rows.find((p) => p.id === id) ?? null;
-        setProject(found);
-        if (found) setDraft(found);
-      })
+      .then((rows) => setProject(rows.find((p) => p.id === id) ?? null))
       .catch(() => {});
     void getGraph(id)
       .then(setGraph)
       .catch(() => setGraph({ nodes: [], edges: [] }));
   }, []);
 
-  const dirty =
-    project !== null &&
-    (["name", "opis", "stack", "etap", "ograniczenia"] as const).some(
-      (key) => (draft[key] ?? "") !== (project[key] ?? ""),
-    );
+  return (
+    <AppShell>
+      <div className="mx-auto max-w-[900px]">
+        {project === null ? (
+          <p className="text-body text-ink-3">{t("loading")}</p>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-start justify-between gap-5 pb-8">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-section text-ink">{project.name}</h1>
+                  <Badge tone="blue">{t(`etap.${project.etap}`)}</Badge>
+                </div>
+                <p className="break-all pt-2 font-data text-data text-ink-2">{project.repoRef}</p>
+              </div>
+              {!editing ? (
+                <Button variant="secondary" onClick={() => setEditing(true)}>
+                  {t("edit")}
+                </Button>
+              ) : null}
+            </div>
+
+            {editing ? (
+              <EditCard
+                project={project}
+                onCancel={() => setEditing(false)}
+                onSaved={(updated) => {
+                  setProject(updated);
+                  setEditing(false);
+                  toast(t("toastSaved"));
+                }}
+              />
+            ) : (
+              <ReadView project={project} />
+            )}
+
+            <section className="pt-10">
+              <SectionHeader title={t("graph")} />
+              <p className="pb-4 text-small text-ink-2">{t("graphLead")}</p>
+              {graph === null ? (
+                <p className="text-body text-ink-3">{t("loading")}</p>
+              ) : graph.nodes.length === 0 ? (
+                <EmptyState title={t("graphEmpty")} note={t("graphEmptyNote")} />
+              ) : (
+                <Card className="p-5">
+                  <NodeGraph nodes={graph.nodes} edges={graph.edges} />
+                </Card>
+              )}
+            </section>
+          </>
+        )}
+      </div>
+    </AppShell>
+  );
+}
+
+function ReadView({ project }: { project: Project }) {
+  const t = useTranslations("project");
+  // Stored as one line of prose; splitting on commas is what makes it scannable
+  // without changing how anyone writes it.
+  const stack = project.stack
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Card className="p-6">
+        <h2 className="pb-2 text-lead text-ink">{t("about")}</h2>
+        <p className={`text-body leading-8 ${project.opis ? "text-ink-2" : "text-ink-3"}`}>
+          {project.opis || t("aboutEmpty")}
+        </p>
+      </Card>
+
+      <Card className="p-6">
+        <h2 className="pb-3 text-lead text-ink">{t("tech")}</h2>
+        {stack.length ? (
+          <div className="flex flex-wrap gap-2">
+            {stack.map((item) => (
+              <Chip key={item}>{item}</Chip>
+            ))}
+          </div>
+        ) : (
+          <p className="text-body text-ink-3">{t("techEmpty")}</p>
+        )}
+      </Card>
+
+      {/* Set apart with the thread colour, because this is the section that
+          steers the agent: everything else describes the project, this one
+          constrains what may be done to it. */}
+      <Card className="border-blue/25 p-6">
+        <h2 className="text-lead text-ink">{t("limits")}</h2>
+        <p className="pb-3 pt-1 text-small text-ink-3">{t("limitsNote")}</p>
+        <p
+          className={`whitespace-pre-wrap text-body leading-8 ${
+            project.ograniczenia ? "text-ink-2" : "text-ink-3"
+          }`}
+        >
+          {project.ograniczenia || t("limitsEmpty")}
+        </p>
+      </Card>
+    </div>
+  );
+}
+
+function EditCard({
+  project,
+  onCancel,
+  onSaved,
+}: {
+  project: Project;
+  onCancel: () => void;
+  onSaved: (updated: Project) => void;
+}) {
+  const t = useTranslations("project");
+  const [draft, setDraft] = useState(project);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const set = (key: keyof Project) => (event: { target: { value: string } }) =>
+    setDraft((prev) => ({ ...prev, [key]: event.target.value }));
+
+  const dirty = (["name", "opis", "stack", "etap", "ograniczenia"] as const).some(
+    (key) => draft[key] !== project[key],
+  );
 
   const save = async () => {
-    if (!project) return;
     setSaving(true);
     setError(null);
     try {
-      const updated = await updateProject(project.id, {
-        name: draft.name,
-        opis: draft.opis,
-        stack: draft.stack,
-        etap: draft.etap,
-        ograniczenia: draft.ograniczenia,
-      });
-      setProject(updated);
-      setDraft(updated);
-      setSaved(true);
+      onSaved(
+        await updateProject(project.id, {
+          name: draft.name,
+          opis: draft.opis,
+          stack: draft.stack,
+          etap: draft.etap,
+          ograniczenia: draft.ograniczenia,
+        }),
+      );
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : String(caught));
     } finally {
@@ -73,91 +196,58 @@ export default function ProjectScreen() {
     }
   };
 
-  const set = (key: keyof Project) => (event: { target: { value: string } }) => {
-    setDraft((prev) => ({ ...prev, [key]: event.target.value }));
-    setSaved(false);
-  };
-
   return (
-    <AppShell>
-      <div className="mx-auto max-w-[900px]">
-        <h1 className="text-section">{project?.name ?? t("title")}</h1>
+    <Card className="flex flex-col gap-5 p-6">
+      <Input id="name" label={t("label.name")} value={draft.name} onChange={set("name")} />
 
-        {project === null ? (
-          <p className="pt-6 text-body text-ink-3">{t("loading")}</p>
-        ) : (
-          <>
-            <section className="pt-6">
-              <div className="divide-y divide-hairline border-y border-hairline">
-                <Field id="name" label={t("label.name")} value={draft.name ?? ""} onChange={set("name")} />
-                <Field
-                  id="repo"
-                  label={t("label.repo")}
-                  value={project.repoRef}
-                  readOnly
-                  // The repo ref is the key a coder's MCP calls resolve against,
-                  // so changing it here would silently orphan a connected agent.
-                  note={t("repoFixed")}
-                />
-                <Field id="stack" label={t("label.stack")} value={draft.stack ?? ""} onChange={set("stack")} />
-                <Field id="etap" label={t("label.etap")}>
-                  <select
-                    id="etap"
-                    value={draft.etap ?? "prototyp"}
-                    onChange={set("etap")}
-                    className="w-full rounded-control border border-edge bg-plaster-raised px-4 py-3 text-body text-ink"
-                  >
-                    {["prototyp", "produkcja", "utrzymanie"].map((stage) => (
-                      <option key={stage} value={stage}>
-                        {t(`etap.${stage}`)}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field id="opis" label={t("label.opis")}>
-                  <textarea
-                    id="opis"
-                    rows={3}
-                    value={draft.opis ?? ""}
-                    onChange={set("opis")}
-                    className="w-full rounded-control border border-edge bg-plaster-raised px-4 py-3 text-body text-ink outline-none"
-                  />
-                </Field>
-                <Field id="limits" label={t("label.limits")}>
-                  <textarea
-                    id="limits"
-                    rows={3}
-                    value={draft.ograniczenia ?? ""}
-                    onChange={set("ograniczenia")}
-                    className="w-full rounded-control border border-edge bg-plaster-raised px-4 py-3 text-body text-ink outline-none"
-                  />
-                </Field>
-              </div>
+      <Input
+        id="repo"
+        label={t("label.repo")}
+        value={project.repoRef}
+        readOnly
+        // The repo ref is the key a coder's MCP calls resolve against, so
+        // changing it here would silently orphan a connected agent.
+        note={t("repoFixed")}
+        className="cursor-not-allowed text-ink-2"
+      />
 
-              <div className="flex items-center gap-5 pt-5">
-                <Button onClick={() => void save()} disabled={!dirty || saving}>
-                  {saving ? t("saving") : t("save")}
-                </Button>
-                {saved ? <span className="text-small text-ink-2">{t("saved")}</span> : null}
-                {error ? <span className="text-small text-iron">{error}</span> : null}
-              </div>
-            </section>
-
-            <section className="pt-9">
-              <h2 className="text-lead">{t("graph")}</h2>
-              {graph === null ? (
-                <p className="pt-4 text-body text-ink-3">{t("loading")}</p>
-              ) : graph.nodes.length === 0 ? (
-                <p className="max-w-[68ch] pt-4 text-body text-ink-2">{t("graphEmpty")}</p>
-              ) : (
-                <div className="pt-5">
-                  <NodeGraph nodes={graph.nodes} edges={graph.edges} />
-                </div>
-              )}
-            </section>
-          </>
-        )}
+      <div>
+        <label htmlFor="etap" className="block pb-2 text-small font-medium text-ink">
+          {t("label.etap")}
+        </label>
+        <select
+          id="etap"
+          value={draft.etap}
+          onChange={set("etap")}
+          className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/15"
+        >
+          {["prototyp", "produkcja", "utrzymanie"].map((stage) => (
+            <option key={stage} value={stage}>
+              {t(`etap.${stage}`)}
+            </option>
+          ))}
+        </select>
       </div>
-    </AppShell>
+
+      <Input id="stack" label={t("label.stack")} value={draft.stack} onChange={set("stack")} />
+      <Textarea id="opis" label={t("label.opis")} rows={3} value={draft.opis} onChange={set("opis")} />
+      <Textarea
+        id="limits"
+        label={t("label.limits")}
+        rows={5}
+        value={draft.ograniczenia}
+        onChange={set("ograniczenia")}
+      />
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button onClick={() => void save()} loading={saving} disabled={!dirty}>
+          {saving ? t("saving") : t("save")}
+        </Button>
+        <Button variant="quiet" onClick={onCancel} disabled={saving}>
+          {t("cancel")}
+        </Button>
+        {error ? <span className="text-small text-iron">{error}</span> : null}
+      </div>
+    </Card>
   );
 }

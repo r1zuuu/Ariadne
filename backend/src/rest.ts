@@ -137,6 +137,9 @@ const listQuery = z.object({
   file: z.string().optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().optional(),
+  // Enumerated here rather than in the service, unlike status and type: there
+  // are exactly two orderings and neither is a domain value the service owns.
+  sort: z.enum(["created", "updated"]).optional(),
 });
 
 // Reading the body and validating it fail the same way for the caller: a 400
@@ -284,7 +287,7 @@ export function createRestApp() {
   // --- Nodes: what the listing screens read (plan step 5a.1) ---
 
   app.get("/projects/:id/nodes", async (c) => {
-    const { status, type, file, cursor, limit } = listQuery.parse(c.req.query());
+    const { status, type, file, cursor, limit, sort } = listQuery.parse(c.req.query());
     return c.json(
       await listNodes({
         userId: userId(c),
@@ -294,6 +297,7 @@ export function createRestApp() {
         file,
         cursor,
         limit,
+        sort,
       }),
     );
   });
