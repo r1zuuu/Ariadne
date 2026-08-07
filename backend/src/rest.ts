@@ -5,20 +5,26 @@ import { HTTPException } from "hono/http-exception";
 import { jwt, sign } from "hono/jwt";
 import * as z from "zod/v4";
 import {
+  type NodeStatus,
+  type NodeType,
   ServiceError,
   approvePending,
   archiveNode,
   confirmNode,
+  contradictNode,
   createApiToken,
   createProject,
   deleteApiToken,
+  editNode,
   getAccount,
   getReviewFeed,
   listApiTokens,
+  listNodes,
   listProjects,
   login,
   registerUser,
   rejectPending,
+  searchNodes,
   setAllPermission,
   updateProfile,
   updateProject,
@@ -56,6 +62,7 @@ const PROTECTED_PREFIXES = [
   "/pending",
   "/pending/*",
   "/nodes/*",
+  "/search",
 ];
 
 type Env = { Variables: { jwtPayload: { sub: string } } };
@@ -75,6 +82,36 @@ const cardSchema = z.object({
   konwencjeRef: z.string().nullable().optional(),
   ograniczenia: z.string().optional(),
   etap: z.string().optional(),
+});
+
+const anchorSchema = z.object({
+  path: z.string(),
+  symbol: z.string().optional(),
+  sha: z.string().optional(),
+});
+
+// Both fields optional, and "neither was sent" is left to the service: it owns
+// that rule for the MCP path too, and its message says what to do about it.
+const editSchema = z.object({
+  content: z.string().optional(),
+  anchors: z.array(anchorSchema).optional(),
+});
+
+const searchSchema = z.object({
+  projectId: z.string(),
+  query: z.string(),
+  k: z.number().optional(),
+});
+
+// A query string carries text or nothing, so limit is coerced here. status and
+// type stay strings: the service owns the allowed values and names them in the
+// error, which beats this layer repeating the list to say "invalid".
+const listQuery = z.object({
+  status: z.string().optional(),
+  type: z.string().optional(),
+  file: z.string().optional(),
+  cursor: z.string().optional(),
+  limit: z.coerce.number().optional(),
 });
 
 // Reading the body and validating it fail the same way for the caller: a 400
@@ -205,6 +242,43 @@ export function createRestApp() {
     return c.json(
       await updateProject({ userId: userId(c), projectId: c.req.param("id"), card }),
     );
+  });
+
+  // --- Nodes: what the listing screens read (plan step 5a.1) ---
+
+  app.get("/projects/:id/nodes", async (c) => {
+    const { status, type, file, cursor, limit } = listQuery.parse(c.req.query());
+    return c.json(
+      await listNodes({
+        userId: userId(c),
+        projectId: c.req.param("id"),
+        status: status as NodeStatus | undefined,
+        type: type as NodeType | undefined,
+        file,
+        cursor,
+        limit,
+      }),
+    );
+  });
+
+  // The app's half of search_context, with similarity in the response: the screen
+  // shows how close a hit is, a coder reading prose does not need the number.
+  app.post("/search", async (c) => {
+    const { projectId, query, k } = await readBody(c, searchSchema);
+    return c.json(await searchNodes({ userId: userId(c), projectId, query, k }));
+  });
+
+  app.put("/nodes/:id", async (c) => {
+    const { content, anchors } = await readBody(c, editSchema);
+    return c.json(
+      await editNode({ userId: userId(c), nodeId: c.req.param("id"), content, anchors }),
+    );
+  });
+
+  app.post("/nodes/:id/contradict", async (c) => {
+    const { supersededBy } = await readBody(c, z.object({ supersededBy: z.string() }));
+    await contradictNode({ userId: userId(c), nodeId: c.req.param("id"), supersededBy });
+    return c.body(null, 204);
   });
 
   // --- Review feed (plan section 11, screen 7) ---
