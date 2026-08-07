@@ -23,12 +23,14 @@ Jak uruchomic: docker compose up -d dla bazy, npm run dev w backend (port 3000),
 
 Czego brakuje w 5b: nic. Krok domkniety.
 
+- Redesign UI (planUI.md): karty zamiast ciaglych hairline'ow, prawdziwy project switcher, czytelny active state, composer na dashboardzie oddajacy pytanie asystentowi, zwijane zrodla, kolejka grupowana po projekcie, projekt jako profil do czytania, split screen na logowaniu z obrazem z public/. Doszly toasty po kazdym zapisie i empty states mowiace co dalej. DESIGN.md przepisany: Paper Rule (zero radius powyzej 2px, zadnych kart) zastapiona Card Rule.
+
 Zostaje z MVP: ekran 8 (ustawienia: profil, tokeny, all-permission).
 
 Jedna decyzja czeka na usera:
 1. Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie. Rekomendacja: wyciac z ekranu 01 i przeniesc do sekcji 14, bo OAuth w Tauri to loopback albo deep link plus endpoint providera, a konto na haslo juz dziala.
 
-Czego swiadomie nie ma w ekranie 3: kolumny nawigacyjnej z wariantu 2c i przycisku do pelnej listy wpisow. Oba prowadza do ekranow 4 do 8, ktorych nie ma. Wracaja razem z pierwszym z tych ekranow.
+Czego swiadomie nie ma po redesignie: przycisku "Zatwierdz wszystkie" (brak endpointu wsadowego, a hurtowe zatwierdzanie nieprzeczytanej wiedzy kloci sie z zasada, ze nic nie trafia do pamieci bez swiadomej zgody). Sekcja "ostatnia aktywnosc" zlozona z updatedAt i createdAt, bez tabeli zdarzen.
 
 ## 1. Problem i cel
 
@@ -504,10 +506,7 @@ Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym
 
 ## 15. Frontend, pozniej
 
-Labirynt na ekranie wejscia, wersja rozswietlana kursorem. Dzis to statyczna plansza 440 px, jedna linia w blekicie egipskim, nic wychodzi dolem. Docelowo: duza plansza, ktora rozjasnia sie wokol kursora, tak zeby dalo sie wodzic po sciezce i zobaczyc, ze to naprawde jedna linia od wejscia do srodka.
-- Jak to zrobic: maska radialna sledzaca wskaznik nad tym samym pojedynczym path, jasnosc malejaca z odlegloscia, bez zmiany grubosci kreski i bez drugiego koloru. Ruch tylko na masce, wiec nic w ukladzie sie nie animuje. Przy prefers-reduced-motion maska nie sledzi, cala figura swieci rowno.
-- Warunek wstepny: prawdziwa topologia labiryntu kretenskiego, siedem obwodow, zamiast obecnego prostokatnego meandra. Dzis meander wystarcza, bo nikt po nim nie wodzi wzrokiem. Rozswietlanie zaprasza do wodzenia, a wtedy falszywa topologia zaczyna klamac: sciezka, ktora wyglada na przejscie, nie prowadzi do srodka. Oznaczone `ponytail:` w components/labyrinth-plate.tsx.
-- Kiedy wrocic: gdy ekran wejscia bedzie ostatnia rzecza do dopracowania, nie przed ekranami 3 do 8. To jest ozdoba z uzasadnieniem, ale nadal ozdoba, a piec ekranow czeka na endpointy z 5a.1.
+Labirynt z ekranu wejscia usuniety razem z redesignem UI. Ekran logowania to teraz split screen z obrazem (dlon i zlota nic) w public/, a rozswietlanie kursorem nie ma juz nosnika. Gdyby kiedys wrocil: warunkiem wstepnym byla prawdziwa topologia labiryntu kretenskiego, bo rozswietlanie zaprasza do wodzenia wzrokiem, a falszywy meander wtedy klamie.
 
 Inne pozycje frontendu, ktore czekaja na decyzje albo na dane:
 - Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie. OAuth w Tauri wymaga loopbacku albo deep linku plus endpointu providera.
