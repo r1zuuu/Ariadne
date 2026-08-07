@@ -4,8 +4,9 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useLocale } from "@/app/locale-provider";
+import { AppShell, pickProject, readActiveProject } from "@/components/app-shell";
 import { StatusMark } from "@/components/status-mark";
-import { TitleBar, type ServerState } from "@/components/title-bar";
+import type { ServerState } from "@/components/title-bar";
 import { Banner } from "@/components/ui";
 import {
   ApiError,
@@ -25,7 +26,6 @@ import {
 // looked", and the server has no column for it.
 
 const LAST_SEEN_KEY = "ariadne.lastSeen";
-const ACTIVE_PROJECT_KEY = "ariadne.activeProject";
 
 // Fourteen rows and then a full stop, per the spec: the overview is a glance,
 // not a feed. One extra row is fetched to learn whether the list was cut.
@@ -62,7 +62,7 @@ export default function HomeScreen() {
       setServer("up");
 
       if (!rows.length) return;
-      const remembered = localStorage.getItem(ACTIVE_PROJECT_KEY);
+      const remembered = readActiveProject();
       // A remembered project that has since been deleted must not blank the
       // screen, so the newest one stands in.
       setActiveId(rows.some((p) => p.id === remembered) ? remembered : rows[0].id);
@@ -83,7 +83,6 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!activeId) return;
-    localStorage.setItem(ACTIVE_PROJECT_KEY, activeId);
     let current = true;
     void listNodes(activeId, VISIBLE_CHANGES + 1)
       .then((page) => {
@@ -102,17 +101,18 @@ export default function HomeScreen() {
   const stamp = useStamp(locale);
 
   return (
-    <div className="flex h-full flex-col">
-      <TitleBar project={active?.name} server={server} />
-      {server === "down" ? (
-        <Banner
-          variant="notice"
-          what={t("stale", { at: since ? stamp(since, true) : t("staleUnknown") })}
-          action={{ label: t("retry"), onClick: () => void load() }}
-        />
-      ) : null}
-
-      <main className="min-h-0 flex-1 overflow-y-auto px-8 pb-10 pt-9">
+    <AppShell
+      server={server}
+      banner={
+        server === "down" ? (
+          <Banner
+            variant="notice"
+            what={t("stale", { at: since ? stamp(since, true) : t("staleUnknown") })}
+            action={{ label: t("retry"), onClick: () => void load() }}
+          />
+        ) : null
+      }
+    >
         <div className="mx-auto max-w-[860px]">
           {projects === null ? (
             <Skeleton />
@@ -139,12 +139,14 @@ export default function HomeScreen() {
                 </p>
               ) : null}
 
-              <Projects projects={projects} activeId={activeId} onPick={setActiveId} />
+              {/* Picking here reloads, same as the column's switcher: the open
+                  project is named in the title bar and read by four screens, so
+                  one of them changing it quietly would leave the rest lying. */}
+              <Projects projects={projects} activeId={activeId} onPick={pickProject} />
             </>
           )}
         </div>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

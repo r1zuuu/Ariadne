@@ -154,6 +154,9 @@ export const createProject = (card: { name: string; repoRef: string } & Partial<
 
 type ProjectCard = { opis: string; stack: string; etap: string; ograniczenia: string };
 
+export const updateProject = (id: string, card: Partial<ProjectCard & { name: string }>) =>
+  request<Project>(`/projects/${id}`, { method: "PUT", body: card });
+
 // The main screen asks for one more row than it shows, which is how it knows
 // whether to offer "show all" without also asking for a count.
 export const listNodes = (projectId: string, limit: number) =>
@@ -163,3 +166,103 @@ export const listNodes = (projectId: string, limit: number) =>
 
 export const mintToken = (label: string) =>
   request<{ id: string; label: string; token: string }>("/tokens", { method: "POST", body: { label } });
+
+// --- Graph, review feed and the two chats ---
+
+export type Anchor = { path: string; symbol: string | null; sha: string | null };
+export type Source = Node & { similarity: number; anchors: Anchor[] };
+
+export type GraphEdge =
+  | { kind: "file"; from: string; to: string; paths: string[] }
+  | { kind: "similarity"; from: string; to: string; similarity: number };
+
+export const getGraph = (projectId: string) =>
+  request<{ nodes: Node[]; edges: GraphEdge[] }>(`/projects/${projectId}/graph`);
+
+export type PendingAction = {
+  id: string;
+  action: "update" | "delete";
+  /** For an update: the proposed replacement. A delete carries nothing. */
+  payload: { content?: string };
+  requestedBy: "coder" | "app_agent";
+  createdAt: string;
+  nodeId: string;
+  /** What is stored today, so the screen can show the change against it. */
+  nodeContent: string;
+  projectName: string;
+};
+
+export type ReviewNode = Node & { supersededBy: string | null; projectName: string };
+
+export const getPending = () =>
+  request<{ pendingActions: PendingAction[]; nodesToReview: ReviewNode[] }>("/pending");
+
+export const approvePending = (id: string) => request<void>(`/pending/${id}/approve`, { method: "POST" });
+export const rejectPending = (id: string) => request<void>(`/pending/${id}/reject`, { method: "POST" });
+export const confirmNode = (id: string) => request<void>(`/nodes/${id}/confirm`, { method: "POST" });
+export const archiveNode = (id: string) => request<void>(`/nodes/${id}/archive`, { method: "POST" });
+
+export type Proposal = {
+  action: "update" | "delete" | "create";
+  nodeId: string;
+  content: string;
+  pendingActionId?: string;
+};
+
+export const chatEdit = (projectId: string, message: string, sessionId: string) =>
+  request<{ reply: string; sources: Source[]; queued: Proposal[] }>("/chat/edit", {
+    method: "POST",
+    body: { projectId, message, sessionId },
+  });
+
+type QueryChunk =
+  | { type: "sources"; sources: Source[] }
+  | { type: "delta"; text: string }
+  | { type: "error"; message: string };
+
+// The one endpoint that does not go through request(): it answers with NDJSON
+// over a long-lived body, so there is nothing to JSON.parse at the end. Yields
+// each line as it lands, which is what makes the answer appear as it is written.
+export async function* chatQuery(
+  projectId: string,
+  question: string,
+  signal?: AbortSignal,
+): AsyncGenerator<QueryChunk> {
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}/chat/query`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(readToken() ? { Authorization: `Bearer ${readToken()}` } : {}),
+      },
+      body: JSON.stringify({ projectId, question }),
+      signal,
+    });
+  } catch {
+    throw new ApiError("unreachable", 0, "unreachable", `${BASE} did not answer`);
+  }
+
+  if (!res.ok || !res.body) {
+    const { error, message } = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      message?: string;
+    };
+    if (res.status === 401) clearToken();
+    throw new ApiError("rejected", res.status, error ?? "internal", message ?? res.statusText);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  // A line can be split across two reads, so the tail is carried forward.
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) if (line.trim()) yield JSON.parse(line) as QueryChunk;
+  }
+  if (buffer.trim()) yield JSON.parse(buffer) as QueryChunk;
+}
