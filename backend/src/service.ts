@@ -19,6 +19,7 @@ export class ServiceError extends Error {
 }
 
 export type NodeType = "session_summary" | "decision" | "note";
+export type NodeStatus = "proposed" | "confirmed" | "contradicted" | "archived";
 export type Anchor = { path: string; symbol?: string; sha?: string };
 export type SourceMeta = {
   session_id: string;
@@ -29,6 +30,9 @@ export type SourceMeta = {
 
 const MAX_CONTENT_LENGTH = 4000;
 const NODE_TYPES = ["session_summary", "decision", "note"] as const;
+const NODE_STATUSES = ["proposed", "confirmed", "contradicted", "archived"] as const;
+const LIST_LIMIT = 50;
+const MAX_LIST_LIMIT = 100;
 const INDEX_SIZE = 10;
 const HEADLINE_LENGTH = 120;
 const CHANNELS = ["coder", "app_chat", "app_form"] as const;
@@ -118,11 +122,26 @@ export async function createNode(input: {
   const embedding = await embed(content, "RETRIEVAL_DOCUMENT");
 
   return db.transaction(async (tx) => {
+    const [node] = await tx
+      .insert(nodes)
+      .values({
+        userId: input.userId,
+        projectId: input.projectId,
+        type: input.type,
+        content,
+        status: "proposed", // always forced, never taken from input
+        source: input.source,
+        embedding,
+      })
+      .returning({ id: nodes.id });
+
+    // Insert first, then point the old node at the new one: superseded_by needs an
+    // id that does not exist until the insert runs. A throw below rolls both back.
     let contradictedNodeId: string | undefined;
     if (input.replacesNodeId) {
       const [previous] = await tx
         .update(nodes)
-        .set({ status: "contradicted", updatedAt: new Date() })
+        .set({ status: "contradicted", supersededBy: node.id, updatedAt: new Date() })
         .where(
           and(
             eq(nodes.id, input.replacesNodeId),
@@ -136,19 +155,6 @@ export async function createNode(input: {
       }
       contradictedNodeId = previous.id;
     }
-
-    const [node] = await tx
-      .insert(nodes)
-      .values({
-        userId: input.userId,
-        projectId: input.projectId,
-        type: input.type,
-        content,
-        status: "proposed", // always forced, never taken from input
-        source: input.source,
-        embedding,
-      })
-      .returning({ id: nodes.id });
 
     if (anchors.length) {
       await tx.insert(codeAnchors).values(
@@ -188,6 +194,36 @@ export async function resolveProjectByRepoRef(userId: string, repoRef: string) {
   return project;
 }
 
+// Every read of a node returns this shape. Listed column by column so the 768
+// floats of the embedding never travel to a client that has no use for them.
+const NODE_COLUMNS = {
+  id: nodes.id,
+  type: nodes.type,
+  content: nodes.content,
+  status: nodes.status,
+  source: nodes.source,
+  supersededBy: nodes.supersededBy,
+  createdAt: nodes.createdAt,
+  updatedAt: nodes.updatedAt,
+};
+
+// Anchors arrive in a second query instead of a join: a node can carry several,
+// and a join would repeat the node row per anchor for every caller to regroup.
+async function attachAnchors<T extends { id: string }>(rows: T[]) {
+  const anchorRows = rows.length
+    ? await db
+        .select()
+        .from(codeAnchors)
+        .where(inArray(codeAnchors.nodeId, rows.map((r) => r.id)))
+    : [];
+  return rows.map((row) => ({
+    ...row,
+    anchors: anchorRows
+      .filter((a) => a.nodeId === row.id)
+      .map(({ path, symbol, sha }) => ({ path, symbol, sha })),
+  }));
+}
+
 export async function searchNodes(input: {
   userId: string;
   projectId: string;
@@ -203,6 +239,10 @@ export async function searchNodes(input: {
   if (!input.query?.trim()) {
     throw new ServiceError("validation", "query must not be empty");
   }
+  // Checked rather than left to the scope filter, which would answer a search of
+  // someone else's project with an empty list - the one result a client cannot
+  // tell apart from "nothing recorded yet".
+  await assertProjectOwned(input.userId, input.projectId);
 
   const queryVector = await embed(input.query, "RETRIEVAL_QUERY");
   const distance = cosineDistance(nodes.embedding, queryVector);
@@ -229,19 +269,82 @@ export async function searchNodes(input: {
     .orderBy(distance)
     .limit(k);
 
-  const anchorRows = found.length
-    ? await db
-        .select()
-        .from(codeAnchors)
-        .where(inArray(codeAnchors.nodeId, found.map((n) => n.id)))
-    : [];
+  return attachAnchors(found);
+}
 
-  return found.map((node) => ({
-    ...node,
-    anchors: anchorRows
-      .filter((a) => a.nodeId === node.id)
-      .map(({ path, symbol, sha }) => ({ path, symbol, sha })),
-  }));
+// Everything recorded in one project, newest first, for the screens that list
+// rather than search. Filtering and paging happen in Postgres: a review queue of
+// forty is not the ceiling, and a client-side filter would fetch it all anyway.
+export async function listNodes(input: {
+  userId: string;
+  projectId: string;
+  status?: NodeStatus;
+  type?: NodeType;
+  file?: string;
+  cursor?: string;
+  limit?: number;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  if (input.status && !NODE_STATUSES.includes(input.status)) {
+    throw new ServiceError("validation", `status must be one of: ${NODE_STATUSES.join(", ")}`);
+  }
+  if (input.type && !NODE_TYPES.includes(input.type)) {
+    throw new ServiceError("validation", `type must be one of: ${NODE_TYPES.join(", ")}`);
+  }
+  const limit = input.limit ?? LIST_LIMIT;
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIST_LIMIT) {
+    throw new ServiceError("validation", `limit must be an integer between 1 and ${MAX_LIST_LIMIT}`);
+  }
+  await assertProjectOwned(input.userId, input.projectId);
+
+  const filters = [
+    eq(nodes.userId, input.userId),
+    eq(nodes.projectId, input.projectId),
+    // Archived nodes are out of the default view for the reason they are out of
+    // search: they were taken back. Asking for them by name still works.
+    input.status ? eq(nodes.status, input.status) : ne(nodes.status, "archived"),
+  ];
+  if (input.type) filters.push(eq(nodes.type, input.type));
+  if (input.file) {
+    filters.push(
+      inArray(
+        nodes.id,
+        db
+          .select({ nodeId: codeAnchors.nodeId })
+          .from(codeAnchors)
+          .where(eq(codeAnchors.path, input.file)),
+      ),
+    );
+  }
+  if (input.cursor) filters.push(afterCursor(input.cursor));
+
+  const rows = await db
+    .select(NODE_COLUMNS)
+    .from(nodes)
+    .where(and(...filters))
+    // id breaks ties: two nodes written in the same millisecond would otherwise
+    // come back in an arbitrary order and the cursor could skip or repeat one.
+    .orderBy(desc(nodes.createdAt), desc(nodes.id))
+    .limit(limit + 1); // one extra row answers "is there a next page" without a count
+
+  const page = rows.slice(0, limit);
+  const last = page.at(-1);
+  return {
+    nodes: await attachAnchors(page),
+    nextCursor: rows.length > limit && last ? `${last.createdAt.toISOString()}|${last.id}` : null,
+  };
+}
+
+// Keyset, not an offset: rows written while the user pages do not shift the
+// window, so nothing is skipped or shown twice.
+function afterCursor(cursor: string) {
+  const [createdAt, id] = cursor.split("|");
+  if (!id || Number.isNaN(Date.parse(createdAt ?? ""))) {
+    throw new ServiceError("validation", "cursor is not one this endpoint handed out");
+  }
+  assertUuid(id, "cursor");
+  return sql`(${nodes.createdAt}, ${nodes.id}) < (${createdAt}::timestamptz, ${id}::uuid)`;
 }
 
 // Nodes have no title column: the first line of content already reads as one,
@@ -347,16 +450,34 @@ async function hasAllPermission(userId: string): Promise<boolean> {
 
 // Applies an update to a node's content and/or anchors. Content change
 // recomputes the embedding - otherwise RAG keeps searching stale meaning.
-async function applyNodeUpdate(nodeId: string, payload: UpdatePayload) {
+async function applyNodeUpdate(
+  nodeId: string,
+  payload: UpdatePayload,
+  editedVia?: SourceMeta["channel"],
+) {
+  // Both payload halves are checked before the embedding call: a bad anchor found
+  // afterwards would roll the transaction back having already paid for a vector.
+  if (payload.anchors) assertAnchors(payload.anchors);
   const updates: Partial<typeof nodes.$inferInsert> = { updatedAt: new Date() };
   if (payload.content !== undefined) {
     updates.content = validateContent(payload.content);
     updates.embedding = await embed(updates.content, "RETRIEVAL_DOCUMENT");
   }
-  await db.transaction(async (tx) => {
-    await tx.update(nodes).set(updates).where(eq(nodes.id, nodeId));
+  // Merged into source rather than given a column: it is provenance, same as the
+  // channel the node arrived through, and updated_at already carries the when.
+  const stamped = editedVia
+    ? {
+        ...updates,
+        source: sql`${nodes.source} || ${JSON.stringify({ edited_via: editedVia })}::jsonb`,
+      }
+    : updates;
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(nodes)
+      .set(stamped)
+      .where(eq(nodes.id, nodeId))
+      .returning(NODE_COLUMNS);
     if (payload.anchors) {
-      assertAnchors(payload.anchors);
       await tx.delete(codeAnchors).where(eq(codeAnchors.nodeId, nodeId));
       if (payload.anchors.length) {
         await tx.insert(codeAnchors).values(
@@ -364,6 +485,7 @@ async function applyNodeUpdate(nodeId: string, payload: UpdatePayload) {
         );
       }
     }
+    return row;
   });
 }
 
@@ -497,6 +619,72 @@ export async function confirmNode(input: { userId: string; nodeId: string }) {
 export async function archiveNode(input: { userId: string; nodeId: string }) {
   await assertNodeOwned(input.userId, input.nodeId);
   await archiveNodeById(input.nodeId);
+}
+
+// The app's own edit, applied on the spot rather than queued. The pending queue
+// exists because a coder writes unattended; the person clicking in the app is the
+// one who would have approved it anyway.
+export async function editNode(input: {
+  userId: string;
+  nodeId: string;
+  content?: string;
+  anchors?: Anchor[];
+}) {
+  if (input.content === undefined && input.anchors === undefined) {
+    throw new ServiceError("validation", "nothing to update: provide content and/or anchors");
+  }
+  await assertNodeOwned(input.userId, input.nodeId);
+  const row = await applyNodeUpdate(
+    input.nodeId,
+    { content: input.content, anchors: input.anchors },
+    "app_form",
+  );
+  const [edited] = await attachAnchors([row]);
+  return edited;
+}
+
+// proposed | confirmed -> contradicted (plan section 4), with the node that
+// overruled it. Archiving is the other way out, for a node that is simply gone;
+// this one is for a node that was answered, so the answer travels with it.
+export async function contradictNode(input: {
+  userId: string;
+  nodeId: string;
+  supersededBy: string;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.nodeId, "nodeId");
+  assertUuid(input.supersededBy, "supersededBy");
+  if (input.nodeId === input.supersededBy) {
+    throw new ServiceError("validation", "a node cannot supersede itself");
+  }
+
+  const [[target], [superseder]] = await Promise.all([
+    db
+      .select({ status: nodes.status, projectId: nodes.projectId })
+      .from(nodes)
+      .where(and(eq(nodes.id, input.nodeId), eq(nodes.userId, input.userId))),
+    db
+      .select({ projectId: nodes.projectId })
+      .from(nodes)
+      .where(and(eq(nodes.id, input.supersededBy), eq(nodes.userId, input.userId))),
+  ]);
+  if (!target) throw new ServiceError("not_found", "node not found for this user");
+  if (!superseder) {
+    throw new ServiceError("not_found", "supersededBy node not found for this user");
+  }
+  // Both in one project, otherwise the screen showing the pair has nowhere to
+  // show the second one and the reference reads as a dead link.
+  if (target.projectId !== superseder.projectId) {
+    throw new ServiceError("validation", "both nodes must belong to the same project");
+  }
+  if (target.status !== "proposed" && target.status !== "confirmed") {
+    throw new ServiceError("validation", "only a proposed or confirmed node can be contradicted");
+  }
+
+  await db
+    .update(nodes)
+    .set({ status: "contradicted", supersededBy: input.supersededBy, updatedAt: new Date() })
+    .where(eq(nodes.id, input.nodeId));
 }
 
 // --- Accounts and auth (plan section 10) ---
@@ -797,6 +985,9 @@ export async function getReviewFeed(userId: string) {
       content: nodes.content,
       status: nodes.status,
       source: nodes.source,
+      // The feed is where a contradicted node is read, and the status only means
+      // something next to the node that overruled it.
+      supersededBy: nodes.supersededBy,
       createdAt: nodes.createdAt,
       projectId: projects.id,
       projectName: projects.name,

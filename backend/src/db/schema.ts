@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   index,
@@ -71,6 +72,12 @@ export const nodes = pgTable(
     content: text("content").notNull(), // one human-readable thought; this gets embedded
     status: text("status").notNull().default("proposed"),
     source: jsonb("source").notNull().default(sql`'{}'::jsonb`),
+    // Which node overruled this one. Set together with status 'contradicted';
+    // without it the status says "no longer true" and never says what replaced it.
+    // Self-reference needs the explicit column type, otherwise TS cannot infer it.
+    supersededBy: uuid("superseded_by").references((): AnyPgColumn => nodes.id, {
+      onDelete: "set null",
+    }),
     embedding: vector("embedding", { dimensions: 768 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
