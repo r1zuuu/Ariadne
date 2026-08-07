@@ -2,9 +2,9 @@
 
 Warstwa pamieci dla LLM coderow. Nic ariadny: wychodzisz z sesji i wracasz dokladnie tam, gdzie skonczyles. Baza Postgres + pgvector na VPS jako jedyne zrodlo prawdy, aplikacja desktopowa Tauri 2 + Next.js jako klient, komunikacja coderow przez MCP, wyszukiwanie przez RAG z cytowaniem.
 
-## 0. Gdzie jestesmy, stan na 26.07.2026
+## 0. Gdzie jestesmy, stan na 07.08.2026
 
-Branch: feature/step-5b-app-shell, odbity od feature/step-5a-rest-backend przed jego merge'em, wiec niesie tez caly 5a. Na main sa zmergowane kroki 1 do 4 (PR #1 do #4). PR dla 5a otwarty i niezamkniety. Kolejnosc przy scalaniu: najpierw 5a, potem 5b przerebasuje sie bez konfliktow, bo jedyny wspolny plik to ten.
+Branch: feature/step-5b-app-shell, odbity od feature/step-5a-rest-backend przed jego merge'em, wiec niesie tez caly 5a. Na main sa zmergowane kroki 1 do 5a (PR #1 do #5). Do scalenia zostaje 5b: 22 commity ponad main, bez konfliktow, bo jedyny wspolny plik to ten.
 
 Zrobione i sprawdzone:
 - Kroki 1 do 4 zamkniete. Krok 4 potwierdzony na prawdziwym repo portfolio: coder laduje boot context, zapisuje decyzje, podsumowuje sesje, a nastepna sesja odpowiada z tego podsumowania i siega po search_context dzieki indexowi.
