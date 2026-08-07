@@ -180,9 +180,11 @@
     "suggest2": "Why did we choose this stack?",
     "suggest3": "What constraints does this project have?",
     "suggest4": "What changed recently?",
+    "memoryLine": "Ariadne answers from {decisions, plural, one {# decision} other {# decisions}} and {entries, plural, one {# entry} other {# entries}} recorded in this project.",
+    "memoryLink": "See project memory",
     "decisions": "Recent decisions",
     "decisionsEmpty": "No decisions recorded yet.",
-    "decisionsEmptyNote": "The first ones arrive on their own once an agent finishes a session. You can also write one yourself under Add context.",
+    "decisionsEmptyNote": "The first ones arrive on their own once an agent finishes a session. You can also write one yourself under Add to memory.",
     "activity": "Recent activity",
     "activityEmpty": "Nothing has happened yet.",
     "activityEmptyNote": "This is where you will see what was added, changed and approved.",
@@ -212,11 +214,57 @@
     "project": "Project",
     "home": "Overview",
     "assistant": "Ask",
-    "database": "Add context",
+    "memory": "Add to memory",
     "pending": "To approve",
+    "tour": "Show me around",
     "signOut": "Sign out",
     "needsProject": "Choose a project first",
     "noProject": "No project"
+  },
+  "tour": {
+    "step": "step {current} of {total}",
+    "skip": "Skip",
+    "back": "Back",
+    "next": "Next",
+    "start": "Ask your first question",
+    "remembers": {
+      "label": "REMEMBERS",
+      "title": "Ariadne remembers",
+      "body": "You tell Ariadne about the project's decisions, agreements and constraints. Each one is recorded with its date and its source, so you can check later where it came from."
+    },
+    "answers": {
+      "label": "ANSWERS",
+      "title": "Ariadne answers",
+      "body": "Later you ask why something was done or what you agreed on. The answer is built only from recorded entries, and you see which ones underneath it."
+    },
+    "youDecide": {
+      "label": "YOU DECIDE",
+      "title": "You decide",
+      "body": "Nothing enters the project's memory without your say-so. Every proposal waits on the To approve screen until you accept it or reject it."
+    }
+  },
+  "hint": {
+    "dismiss": "Dismiss",
+    "home": {
+      "title": "Project overview",
+      "note": "The context that matters most, and the place to ask about it straight away."
+    },
+    "project": {
+      "title": "The project card",
+      "note": "Basic information, technologies and rules. The agent reads this before every session."
+    },
+    "assistant": {
+      "title": "You are asking the project's memory",
+      "note": "Ariadne answers only from recorded entries and shows you which ones it used."
+    },
+    "database": {
+      "title": "You are teaching Ariadne something new",
+      "note": "Write about a decision, a change or an agreement. It becomes a proposed entry, nothing saves itself."
+    },
+    "pending": {
+      "title": "You decide what gets recorded",
+      "note": "Nothing enters the project's memory until you approve it."
+    }
   },
   "assistant": {
     "title": "Ask Ariadne about your project",
@@ -229,11 +277,15 @@
     "lead": "Ariadne answers from the decisions, agreements and context recorded for this project.",
     "hint": "Enter sends, Shift + Enter starts a new line",
     "sourcesCount": "{count, plural, one {Based on # entry} other {Based on # entries}}",
-    "nothingRecordedNote": "Ariadne only answers from recorded context, so it does not guess. You can add this under Add context.",
+    "nothingRecordedNote": "Ariadne only answers from recorded context, so it does not guess. You can add this under Add to memory.",
     "newQuestion": "New question",
     "suggest1": "What did we decide recently?",
     "suggest2": "Why did we choose this stack?",
-    "suggest3": "What constraints does this project have?"
+    "suggest3": "What constraints does this project have?",
+    "historyTitle": "Recent conversations",
+    "historyNew": "New conversation",
+    "historyEmpty": "No conversations yet.",
+    "historyEmptyNote": "Ask your first question and the conversation stays here, so you can come back to it."
   },
   "database": {
     "title": "Add information to the context",
@@ -258,7 +310,16 @@
     "nothingProposedNote": "Ariadne found nothing in this that needs recording or correcting.",
     "willSave": "Will be saved",
     "awaiting": "Waiting for approval",
-    "toast": "The proposal was created and is waiting for approval."
+    "toast": "The proposal was created and is waiting for approval.",
+    "historyTitle": "Recently added context",
+    "historyEmpty": "You have not added any context yet.",
+    "historyEmptyNote": "Describe your first decision or change, and the whole run of it stays here.",
+    "youWrote": "You wrote",
+    "ariadneProposed": "Ariadne proposed",
+    "statusPending": "Waiting for approval",
+    "statusSaved": "Saved",
+    "statusRejected": "Rejected",
+    "historyNew": "New entry"
   },
   "pending": {
     "title": "To approve",

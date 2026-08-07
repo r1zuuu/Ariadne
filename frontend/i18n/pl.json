@@ -180,9 +180,11 @@
     "suggest2": "Dlaczego wybraliśmy ten stack?",
     "suggest3": "Jakie ograniczenia ma ten projekt?",
     "suggest4": "Co zmieniło się ostatnio?",
+    "memoryLine": "Ariadne odpowiada na podstawie {decisions} decyzji i {entries, plural, one {# wpisu} few {# wpisów} many {# wpisów} other {# wpisu}} zapisanych w tym projekcie.",
+    "memoryLink": "Zobacz pamięć projektu",
     "decisions": "Ostatnie ustalenia",
     "decisionsEmpty": "Nie masz jeszcze zapisanych decyzji.",
-    "decisionsEmptyNote": "Pierwsze pojawią się same, kiedy agent skończy sesję. Możesz też opisać ustalenie sam w zakładce Dodaj kontekst.",
+    "decisionsEmptyNote": "Pierwsze pojawią się same, kiedy agent skończy sesję. Możesz też opisać ustalenie sam w zakładce Dodaj do pamięci.",
     "activity": "Ostatnia aktywność",
     "activityEmpty": "Nic się jeszcze nie działo.",
     "activityEmptyNote": "Tu zobaczysz, co zostało dodane, zmienione i zatwierdzone.",
@@ -212,11 +214,57 @@
     "project": "Projekt",
     "home": "Przegląd",
     "assistant": "Zapytaj",
-    "database": "Dodaj kontekst",
+    "memory": "Dodaj do pamięci",
     "pending": "Do zatwierdzenia",
+    "tour": "Oprowadź mnie po Ariadne",
     "signOut": "Wyloguj się",
     "needsProject": "Najpierw wybierz projekt",
     "noProject": "Brak projektu"
+  },
+  "tour": {
+    "step": "krok {current} z {total}",
+    "skip": "Pomiń",
+    "back": "Wstecz",
+    "next": "Dalej",
+    "start": "Zadaj pierwsze pytanie",
+    "remembers": {
+      "label": "PAMIĘTA",
+      "title": "Ariadne pamięta",
+      "body": "Mówisz Ariadne o decyzjach, ustaleniach i ograniczeniach projektu. Każde zapisuje razem z datą i źródłem, żeby dało się później sprawdzić, skąd się wzięło."
+    },
+    "answers": {
+      "label": "ODPOWIADA",
+      "title": "Ariadne odpowiada",
+      "body": "Później pytasz, dlaczego coś zostało zrobione albo co ustaliliście. Odpowiedź powstaje wyłącznie z zapisanych wpisów, a pod nią widzisz, z których."
+    },
+    "youDecide": {
+      "label": "DECYDUJESZ",
+      "title": "Ty decydujesz",
+      "body": "Nic nie trafia do pamięci projektu bez Twojej zgody. Każda propozycja czeka na ekranie Do zatwierdzenia, dopóki jej nie przyjmiesz albo nie odrzucisz."
+    }
+  },
+  "hint": {
+    "dismiss": "Zamknij",
+    "home": {
+      "title": "Przegląd projektu",
+      "note": "Najważniejszy kontekst projektu i miejsce, z którego możesz od razu o niego zapytać."
+    },
+    "project": {
+      "title": "Karta projektu",
+      "note": "Podstawowe informacje, technologie i zasady. Agent czyta to przed każdą sesją."
+    },
+    "assistant": {
+      "title": "Pytasz pamięć projektu",
+      "note": "Ariadne odpowiada tylko z zapisanych wpisów i pokazuje, z których skorzystała."
+    },
+    "database": {
+      "title": "Uczysz Ariadne czegoś nowego",
+      "note": "Napisz o decyzji, zmianie albo ustaleniu. Powstanie propozycja wpisu, nic nie zapisze się samo."
+    },
+    "pending": {
+      "title": "Ty decydujesz, co zostanie zapisane",
+      "note": "Nic nie trafia do pamięci projektu, dopóki tego nie zatwierdzisz."
+    }
   },
   "assistant": {
     "title": "Zapytaj Ariadne o swój projekt",
@@ -229,11 +277,15 @@
     "lead": "Ariadne odpowiada na podstawie zapisanych decyzji, ustaleń i kontekstu tego projektu.",
     "hint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
     "sourcesCount": "{count, plural, one {Na podstawie # wpisu} few {Na podstawie # wpisów} many {Na podstawie # wpisów} other {Na podstawie # wpisu}}",
-    "nothingRecordedNote": "Ariadne odpowiada tylko z zapisanego kontekstu, więc nie zgaduje. Możesz dodać tę informację w zakładce Dodaj kontekst.",
+    "nothingRecordedNote": "Ariadne odpowiada tylko z zapisanego kontekstu, więc nie zgaduje. Możesz dodać tę informację w zakładce Dodaj do pamięci.",
     "newQuestion": "Nowe pytanie",
     "suggest1": "Jakie decyzje podjęliśmy ostatnio?",
     "suggest2": "Dlaczego wybraliśmy ten stack?",
-    "suggest3": "Jakie ograniczenia ma ten projekt?"
+    "suggest3": "Jakie ograniczenia ma ten projekt?",
+    "historyTitle": "Ostatnie rozmowy",
+    "historyNew": "Nowa rozmowa",
+    "historyEmpty": "Nie masz jeszcze żadnej rozmowy.",
+    "historyEmptyNote": "Zadaj pierwsze pytanie, a rozmowa zostanie tutaj i będziesz mógł do niej wrócić."
   },
   "database": {
     "title": "Dodaj informację do kontekstu",
@@ -258,7 +310,16 @@
     "nothingProposedNote": "Ariadne nie znalazła w tej wypowiedzi nic, co trzeba zapisać albo poprawić.",
     "willSave": "Zostanie zapisane",
     "awaiting": "Czeka na zatwierdzenie",
-    "toast": "Propozycja została utworzona i czeka na zatwierdzenie."
+    "toast": "Propozycja została utworzona i czeka na zatwierdzenie.",
+    "historyTitle": "Ostatnio dodany kontekst",
+    "historyEmpty": "Nie dodałeś jeszcze żadnego kontekstu.",
+    "historyEmptyNote": "Opisz pierwszą decyzję albo zmianę, a cały jej przebieg zostanie tutaj.",
+    "youWrote": "Ty napisałeś",
+    "ariadneProposed": "Ariadne zaproponowała",
+    "statusPending": "Czeka na zatwierdzenie",
+    "statusSaved": "Zapisano",
+    "statusRejected": "Odrzucono",
+    "historyNew": "Nowy wpis"
   },
   "pending": {
     "title": "Do zatwierdzenia",

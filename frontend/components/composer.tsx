@@ -95,7 +95,7 @@ export function Composer({
                 type="button"
                 disabled={disabled || busy}
                 onClick={() => send(suggestion)}
-                className="rounded-pill border border-hairline bg-surface px-5 py-[7px] text-small text-ink-2 transition-colors duration-state hover:border-edge/60 hover:text-ink disabled:opacity-40"
+                className="rounded-control border border-hairline bg-surface px-5 py-[7px] text-small text-ink-2 transition-colors duration-state hover:border-edge/60 hover:text-ink disabled:opacity-40"
               >
                 {suggestion}
               </button>

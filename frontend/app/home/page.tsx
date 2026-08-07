@@ -8,6 +8,7 @@ import { useLocale } from "@/app/locale-provider";
 import { AppShell, pickProject, readActiveProject } from "@/components/app-shell";
 import { Composer } from "@/components/composer";
 import { EntryCard, headline } from "@/components/entry-card";
+import { hasSeenTour } from "@/lib/first-run";
 import { PENDING_QUESTION } from "@/lib/handoff";
 import {
   ApiError,
@@ -20,7 +21,8 @@ import {
   type Project,
   type ReviewNode,
 } from "@/lib/api";
-import { Badge, Banner, Button, Card, Chip, EmptyState, SectionHeader } from "@/components/ui";
+import { ScreenHint } from "@/components/screen-hint";
+import { Banner, Button, Card, EmptyState, Meta, SectionHeader, Status } from "@/components/ui";
 
 // Screen 03. The project's home, not a list of entries.
 //
@@ -34,6 +36,7 @@ const RECENT = 4;
 
 export default function HomeScreen() {
   const t = useTranslations("home");
+  const tHint = useTranslations("hint.home");
   const router = useRouter();
   const { locale } = useLocale();
 
@@ -51,6 +54,14 @@ export default function HomeScreen() {
   useEffect(() => {
     if (!readToken()) {
       router.replace("/");
+      return;
+    }
+    // The tour runs before the dashboard rather than over it. Ariadne's model
+    // (you tell it, you approve, it remembers) is not guessable from a screen of
+    // sections, and this is the one place we know the reader is new. Skipping it
+    // marks it seen, so this fires exactly once per machine.
+    if (!hasSeenTour()) {
+      router.replace("/onboarding-tour");
       return;
     }
     const stored = localStorage.getItem(LAST_SEEN_KEY);
@@ -139,6 +150,8 @@ export default function HomeScreen() {
           />
         ) : (
           <>
+            <ScreenHint screen="home" title={tHint("title")} note={tHint("note")} />
+
             <section className="pb-10">
               <p className="pb-2 font-data text-data text-ink-3">
                 {since ? t("seen", { at: stamp(since, true) }) : t("seenFirst")}
@@ -158,6 +171,18 @@ export default function HomeScreen() {
                   suggestions={[t("suggest1"), t("suggest2"), t("suggest3"), t("suggest4")]}
                 />
               </div>
+
+              {/* Where the answers come from, in real numbers. Under the
+                  composer rather than above it: the question is the thing to
+                  do, and this answers what a reader wonders after typing one. */}
+              {active?.nodeCount ? (
+                <p className="pt-5 text-small text-ink-3">
+                  {t("memoryLine", { decisions: decisions?.length ?? 0, entries: active.nodeCount })}{" "}
+                  <Link href="/project" className="text-blue underline underline-offset-2">
+                    {t("memoryLink")}
+                  </Link>
+                </p>
+              ) : null}
             </section>
 
             {/* minmax(0, …) at both widths, and grid-cols-1 is not redundant:
@@ -245,18 +270,18 @@ export default function HomeScreen() {
                       {[...waiting.actions.map((a) => ({
                         id: a.id,
                         text: headline(a.payload?.content ?? a.nodeContent),
-                        tone: "ochre" as const,
+                        tone: "proposed" as const,
                         label: t(`pendingAction.${a.action}`),
                       })), ...waiting.nodes.map((n) => ({
                         id: n.id,
                         text: headline(n.content),
-                        tone: "ochre" as const,
+                        tone: "proposed" as const,
                         label: t(`status.${n.status}`),
                       }))]
                         .slice(0, 3)
                         .map((row) => (
                           <div key={row.id} className="px-5 py-4">
-                            <Badge tone={row.tone}>{row.label}</Badge>
+                            <Status tone={row.tone}>{row.label}</Status>
                             <p className="line-clamp-2 pt-2 text-small text-ink">{row.text}</p>
                           </div>
                         ))}
@@ -324,21 +349,11 @@ function AboutProject({ project, onOpen }: { project: Project; onOpen: () => voi
         }
       />
       <Card className="flex flex-col gap-4 p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="blue">{tProject(`etap.${project.etap}`)}</Badge>
-        </div>
-
-        <p className="break-all font-data text-data text-ink-2">{project.repoRef}</p>
+        <Meta items={[tProject(`etap.${project.etap}`), project.repoRef]} />
 
         {project.opis ? <p className="text-small leading-6 text-ink-2">{project.opis}</p> : null}
 
-        {stack.length ? (
-          <div className="flex flex-wrap gap-2">
-            {stack.map((item) => (
-              <Chip key={item}>{item}</Chip>
-            ))}
-          </div>
-        ) : null}
+        {stack.length ? <Meta items={stack} /> : null}
 
         {project.ograniczenia ? (
           <div>
@@ -359,7 +374,7 @@ function CardSkeleton() {
   return (
     <Card className="flex flex-col gap-3 p-5" aria-hidden="true">
       {[80, 62, 45].map((width) => (
-        <span key={width} className="h-[14px] rounded-pill bg-plaster-sunk" style={{ width: `${width}%` }} />
+        <span key={width} className="h-[14px] rounded-label bg-plaster-sunk" style={{ width: `${width}%` }} />
       ))}
     </Card>
   );

@@ -2,29 +2,21 @@
 
 import { useTranslations } from "next-intl";
 import { useState, type ReactNode } from "react";
-import { Badge, Card } from "@/components/ui";
-import type { Node, NodeStatus } from "@/lib/api";
+import { Card, Meta, Status } from "@/components/ui";
+import type { Node } from "@/lib/api";
 
-// One recorded entry, shown as a card. Used on the dashboard and in the review
-// queue, which is why the actions are a slot rather than a prop: the same entry
-// is read-only in one place and decidable in the other.
+// One recorded entry. Used on the dashboard and in the review queue, which is
+// why the actions are a slot rather than a prop: the same entry is read-only in
+// one place and decidable in the other.
+//
+// That difference now decides the shape too. With actions it is a card, because
+// a card is a thing you do something to. Without them it is a section between
+// hairlines, because a list of ten white rectangles you can only read is four
+// screens of packaging around text.
 //
 // An entry is up to 4000 characters and its first sentence is written as a
-// summary, so the card leads with that sentence and keeps the rest behind
-// "show more". The alternative, a truncated blob, makes ten cards unscannable.
-
-const TYPE_TONE = {
-  decision: "blue",
-  session_summary: "neutral",
-  note: "neutral",
-} as const;
-
-const STATUS_TONE: Record<NodeStatus, "blue" | "ochre" | "iron" | "slate"> = {
-  confirmed: "blue",
-  proposed: "ochre",
-  contradicted: "iron",
-  archived: "slate",
-};
+// summary, so it leads with that sentence and keeps the rest behind "show more".
+// The alternative, a truncated blob, makes ten entries unscannable.
 
 /** The opening sentence, which is the headline the writer already wrote. */
 export function headline(content: string): string {
@@ -46,7 +38,7 @@ export function EntryCard({
   showStatus = true,
 }: {
   entry: Pick<Node, "content" | "type" | "status" | "createdAt">;
-  /** Project, date, channel. Rendered in mono under the text. */
+  /** Date, project, channel. Joined onto the type in the metadata line. */
   meta?: ReactNode;
   actions?: ReactNode;
   showStatus?: boolean;
@@ -56,12 +48,14 @@ export function EntryCard({
   const [open, setOpen] = useState(false);
   const rest = body(entry.content);
 
-  return (
-    <Card className="p-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge tone={TYPE_TONE[entry.type] ?? "neutral"}>{t(`type.${entry.type}`)}</Badge>
+  const inner = (
+    <>
+      {/* Type and provenance in one metadata line, status in the one label that
+          still carries colour, because the status is the part you act on. */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Meta items={[t(`type.${entry.type}`), meta]} />
         {showStatus ? (
-          <Badge tone={STATUS_TONE[entry.status]}>{tHome(`status.${entry.status}`)}</Badge>
+          <Status tone={entry.status}>{tHome(`status.${entry.status}`)}</Status>
         ) : null}
       </div>
 
@@ -87,9 +81,15 @@ export function EntryCard({
           </button>
         </>
       ) : null}
+    </>
+  );
 
-      {meta ? <div className="pt-4 font-data text-data text-ink-3">{meta}</div> : null}
-      {actions ? <div className="flex flex-wrap gap-3 pt-4">{actions}</div> : null}
+  if (!actions) return <div className="border-b border-hairline pb-6">{inner}</div>;
+
+  return (
+    <Card className="p-5">
+      {inner}
+      <div className="flex flex-wrap gap-3 pt-5">{actions}</div>
     </Card>
   );
 }

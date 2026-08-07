@@ -1,11 +1,14 @@
 "use client";
 
+import { m } from "motion/react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { enterTransition } from "@/components/motion";
 import { TitleBar, type ServerState } from "@/components/title-bar";
 import { clearToken, getPending, listProjects, readToken, type Project } from "@/lib/api";
+import { resetTour } from "@/lib/first-run";
 
 // The frame every screen inside the app sits in: title bar, a column on the
 // left, content on the right.
@@ -19,12 +22,45 @@ const ACTIVE_PROJECT_KEY = "ariadne.activeProject";
 
 export type Section = "home" | "project" | "assistant" | "database" | "pending";
 
-const LINKS: { section: Section; href: string; needsProject: boolean; icon: ReactNode }[] = [
-  { section: "home", href: "/home", needsProject: false, icon: <IconHome /> },
-  { section: "project", href: "/project", needsProject: true, icon: <IconProject /> },
-  { section: "assistant", href: "/assistant", needsProject: true, icon: <IconAsk /> },
-  { section: "database", href: "/database", needsProject: true, icon: <IconAdd /> },
-  { section: "pending", href: "/pending", needsProject: false, icon: <IconQueue /> },
+// `label` is not always the section name: "database" is what the screen has
+// always been called in the code and the URL, but "Dodaj kontekst" told a
+// non-technical reader nothing, so the column says "Dodaj do pamięci" instead.
+const LINKS: {
+  section: Section;
+  label: string;
+  href: string;
+  needsProject: boolean;
+  icon: ReactNode;
+}[] = [
+  { section: "home", label: "home", href: "/home", needsProject: false, icon: <IconHome /> },
+  {
+    section: "project",
+    label: "project",
+    href: "/project",
+    needsProject: true,
+    icon: <IconProject />,
+  },
+  {
+    section: "assistant",
+    label: "assistant",
+    href: "/assistant",
+    needsProject: true,
+    icon: <IconAsk />,
+  },
+  {
+    section: "database",
+    label: "memory",
+    href: "/database",
+    needsProject: true,
+    icon: <IconAdd />,
+  },
+  {
+    section: "pending",
+    label: "pending",
+    href: "/pending",
+    needsProject: false,
+    icon: <IconQueue />,
+  },
 ];
 
 /** Read by every screen that needs to know which project it is showing. */
@@ -122,7 +158,7 @@ export function AppShell({
           <ProjectSwitcher projects={projects} active={active} />
 
           <ul className="flex flex-col gap-1 pt-2">
-            {LINKS.map(({ section, href, needsProject, icon }) => {
+            {LINKS.map(({ section, label, href, needsProject, icon }) => {
               const blocked = needsProject && !activeId;
               const current = pathname === href;
               const shared =
@@ -140,7 +176,7 @@ export function AppShell({
                       className={`${shared} cursor-not-allowed text-ink-3/50`}
                     >
                       <span className="shrink-0">{icon}</span>
-                      <span className="hidden lg:inline">{t(section)}</span>
+                      <span className="hidden lg:inline">{t(label)}</span>
                     </span>
                   </li>
                 );
@@ -150,18 +186,30 @@ export function AppShell({
                 <li key={section}>
                   <Link
                     href={href}
-                    title={t(section)}
+                    title={t(label)}
                     aria-current={current ? "page" : undefined}
-                    className={`${shared} ${
-                      current
-                        ? "bg-surface font-medium text-ink shadow-card"
-                        : "text-ink-2 hover:bg-surface/70 hover:text-ink"
+                    className={`relative ${shared} ${
+                      current ? "font-medium text-ink" : "text-ink-2 hover:bg-surface/70 hover:text-ink"
                     }`}
                   >
-                    <span className={`shrink-0 ${current ? "text-blue" : ""}`}>{icon}</span>
-                    <span className="hidden lg:inline">{t(section)}</span>
+                    {/* One marker for the whole column, so moving between
+                        screens slides it instead of blinking it out here and in
+                        there. It is the only place the frame moves, and it is
+                        the thread again: the reader watches where they went.
+                        Behind the row rather than around it, because the label
+                        must not move with it. */}
+                    {current ? (
+                      <m.span
+                        layoutId="nav-marker"
+                        transition={enterTransition}
+                        aria-hidden="true"
+                        className="absolute inset-0 rounded-control bg-surface shadow-card"
+                      />
+                    ) : null}
+                    <span className={`relative shrink-0 ${current ? "text-blue" : ""}`}>{icon}</span>
+                    <span className="relative hidden lg:inline">{t(label)}</span>
                     {section === "pending" && waiting ? (
-                      <span className="ml-auto hidden rounded-pill bg-ochre/15 px-[8px] py-[2px] font-data text-data tabular text-ochre lg:inline">
+                      <span className="relative ml-auto hidden rounded-label bg-ochre/15 px-[8px] py-[2px] font-data text-data tabular text-ochre lg:inline">
                         {waiting}
                       </span>
                     ) : null}
@@ -171,15 +219,33 @@ export function AppShell({
             })}
           </ul>
 
-          <button
-            type="button"
-            onClick={signOut}
-            title={t("signOut")}
-            className="mt-auto flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-iron"
-          >
-            <IconSignOut />
-            <span className="hidden lg:inline">{t("signOut")}</span>
-          </button>
+          <div className="mt-auto flex flex-col gap-1">
+            {/* Next to sign out because it is the same kind of thing: a door out
+                of the work, not part of it. resetTour clears the per-screen
+                notes too, so asking to be shown around brings all of it back. */}
+            <button
+              type="button"
+              onClick={() => {
+                resetTour();
+                router.push("/onboarding-tour");
+              }}
+              title={t("tour")}
+              className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-ink"
+            >
+              <IconTour />
+              <span className="hidden lg:inline">{t("tour")}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={signOut}
+              title={t("signOut")}
+              className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-iron"
+            >
+              <IconSignOut />
+              <span className="hidden lg:inline">{t("signOut")}</span>
+            </button>
+          </div>
         </nav>
 
         <main className="min-h-0 flex-1 overflow-y-auto px-6 py-7 lg:px-8">{children}</main>
@@ -319,6 +385,17 @@ function IconQueue() {
   return (
     <svg {...stroke}>
       <path d="M3 5h12M3 9h12M3 13h7" />
+    </svg>
+  );
+}
+
+// Two points and the thread between them, which is the product in one glyph.
+function IconTour() {
+  return (
+    <svg {...stroke}>
+      <circle cx="4" cy="4" r="1.6" />
+      <circle cx="14" cy="14" r="1.6" />
+      <path d="M4 5.6C4 10 14 8 14 12.4" />
     </svg>
   );
 }

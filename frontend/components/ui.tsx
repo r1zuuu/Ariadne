@@ -6,9 +6,10 @@ import type { ReactNode } from "react";
 // and always used together; anything with its own state or data lives on its own.
 //
 // Two rules hold the system together. Radius comes from the tokens, never from a
-// literal, so control and card can never disagree. And every surface that groups
-// content is a Card: the app stopped using hairlines as the only grouping device
-// because forty rows separated by identical lines is one grey sheet.
+// literal, so control and card can never disagree. And a Card is an action unit,
+// not a wrapper: something you can decide about gets a card, something you only
+// read gets a hairline and some air. Four screens of identical white rectangles
+// is what made this app look like every other one.
 //
 // A warning about the numbers here. globals.css remaps Tailwind's spacing keys
 // onto the design system's ten-step scale, so p-5 is 16px and p-6 is 24px, not
@@ -218,33 +219,57 @@ export function SectionHeader({
   );
 }
 
-type Tone = "neutral" | "blue" | "ochre" | "iron" | "slate";
-
-const TONES: Record<Tone, string> = {
-  neutral: "bg-plaster-sunk text-ink-2",
-  blue: "bg-blue/10 text-blue",
-  ochre: "bg-ochre/12 text-ochre",
-  iron: "bg-iron/10 text-iron",
-  slate: "bg-slate/12 text-slate",
-};
-
-// A word in a tinted pill. Never colour alone: the word is the signal and the
-// tint only groups, so this stays readable in greyscale.
-export function Badge({ tone = "neutral", children }: { tone?: Tone; children: ReactNode }) {
+// Metadata is a voice, not a shape. Type, date, channel, project, technology:
+// all of it is the machine's own note about the thing on screen, so it is set in
+// uppercase mono and strung together with middle dots. The pills these replaced
+// gave four coloured lozenges equal weight to the sentence they described, which
+// is the generic AI-tool look and also a lie about the hierarchy.
+//
+// Falsy items are dropped so a caller can pass a value that may not exist
+// without also having to build the separators.
+export function Meta({ items }: { items: ReactNode[] }) {
+  const shown = items.filter(Boolean);
+  if (shown.length === 0) return null;
   return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-pill px-[10px] py-[3px] text-data font-medium leading-none ${TONES[tone]}`}
-    >
-      {children}
+    <span className="inline-flex flex-wrap items-center gap-2 font-data text-label uppercase tracking-[0.12em] text-ink-3">
+      {shown.map((item, i) => (
+        // Index keys: this is a positional list of already-rendered nodes with
+        // no identity of their own, and it re-renders whole or not at all.
+        <span key={i} className="inline-flex items-center gap-2">
+          {i > 0 ? (
+            <span aria-hidden="true" className="text-ink-3/60">
+              ·
+            </span>
+          ) : null}
+          {item}
+        </span>
+      ))}
     </span>
   );
 }
 
-// Technology, file, anything from a comma-separated list. Monospace, because it
-// is the machine's word and not ours.
-export function Chip({ children }: { children: ReactNode }) {
+const STATUS_TONES = {
+  proposed: "bg-ochre/12 text-ochre",
+  confirmed: "bg-blue/10 text-blue",
+  contradicted: "bg-iron/10 text-iron",
+  archived: "bg-slate/12 text-slate",
+} as const;
+
+// The one place a tinted background survives, because a status is the thing the
+// reader has to act on and it earns the extra weight the metadata line gives up.
+// A small rectangle at 3px, not a pill: the shape says label, not tag.
+// Still never colour alone, the word is inside it.
+export function Status({
+  tone,
+  children,
+}: {
+  tone: keyof typeof STATUS_TONES;
+  children: ReactNode;
+}) {
   return (
-    <span className="inline-flex items-center rounded-pill border border-hairline bg-plaster-sunk px-[10px] py-[3px] font-data text-data text-ink-2">
+    <span
+      className={`inline-flex items-center rounded-label px-[6px] py-[2px] font-data text-label uppercase tracking-[0.12em] ${STATUS_TONES[tone]}`}
+    >
       {children}
     </span>
   );

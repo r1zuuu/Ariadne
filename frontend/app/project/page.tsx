@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 import { AppShell, readActiveProject } from "@/components/app-shell";
 import { NodeGraph } from "@/components/node-graph";
 import { useToast } from "@/components/toast";
+import { ScreenHint } from "@/components/screen-hint";
 import {
-  Badge,
   Button,
   Card,
-  Chip,
   EmptyState,
   Input,
+  Meta,
   PageHeader,
   SectionHeader,
   Textarea,
@@ -33,6 +33,7 @@ import {
 
 export default function ProjectScreen() {
   const t = useTranslations("project");
+  const tHint = useTranslations("hint.project");
   const toast = useToast();
 
   const [project, setProject] = useState<Project | null>(null);
@@ -59,11 +60,13 @@ export default function ProjectScreen() {
           <>
             <div className="flex flex-wrap items-start justify-between gap-5 pb-8">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="text-section text-ink">{project.name}</h1>
-                  <Badge tone="blue">{t(`etap.${project.etap}`)}</Badge>
+                <h1 className="text-section text-ink">{project.name}</h1>
+                {/* Stage and repository are both facts about the project, so
+                    they are one metadata line rather than a tinted label beside
+                    the name competing with it. */}
+                <div className="pt-2">
+                  <Meta items={[t(`etap.${project.etap}`), project.repoRef]} />
                 </div>
-                <p className="break-all pt-2 font-data text-data text-ink-2">{project.repoRef}</p>
               </div>
               {!editing ? (
                 <Button variant="secondary" onClick={() => setEditing(true)}>
@@ -71,6 +74,8 @@ export default function ProjectScreen() {
                 </Button>
               ) : null}
             </div>
+
+            <ScreenHint screen="project" title={tHint("title")} note={tHint("note")} />
 
             {editing ? (
               <EditCard
@@ -127,11 +132,9 @@ function ReadView({ project }: { project: Project }) {
       <Card className="p-6">
         <h2 className="pb-3 text-lead text-ink">{t("tech")}</h2>
         {stack.length ? (
-          <div className="flex flex-wrap gap-2">
-            {stack.map((item) => (
-              <Chip key={item}>{item}</Chip>
-            ))}
-          </div>
+          // One metadata line, not a row of chips: a stack is a list of names,
+          // and eight lozenges made it look like eight things you can click.
+          <Meta items={stack} />
         ) : (
           <p className="text-body text-ink-3">{t("techEmpty")}</p>
         )}

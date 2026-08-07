@@ -95,15 +95,23 @@
   --spacing-9: 72px; /* air above a screen heading */
   --spacing-10: 112px; /* entry plate and empty base, nowhere else */
 
-  /* Radius. Three steps, and the jump from 2px to 10px is the redesign: at 2px
-     a group of rows reads as one undifferentiated sheet, which is what made
-     every screen look like the same form. */
+  /* Radius. Four steps, all small. 10px on cards made every screen read as a
+     stack of soft rectangles, which is the look this redesign is getting rid
+     of, so the card drops to 8px and metadata gets a step of its own at 3px.
+     The pill is no longer a badge shape: it survives only for things that are
+     actually circles, which in this app means two 6px dots. */
   --radius-none: 0px;
+  --radius-label: 3px; /* status labels, counters, anything metadata-sized */
   --radius-control: 6px; /* buttons, inputs, selects */
-  --radius-card: 10px; /* anything that groups content */
-  --radius-pill: 999px; /* badges and chips, where the shape is the signal */
+  --radius-card: 8px; /* anything that groups content */
+  --radius-pill: 999px; /* dots only: the toast dot and the server dot */
 
-  /* Motion. Nothing animates a layout property. */
+  /* Motion. Three durations, and nothing outside them: a fourth value invented
+     in a component is how a system stops being one. State is a colour swap,
+     enter is something arriving on screen, thread is the one long move where
+     the point is watching the connection get made. Nothing animates a layout
+     property in CSS; the two JS layout animations are in components/motion.tsx
+     and read these same three numbers. */
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-thread: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-state: 120ms;

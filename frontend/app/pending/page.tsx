@@ -5,7 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell, queueChanged } from "@/components/app-shell";
 import { EntryCard, headline } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
-import { Badge, Button, Card, EmptyState, PageHeader, SectionHeader } from "@/components/ui";
+import { ScreenHint } from "@/components/screen-hint";
+import { Button, Card, EmptyState, Meta, PageHeader, SectionHeader, Status } from "@/components/ui";
 import {
   approvePending,
   archiveNode,
@@ -28,6 +29,7 @@ import {
 
 export default function PendingScreen() {
   const t = useTranslations("pending");
+  const tHint = useTranslations("hint.pending");
   const toast = useToast();
 
   const [feed, setFeed] = useState<{
@@ -70,6 +72,7 @@ export default function PendingScreen() {
     <AppShell>
       <div className="mx-auto max-w-[860px]">
         <PageHeader title={t("title")} lead={t("lead")} />
+        <ScreenHint screen="pending" title={tHint("title")} note={tHint("note")} />
 
         {feed === null ? (
           <p className="text-body text-ink-3">{t("loading")}</p>
@@ -79,11 +82,9 @@ export default function PendingScreen() {
           <div className="flex flex-col gap-10">
             {groups.map((group) => (
               <section key={group.project}>
-                <div className="flex items-baseline gap-3 pb-4">
+                <div className="flex items-baseline gap-4 pb-4">
                   <h2 className="text-lead text-ink">{group.project}</h2>
-                  <Badge tone="ochre">
-                    {t("count", { count: group.actions.length + group.nodes.length })}
-                  </Badge>
+                  <Meta items={[t("count", { count: group.actions.length + group.nodes.length })]} />
                 </div>
 
                 {group.actions.length ? (
@@ -175,14 +176,16 @@ function ActionCard({
 
   return (
     <Card className="p-5">
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge tone={action.action === "delete" ? "iron" : "ochre"}>
+      <div className="flex flex-wrap items-center gap-3">
+        <Status tone={action.action === "delete" ? "contradicted" : "proposed"}>
           {t(`action.${action.action}`)}
-        </Badge>
-        <span className="font-data text-data text-ink-3">
-          {new Date(action.createdAt).toISOString().slice(0, 10)} ·{" "}
-          {tEntry(`by.${action.requestedBy === "coder" ? "coder" : "app_chat"}`)}
-        </span>
+        </Status>
+        <Meta
+          items={[
+            new Date(action.createdAt).toISOString().slice(0, 10),
+            tEntry(`by.${action.requestedBy === "coder" ? "coder" : "app_chat"}`),
+          ]}
+        />
       </div>
 
       <p className="pt-3 text-body font-medium leading-7 text-ink">
