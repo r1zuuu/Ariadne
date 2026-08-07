@@ -47,10 +47,13 @@ function asContext(found: Retrieved[]): string {
 }
 
 const ANSWER_RULES = [
+  // First and repeated, because it was being dropped exactly where it matters
+  // most: on "the entries do not cover this", the model followed the language of
+  // these instructions instead of the language of the question.
+  "Always write in the same language as the question. A Polish question gets a Polish answer, including when the answer is that you do not know.",
   "You answer questions about a project's recorded history from the entries given to you.",
-  "Use only those entries. If they do not cover the question, say so in one sentence and stop.",
+  "Use only those entries. If they do not cover the question, say so in one sentence, in the question's language, and stop.",
   "Cite with the bracketed number of the entry you used, like [2], right after the claim it supports.",
-  "Answer in the language the question was asked in.",
   "Be short. Two or three sentences unless the question genuinely needs more.",
   "Never invent a date, a file path or a decision that is not in the entries.",
 ].join(" ");

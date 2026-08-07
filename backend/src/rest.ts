@@ -15,14 +15,19 @@ import {
   archiveNode,
   confirmNode,
   contradictNode,
+  appendToConversation,
   createApiToken,
+  createConversation,
   createProject,
   deleteApiToken,
+  deleteConversation,
   editNode,
   getAccount,
+  getConversation,
   getGraph,
   getReviewFeed,
   listApiTokens,
+  listConversations,
   listNodes,
   listProjects,
   login,
@@ -75,6 +80,8 @@ const PROTECTED_PREFIXES = [
   "/nodes/*",
   "/search",
   "/chat/*",
+  "/conversations",
+  "/conversations/*",
 ];
 
 type Env = { Variables: { jwtPayload: { sub: string } } };
@@ -122,6 +129,23 @@ const chatQuerySchema = z.object({
   question: z.string(),
 });
 
+// The shape of a message is the service's rule (it owns the same check for the
+// create and the update path), so this layer only says that it is an array.
+const conversationQuery = z.object({
+  projectId: z.string(),
+  kind: z.string(),
+});
+
+const conversationSchema = z.object({
+  projectId: z.string(),
+  kind: z.string(),
+  messages: z.array(z.unknown()),
+});
+
+const transcriptSchema = z.object({
+  messages: z.array(z.unknown()),
+});
+
 const chatEditSchema = z.object({
   projectId: z.string(),
   message: z.string(),
@@ -137,6 +161,9 @@ const listQuery = z.object({
   file: z.string().optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().optional(),
+  // Enumerated here rather than in the service, unlike status and type: there
+  // are exactly two orderings and neither is a domain value the service owns.
+  sort: z.enum(["created", "updated"]).optional(),
 });
 
 // Reading the body and validating it fail the same way for the caller: a 400
@@ -284,7 +311,7 @@ export function createRestApp() {
   // --- Nodes: what the listing screens read (plan step 5a.1) ---
 
   app.get("/projects/:id/nodes", async (c) => {
-    const { status, type, file, cursor, limit } = listQuery.parse(c.req.query());
+    const { status, type, file, cursor, limit, sort } = listQuery.parse(c.req.query());
     return c.json(
       await listNodes({
         userId: userId(c),
@@ -294,6 +321,7 @@ export function createRestApp() {
         file,
         cursor,
         limit,
+        sort,
       }),
     );
   });
@@ -339,6 +367,39 @@ export function createRestApp() {
 
   app.post("/nodes/:id/archive", async (c) => {
     await archiveNode({ userId: userId(c), nodeId: c.req.param("id") });
+    return c.body(null, 204);
+  });
+
+  // --- Conversation history (both chats keep a transcript) ---
+
+  app.get("/conversations", async (c) => {
+    const { projectId, kind } = conversationQuery.parse(c.req.query());
+    return c.json(await listConversations({ userId: userId(c), projectId, kind }));
+  });
+
+  app.get("/conversations/:id", async (c) =>
+    c.json(await getConversation({ userId: userId(c), conversationId: c.req.param("id") })),
+  );
+
+  app.post("/conversations", async (c) => {
+    const { projectId, kind, messages } = await readBody(c, conversationSchema);
+    return c.json(await createConversation({ userId: userId(c), projectId, kind, messages }));
+  });
+
+  // PUT, not PATCH: the body is the whole transcript, not a delta.
+  app.put("/conversations/:id", async (c) => {
+    const { messages } = await readBody(c, transcriptSchema);
+    return c.json(
+      await appendToConversation({
+        userId: userId(c),
+        conversationId: c.req.param("id"),
+        messages,
+      }),
+    );
+  });
+
+  app.delete("/conversations/:id", async (c) => {
+    await deleteConversation({ userId: userId(c), conversationId: c.req.param("id") });
     return c.body(null, 204);
   });
 

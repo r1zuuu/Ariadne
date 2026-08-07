@@ -27,11 +27,13 @@ type:
   scale: 43/34/27/21/17/15/13/11, ratio 1.26
   measure: 68ch
 space: [2, 4, 8, 12, 16, 24, 32, 48, 72, 112]
-radius: [0, 2]
+radius: [0, 3, 6, 8, 999]   # none, label, control, card, dot
+surface: "#FFFFFF"          # cards sit on plaster as white paper
 motion:
   state:  120ms cubic-bezier(0.22,1,0.36,1)
   enter:  200ms cubic-bezier(0.22,1,0.36,1)
   thread: 420ms cubic-bezier(0.16,1,0.3,1)
+  library: motion (m + LazyMotion domMax, strict), MotionConfig reducedMotion="user"
 a11y: WCAG 2.2 AA, status never color-only, reduced-motion honoured
 ---
 
@@ -88,34 +90,131 @@ renderer would smear the regular one.
 **The Measure Rule.** Body text is 17px/28px in a 68-character column, because a
 4000-character entry is a normal read, not an edge case.
 
+**The Metadata Voice Rule.** Type, date, channel, project and technology are one
+voice, not one shape each: 11px mono, uppercase, tracked 0.12em, strung together
+with a middle dot. `DECYZJA · 26 LIP · AGENT`, no background and no border. This
+replaces the pills the app used to put around each of them, which gave four
+coloured lozenges the same weight as the sentence they described and made every
+screen look like every other AI tool. The one exception is status, below.
+
 # Elevation
 
-There is one shadow in the product: `0 8px 24px oklch(0.26 0.02 250 / 0.14)`, worn
-by the command palette and the context menu only. Everything else separates by a
-1px border or by background step: plaster, plaster-sunk, plaster-raised.
+Two shadows. `0 1px 2px / 0 1px 1px oklch(0.26 0.02 250 / ~0.05)` lifts a card off
+the tinted background just enough to read as a group. `0 8px 24px oklch(0.26 0.02
+250 / 0.14)` is for things that genuinely float: the command palette, a menu, a
+toast.
 
-**The Paper Rule.** Panels are cut paper, not floating cards: a border, a
-background step, zero radius above 2px.
+**The Card Is an Action Unit.** A card is for something you can do something to:
+an entry with approve and reject under it, a panel with a control in it. Content
+you can only read is a section, separated by a hairline and some air. Ten white
+rectangles in a column is packaging, not structure, and it is most of what made
+the app read as generic. A card is `--color-surface`, a hairline border, 8px
+radius and the card shadow; the same content without actions is the same text
+over `border-b border-hairline` and 24px of space underneath.
+
+**The Tint Carries the Page.** The app background holds the colour and the card
+does not. A card is white, which is what separates it without a border on every
+side.
+
+**The Radius Scale.** Four steps and all of them small: 3px for a metadata
+label, 6px for anything you can type into or click, 8px for anything that
+groups, 0 for markers and rules. 999px is not a shape in this system any more,
+it survives for the two 6px dots that are actually circles (the toast dot and
+the server dot on the login screen). A rounded rectangle at 9999px is the AI/SaaS
+house style and it is not this one.
 
 **The Modal Last Rule.** A modal is the last resort, allowed only for bulk
 deletion; everything else resolves in place.
 
 # Components
 
-Seventeen components: TitleBar, SideRail, CommandPalette, ProjectRow, NodeRow,
-Reader, Provenance, StatusChip, Citation, DiffPair, QueueItem, GraphCanvas,
-CommandBlock, Banner, EmptyPlate, Field, Button. Each has rest, hover, focus,
-active, disabled and error where applicable; focus is always
-`outline: 2px var(--blue); outline-offset: 2px`.
+Primitives live in `components/ui.tsx`: Button, IconButton, Input, Textarea,
+Card, Meta, Status, EmptyState, PageHeader, SectionHeader, Banner, Field, Label.
+Meta and Status replaced Badge and Chip, which were the same pill wearing two
+tints. Anything with state or data of its own is its own file: AppShell (title
+bar, column, project switcher), Composer, EntryCard, StatusMark, NodeGraph,
+Toast, ScreenHint, and the three motion wrappers in `components/motion.tsx`.
+Each has rest, hover, focus, active, disabled and error where applicable; focus
+is always `outline: 2px var(--blue); outline-offset: 2px`, and controls that type
+also take `ring-2 ring-blue/15`.
+
+Fixed heights: control 36px, large control and input 44px, title bar 38px.
+Written in brackets in the class list, because `globals.css` remaps Tailwind's
+spacing keys onto the ten-step scale, so `h-9` is 72px and not 36px.
 
 **The Shape Plus Word Rule.** Every status renders as marker shape plus written
-label plus, where it exists, its reason.
+label plus, where it exists, its reason. Status is the one label that kept a
+tinted background, because it is the thing the reader has to act on and it earns
+the weight the rest of the metadata gave up; the word is always inside it, so
+greyscale still reads. The four-shape marker is for the graph and for lists where
+colour alone would carry it.
 
-**The Row Height Rule.** A node row is 44px and shows one sentence; reading the
-full entry happens in the Reader, never in the list.
+**The Two Explanations Rule.** The product model is explained once, at
+`/onboarding-tour`, in three steps: Ariadne remembers, Ariadne answers, you
+decide. Each screen then explains itself once, in one line, the first time it is
+opened (`ScreenHint`), and never again. Both are dismissible, both are recallable
+from "Oprowadź mnie po Ariadne" in the column, and the tour ends on a real
+question rather than a Done button. `/onboarding` is a different thing: the
+account wizard, profile and first project and agent token.
+
+**The One Composer Rule.** There is one place a person types at Ariadne and it
+looks the same in all three: dashboard, assistant, add-context. Enter sends,
+Shift+Enter breaks the line, and the field says so under itself.
+
+**The Feedback Rule.** Every action that writes says what happened, in a toast,
+in the words the reader would use: "entry added to the project context", not
+"200 OK".
+
+**The Row Height Rule.** A node row shows one sentence; reading the full entry
+happens behind "show more" or in the Reader, never as a wall in the list.
 
 **The Terminal Once Rule.** Dark background plus monospace on a light app is
 honest exactly once: the onboarding command block.
+
+# Motion
+
+Three durations and two curves, in `globals.css`, and nothing outside them: a
+fourth value invented in a component is how a system stops being one. `state`
+120ms is a colour or a border changing under the pointer. `enter` 200ms is
+something arriving on screen. `thread` 420ms is the one long move, used only
+where watching the connection get made is the point. Nothing goes past 450ms.
+
+The library is `motion`, used as `m` inside `LazyMotion`, in strict mode so a
+stray `motion` import throws instead of quietly pulling every feature into the
+first chunk that touches it. The feature set is `domMax` rather than the smaller
+`domAnimation`, because shared-layout animation lives only in `domMax` and the
+library does not export the layout feature on its own.
+`MotionConfig reducedMotion="user"` wires `prefers-reduced-motion` into every
+component at once; `FadeIn` and `Collapse` also ask directly, because height is
+not a transform and would otherwise sail through. Under reduced motion nothing
+moves and every state still changes, so no information lives in the movement.
+
+Motion happens in exactly four places.
+
+**The navigation marker travels.** One `layoutId` for the whole column, so
+changing screen slides the marker from the old row to the new one, at `enter`.
+It says where you came from, which a marker that blinks out here and in there
+does not. This is the thread inside the app frame and the only thing in the frame
+that moves. It runs at `enter` and not `thread` because a frame that takes 420ms
+to catch up with the page reads as lag.
+
+**Things that arrive fade up 4px.** `FadeIn`, at `enter`: a message, an answer, a
+proposal, a step of the tour, a screen hint. The rise says it came from below
+rather than being swapped in place, which is how the reader tells new content
+from a re-render.
+
+**Things that belong to something else grow out of it.** `Collapse`, at `enter`:
+sources under an answer, past conversations under a heading. Height is the whole
+message. A panel that grows out of the answer is part of the answer; the same
+panel appearing beside it is a second thing on screen.
+
+**The onboarding thread draws itself.** One `pathLength` stroke down the left of
+the three tour steps, at `thread`, in `--color-blue`. It is the brand metaphor
+doing an actual job: the reader watches the line reach the step they are on. One
+stroke, one screen, nowhere else.
+
+Never: bounce, overshoot, springiness as a default, parallax, pulsing gradients,
+glow, page-level slides or zooms, or animating a token you invented on the spot.
 
 # Do's and Don'ts
 
@@ -123,10 +222,15 @@ Do write the reason next to the status: `contradicted by entry 418`, not a red
 square. Do state what a toggle does in both positions. Do use exact timestamps.
 Do keep the queue ignorable and say so in words.
 
-Don't put a coloured bar thicker than 1px on the left of anything. Don't gradient
-text. Don't nest a card in a card. Don't use the blue thread as a divider. Don't
-congratulate, apologise or exclaim. Don't invent a fifth accent for a fifth
-meaning; add a shape instead.
+Don't gradient text. Don't nest a card in a card. Don't put a card around
+something nobody can act on. Don't use the blue thread as a divider. Don't put a
+pill around a label; set it in the metadata voice, and if it is a status give it
+the 3px rectangle. Don't congratulate, apologise or exclaim. Don't invent a fifth
+accent for a fifth meaning; add a shape instead. Don't mark the current thing
+with a line alone: give it a surface. Don't leave a button click without a
+sentence saying what happened. Don't write an empty state that only says a list
+is empty; say what it means and what to do next. Don't explain a screen twice:
+the hint fires once, then never.
 
 **The No Guessing Rule.** If a label, count or state could be misread by someone
 who has never seen this app, spell it out in a sentence instead.

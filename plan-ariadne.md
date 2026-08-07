@@ -23,12 +23,14 @@ Jak uruchomic: docker compose up -d dla bazy, npm run dev w backend (port 3000),
 
 Czego brakuje w 5b: nic. Krok domkniety.
 
+- Redesign UI (planUI.md): karty zamiast ciaglych hairline'ow, prawdziwy project switcher, czytelny active state, composer na dashboardzie oddajacy pytanie asystentowi, zwijane zrodla, kolejka grupowana po projekcie, projekt jako profil do czytania, split screen na logowaniu z obrazem z public/. Doszly toasty po kazdym zapisie i empty states mowiace co dalej. DESIGN.md przepisany: Paper Rule (zero radius powyzej 2px, zadnych kart) zastapiona Card Rule.
+
 Zostaje z MVP: ekran 8 (ustawienia: profil, tokeny, all-permission).
 
 Jedna decyzja czeka na usera:
 1. Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie. Rekomendacja: wyciac z ekranu 01 i przeniesc do sekcji 14, bo OAuth w Tauri to loopback albo deep link plus endpoint providera, a konto na haslo juz dziala.
 
-Czego swiadomie nie ma w ekranie 3: kolumny nawigacyjnej z wariantu 2c i przycisku do pelnej listy wpisow. Oba prowadza do ekranow 4 do 8, ktorych nie ma. Wracaja razem z pierwszym z tych ekranow.
+Czego swiadomie nie ma po redesignie: przycisku "Zatwierdz wszystkie" (brak endpointu wsadowego, a hurtowe zatwierdzanie nieprzeczytanej wiedzy kloci sie z zasada, ze nic nie trafia do pamieci bez swiadomej zgody). Sekcja "ostatnia aktywnosc" zlozona z updatedAt i createdAt, bez tabeli zdarzen.
 
 ## 1. Problem i cel
 
@@ -371,6 +373,95 @@ Ustalenia z realizacji (krok 5a):
 
 Nietechniczny user zyje w ekranach 3, 5, 6. Techniczny dodatkowo w 4 i 7. Nic wiecej w wersji pierwszej.
 
+## 11a. First-run onboarding (product education)
+
+Problem: model Ariadne jest nietypowy. Nowy user nie wie, co produkt zapamietuje,
+czym rozni sie pytanie od dodawania wiedzy, ani dlaczego cokolwiek trzeba
+zatwierdzac. Copy na ekranach tego nie udzwignelo, bo tlumaczy pojedynczy ekran,
+a nie caly obieg.
+
+Cel: po pierwszym uruchomieniu user umie powiedziec wlasnymi slowami, ze mowi
+Ariadne o decyzjach, ze pyta ja pozniej, i ze nic nie wchodzi do pamieci bez jego
+zgody.
+
+Flow: trzy ekrany o modelu (pamieta / odpowiada / ty decydujesz), nic wiecej.
+Konczy sie realna akcja (pierwsze pytanie), nie przyciskiem "Gotowe". Po nich
+jednorazowa podpowiedz przy pierwszym wejsciu na Zapytaj, Dodaj do pamieci i Do
+zatwierdzenia, mowiaca czym ten ekran rozni sie od sasiada.
+
+Dlaczego nie tour po ekranach z tooltipami: NN/g ("Onboarding Tutorials vs.
+Contextual Help") pokazuje, ze tutorial na starcie zwykle szkodzi, bo podaje
+informacje bez kontekstu. Wyjatkiem jest nowy paradygmat interakcji, i to
+uzasadnia trzy ekrany o modelu, ale nie oprowadzanie po menu. Ich rekomendacja to
+"pull revelations": pomoc tam, gdzie jest potrzebna.
+
+Persistence: localStorage, nie baza. To preferencja tego okna, nie wiedza o
+projekcie, a kolumna w users dla flagi bylaby zmiana schematu dla jednego boola.
+Restart przez pozycje "Oprowadz mnie po Ariadne" w kolumnie.
+
+Gotowe gdy: pierwsze uruchomienie na czystym localStorage pokazuje trzy ekrany;
+Pomin dziala i nie wraca; podpowiedz na kazdym z trzech ekranow pokazuje sie raz;
+restart z menu odtwarza caly przebieg.
+
+## 11b. Historia rozmow i historia dodawania do pamieci
+
+Problem: zamkniecie ekranu Zapytaj kasowalo rozmowe, a Dodaj kontekst byl
+formularzem, po ktorym interakcja znikala. User nie mial gdzie wrocic po to, co
+sam napisal, ani sprawdzic, co sie stalo z jego propozycja.
+
+Rozwiazanie: tabela `conversations` (jedna, `kind` = ask / memory), bo obie
+historie to ta sama rzecz i roznia sie tylko tym, co Ariadne z odpowiedzia robi.
+Wiadomosci w jsonb, bo rozmowa jest zawsze czytana w calosci. Tytul z pierwszego
+zdania, bez wolania modelu.
+
+Statusy propozycji nie sa duplikowane w rozmowie: wiadomosc trzyma `nodeId` i
+`pendingActionId`, a biezacy status doczytuje sie z feedu. Kopia bylaby nieaktualna
+w chwili zatwierdzenia.
+
+Endpointy: GET/POST /conversations, GET/PUT/DELETE /conversations/:id. PUT, nie
+PATCH, bo cialem jest caly transkrypt: ekran wie, co pokazuje, a doklejanie
+wymagaloby indeksu tury, ktorego klient nie prowadzi.
+
+Gotowe gdy: rozmowa przezywa przejscie na inny ekran i powrot; druga rozmowa nie
+nadpisuje pierwszej; lista pokazuje tytuly z datami; historia dodawania pokazuje
+co user napisal, co Ariadne zaproponowala i biezacy status.
+
+## 11c. Jezyk wizualny, druga iteracja
+
+Metadane (typ, data, kanal, technologie) to mono w wersalikach rozdzielone kropka
+srodkowa, nie kolorowe pigulki. Kolor zostaje wylacznie dla statusu, ktory czeka
+na decyzje. Zrodlo: system Geist, gdzie mono w wersalikach pelni role "developer
+console voice". Powod produktowy: cztery lozenges obok siebie daly metadanym te
+sama wage co zdaniu, ktore opisuja.
+
+Karta oznacza jednostke dzialania. Wpis z przyciskami jest karta, wpis do samego
+czytania to sekcja miedzy hairline'ami. Dziesiec bialych prostokatow, w ktorych
+nie ma nic do klikniecia, to opakowanie wokol tekstu.
+
+Radius: label 3px, kontrolka 6px, karta 8px. Pill wylacznie dla rzeczy, ktore
+naprawde sa okragle (dwie kropki statusu).
+
+## 11d. Motion system
+
+Trzy tokeny czasu, te same co w CSS: state 120ms (zmiana koloru), enter 200ms
+(cos pojawia sie na ekranie), thread 420ms (jedyny dluzszy ruch, gdzie sens polega
+na zobaczeniu polaczenia). Czwarta wartosc wymyslona w komponencie to koniec
+systemu.
+
+Biblioteka: `motion` (nastepca framer-motion), z LazyMotion i komponentem `m`,
+zeby paczka zostala przy okolo 6 kB zamiast 34 kB.
+
+Animujemy tylko to, co odpowiada na pytanie "skad to przyszlo" albo "gdzie to
+poszlo": wskaznik aktywnej pozycji wedrujacy miedzy pozycjami menu, rozwijanie
+zrodel jako czesc odpowiedzi, wejscie wiadomosci i propozycji, oraz karta w
+kolejce, ktora najpierw potwierdza decyzje, a dopiero potem znika.
+
+`prefers-reduced-motion` zdejmuje ruch i zostawia zmiane stanu.
+
+Gotowe gdy: nawigacja miedzy ekranami nie wyglada jak przeladowanie; zadna
+animacja nie przekracza 450ms; wlaczenie reduced motion nie psuje zrozumienia
+zadnego przeplywu.
+
 ## 12. Decyzje techniczne
 
 - Embeddingi: gemini-embedding-001 z output_dimensionality: 768 (MRL, pelny wymiar 3072 sciety bez straty jakosci), zamrozone w vector(768). Koszt: 0.15 USD za 1M tokenow wejsciowych. Zmiana modelu = przeliczenie wszystkich wektorow skryptem (jedyna kosztowna zmiana, zaakceptowana swiadomie).
@@ -504,10 +595,7 @@ Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym
 
 ## 15. Frontend, pozniej
 
-Labirynt na ekranie wejscia, wersja rozswietlana kursorem. Dzis to statyczna plansza 440 px, jedna linia w blekicie egipskim, nic wychodzi dolem. Docelowo: duza plansza, ktora rozjasnia sie wokol kursora, tak zeby dalo sie wodzic po sciezce i zobaczyc, ze to naprawde jedna linia od wejscia do srodka.
-- Jak to zrobic: maska radialna sledzaca wskaznik nad tym samym pojedynczym path, jasnosc malejaca z odlegloscia, bez zmiany grubosci kreski i bez drugiego koloru. Ruch tylko na masce, wiec nic w ukladzie sie nie animuje. Przy prefers-reduced-motion maska nie sledzi, cala figura swieci rowno.
-- Warunek wstepny: prawdziwa topologia labiryntu kretenskiego, siedem obwodow, zamiast obecnego prostokatnego meandra. Dzis meander wystarcza, bo nikt po nim nie wodzi wzrokiem. Rozswietlanie zaprasza do wodzenia, a wtedy falszywa topologia zaczyna klamac: sciezka, ktora wyglada na przejscie, nie prowadzi do srodka. Oznaczone `ponytail:` w components/labyrinth-plate.tsx.
-- Kiedy wrocic: gdy ekran wejscia bedzie ostatnia rzecza do dopracowania, nie przed ekranami 3 do 8. To jest ozdoba z uzasadnieniem, ale nadal ozdoba, a piec ekranow czeka na endpointy z 5a.1.
+Labirynt z ekranu wejscia usuniety razem z redesignem UI. Ekran logowania to teraz split screen z obrazem (dlon i zlota nic) w public/, a rozswietlanie kursorem nie ma juz nosnika. Gdyby kiedys wrocil: warunkiem wstepnym byla prawdziwa topologia labiryntu kretenskiego, bo rozswietlanie zaprasza do wodzenia wzrokiem, a falszywy meander wtedy klamie.
 
 Inne pozycje frontendu, ktore czekaja na decyzje albo na dane:
 - Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie. OAuth w Tauri wymaga loopbacku albo deep linku plus endpointu providera.

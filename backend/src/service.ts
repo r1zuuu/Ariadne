@@ -2,7 +2,15 @@ import { createHash, randomBytes } from "node:crypto";
 import { hash as hashPassword, verify as verifyArgon2 } from "@node-rs/argon2";
 import { and, cosineDistance, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "./db/client.js";
-import { apiTokens, codeAnchors, nodes, pendingActions, projects, users } from "./db/schema.js";
+import {
+  apiTokens,
+  codeAnchors,
+  conversations,
+  nodes,
+  pendingActions,
+  projects,
+  users,
+} from "./db/schema.js";
 import { embed } from "./gemini.js";
 
 // Business logic lives here once; MCP tools and REST endpoints are thin
@@ -283,6 +291,13 @@ export async function listNodes(input: {
   file?: string;
   cursor?: string;
   limit?: number;
+  /**
+   * 'created' is the reading order: newest thought first. 'updated' answers a
+   * different question, "what has been touched lately", which an entry written
+   * a month ago and corrected yesterday only appears in under this order.
+   * Paging stays on created, so this is a first-page-only sort.
+   */
+  sort?: "created" | "updated";
 }) {
   assertUuid(input.userId, "userId");
   assertUuid(input.projectId, "projectId");
@@ -319,20 +334,33 @@ export async function listNodes(input: {
   }
   if (input.cursor) filters.push(afterCursor(input.cursor));
 
+  // The cursor is built from createdAt, so paging and 'updated' cannot be mixed:
+  // rejected here rather than silently returning a window that skips rows.
+  if (input.cursor && input.sort === "updated") {
+    throw new ServiceError("validation", "sort=updated cannot be paged; it has no cursor");
+  }
+
   const rows = await db
     .select(NODE_COLUMNS)
     .from(nodes)
     .where(and(...filters))
     // id breaks ties: two nodes written in the same millisecond would otherwise
     // come back in an arbitrary order and the cursor could skip or repeat one.
-    .orderBy(desc(nodes.createdAt), desc(nodes.id))
+    .orderBy(
+      input.sort === "updated" ? desc(nodes.updatedAt) : desc(nodes.createdAt),
+      desc(nodes.id),
+    )
     .limit(limit + 1); // one extra row answers "is there a next page" without a count
 
   const page = rows.slice(0, limit);
   const last = page.at(-1);
+  // No cursor under sort=updated: it encodes createdAt, so handing one out here
+  // would produce a token that pages through a different ordering than the one
+  // it came from.
+  const pageable = input.sort !== "updated" && rows.length > limit && last;
   return {
     nodes: await attachAnchors(page),
-    nextCursor: rows.length > limit && last ? `${last.createdAt.toISOString()}|${last.id}` : null,
+    nextCursor: pageable && last ? `${last.createdAt.toISOString()}|${last.id}` : null,
   };
 }
 
@@ -1022,6 +1050,158 @@ export async function getGraph(input: { userId: string; projectId: string }) {
         })),
     ],
   };
+}
+
+// --- Conversations (plan section 11, screens 5 and 6) ---
+
+export type ConversationKind = "ask" | "memory";
+const CONVERSATION_KINDS = ["ask", "memory"] as const;
+const TITLE_LENGTH = 70;
+const CONVERSATION_LIST_LIMIT = 20;
+const MAX_MESSAGES = 200;
+
+/** One turn. `sources` belongs to an answer, `proposals` to a memory reply. */
+export type ConversationMessage = {
+  role: "user" | "ariadne";
+  text: string;
+  sources?: unknown[];
+  proposals?: unknown[];
+};
+
+function assertKind(kind: string): asserts kind is ConversationKind {
+  if (!CONVERSATION_KINDS.includes(kind as ConversationKind)) {
+    throw new ServiceError("validation", `kind must be one of: ${CONVERSATION_KINDS.join(", ")}`);
+  }
+}
+
+// A label, not a summary. Cutting on a word boundary rather than mid-word,
+// because the alternative reads like a bug.
+function titleFrom(text: string): string {
+  const flat = text.trim().replace(/\s+/g, " ");
+  if (flat.length <= TITLE_LENGTH) return flat;
+  const cut = flat.slice(0, TITLE_LENGTH);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${lastSpace > TITLE_LENGTH / 2 ? cut.slice(0, lastSpace) : cut}…`;
+}
+
+function assertMessages(messages: unknown): asserts messages is ConversationMessage[] {
+  if (!Array.isArray(messages)) {
+    throw new ServiceError("validation", "messages must be an array");
+  }
+  if (messages.length > MAX_MESSAGES) {
+    throw new ServiceError("validation", `a conversation holds at most ${MAX_MESSAGES} messages`);
+  }
+  for (const message of messages) {
+    const turn = message as ConversationMessage;
+    if (turn?.role !== "user" && turn?.role !== "ariadne") {
+      throw new ServiceError("validation", "each message needs role 'user' or 'ariadne'");
+    }
+    if (typeof turn.text !== "string") {
+      throw new ServiceError("validation", "each message needs text");
+    }
+  }
+}
+
+export async function listConversations(input: {
+  userId: string;
+  projectId: string;
+  kind: string;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  assertKind(input.kind);
+  await assertProjectOwned(input.userId, input.projectId);
+
+  // Titles and timestamps only. The list is a way back into a conversation, and
+  // shipping every message of the last twenty would be most of the table.
+  return db
+    .select({
+      id: conversations.id,
+      title: conversations.title,
+      createdAt: conversations.createdAt,
+      updatedAt: conversations.updatedAt,
+    })
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.userId, input.userId),
+        eq(conversations.projectId, input.projectId),
+        eq(conversations.kind, input.kind),
+      ),
+    )
+    .orderBy(desc(conversations.updatedAt))
+    .limit(CONVERSATION_LIST_LIMIT);
+}
+
+export async function getConversation(input: { userId: string; conversationId: string }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.conversationId, "conversationId");
+
+  const [found] = await db
+    .select()
+    .from(conversations)
+    .where(
+      and(eq(conversations.id, input.conversationId), eq(conversations.userId, input.userId)),
+    );
+  if (!found) throw new ServiceError("not_found", "conversation not found for this user");
+  return found;
+}
+
+export async function createConversation(input: {
+  userId: string;
+  projectId: string;
+  kind: string;
+  messages: unknown;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  assertKind(input.kind);
+  assertMessages(input.messages);
+  await assertProjectOwned(input.userId, input.projectId);
+
+  const opening = input.messages.find((m) => m.role === "user");
+  if (!opening) {
+    throw new ServiceError("validation", "a conversation starts with a message from the user");
+  }
+
+  const [created] = await db
+    .insert(conversations)
+    .values({
+      userId: input.userId,
+      projectId: input.projectId,
+      kind: input.kind,
+      title: titleFrom(opening.text),
+      messages: input.messages,
+    })
+    .returning();
+  return created;
+}
+
+// Whole-array replace, not append: the client owns the transcript it is showing
+// and a partial append would need a turn index the client does not track.
+export async function appendToConversation(input: {
+  userId: string;
+  conversationId: string;
+  messages: unknown;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.conversationId, "conversationId");
+  assertMessages(input.messages);
+  // Ownership before the write, so another user's id fails as not_found rather
+  // than quietly updating nothing.
+  await getConversation({ userId: input.userId, conversationId: input.conversationId });
+
+  const [updated] = await db
+    .update(conversations)
+    .set({ messages: input.messages, updatedAt: new Date() })
+    .where(eq(conversations.id, input.conversationId))
+    .returning();
+  return updated;
+}
+
+export async function deleteConversation(input: { userId: string; conversationId: string }) {
+  await getConversation(input);
+  await db.delete(conversations).where(eq(conversations.id, input.conversationId));
 }
 
 export async function createProject(input: { userId: string; card: ProjectCard }) {
