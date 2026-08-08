@@ -20,7 +20,7 @@ import { resetTour } from "@/lib/first-run";
 
 const ACTIVE_PROJECT_KEY = "ariadne.activeProject";
 
-export type Section = "home" | "project" | "assistant" | "database" | "pending";
+export type Section = "home" | "project" | "assistant" | "database" | "pending" | "settings";
 
 // `label` is not always the section name: "database" is what the screen has
 // always been called in the code and the URL, but "Dodaj kontekst" told a
@@ -60,6 +60,13 @@ const LINKS: {
     href: "/pending",
     needsProject: false,
     icon: <IconQueue />,
+  },
+  {
+    section: "settings",
+    label: "settings",
+    href: "/settings",
+    needsProject: false,
+    icon: <IconSettings />,
   },
 ];
 
@@ -385,6 +392,18 @@ function IconQueue() {
   return (
     <svg {...stroke}>
       <path d="M3 5h12M3 9h12M3 13h7" />
+    </svg>
+  );
+}
+
+// A dial rather than the usual cogwheel: the settings here are a handful of
+// switches, and a gear promises machinery that is not behind it.
+function IconSettings() {
+  return (
+    <svg {...stroke}>
+      <path d="M2.5 6h9M14 6h1.5M2.5 12h4M9 12h6.5" />
+      <circle cx="12.5" cy="6" r="1.6" />
+      <circle cx="7.5" cy="12" r="1.6" />
     </svg>
   );
 }

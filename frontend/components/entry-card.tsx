@@ -31,13 +31,22 @@ function body(content: string): string {
   return end ? content.slice(end.index + 1).trim() : "";
 }
 
+/**
+ * The part of an address before the @. A metadata line runs in uppercase mono
+ * and a full address would take most of it, while the local part is what tells
+ * two people on a team apart.
+ */
+function who(email: string): string {
+  return email.split("@")[0];
+}
+
 export function EntryCard({
   entry,
   meta,
   actions,
   showStatus = true,
 }: {
-  entry: Pick<Node, "content" | "type" | "status" | "createdAt">;
+  entry: Pick<Node, "content" | "type" | "status" | "createdAt" | "author" | "confirmedBy">;
   /** Date, project, channel. Joined onto the type in the metadata line. */
   meta?: ReactNode;
   actions?: ReactNode;
@@ -53,7 +62,19 @@ export function EntryCard({
       {/* Type and provenance in one metadata line, status in the one label that
           still carries colour, because the status is the part you act on. */}
       <div className="flex flex-wrap items-center gap-3">
-        <Meta items={[t(`type.${entry.type}`), meta]} />
+        {/* Who wrote it, and for a settled entry who settled it. In an archive
+            of one that is your own name twice; in a shared one it is the
+            difference between your decision and somebody else's. */}
+        <Meta
+          items={[
+            t(`type.${entry.type}`),
+            meta,
+            entry.author ? who(entry.author) : null,
+            entry.status === "confirmed" && entry.confirmedBy
+              ? t("confirmedBy", { at: who(entry.confirmedBy) })
+              : null,
+          ]}
+        />
         {showStatus ? (
           <Status tone={entry.status}>{tHome(`status.${entry.status}`)}</Status>
         ) : null}

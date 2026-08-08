@@ -117,6 +117,10 @@ export type Project = {
   etap: string;
   ograniczenia: string;
   updatedAt: string;
+  /** Which archive it belongs to. A project can come from a shared workspace. */
+  workspaceId: string;
+  /** Absent on the row POST /projects hands back, which joins nothing. */
+  workspaceName?: string;
   /** Everything not archived. Absent on the row POST /projects hands back. */
   nodeCount?: number;
   /** The 'proposed' slice of the above, the number the main screen acts on. */
@@ -136,6 +140,11 @@ export type Node = {
   createdAt: string;
   /** Equal to createdAt until someone edits or settles the entry. */
   updatedAt: string;
+  /** Email of whoever recorded it. Null once that account is gone. */
+  author?: string | null;
+  /** Email of whoever moved it to confirmed, and when. */
+  confirmedBy?: string | null;
+  confirmedAt?: string | null;
 };
 
 export const login = (email: string, password: string) =>
@@ -175,8 +184,88 @@ export const listNodes = (
   );
 };
 
-export const mintToken = (label: string) =>
-  request<{ id: string; label: string; token: string }>("/tokens", { method: "POST", body: { label } });
+// Without a workspace the backend files it under the private one, which is what
+// onboarding means and what an account with a single archive always means.
+export const mintToken = (label: string, workspaceId?: string) =>
+  request<{ id: string; label: string; token: string }>("/tokens", {
+    method: "POST",
+    body: { label, workspaceId },
+  });
+
+export type ApiToken = {
+  id: string;
+  label: string;
+  workspaceId: string;
+  workspaceName: string;
+  createdAt: string;
+  /** Null until a coder actually connects with it. */
+  lastUsedAt: string | null;
+};
+
+export const listTokens = () => request<ApiToken[]>("/tokens");
+
+export const deleteToken = (id: string) => request<void>(`/tokens/${id}`, { method: "DELETE" });
+
+export const setAllPermission = (allPermission: boolean) =>
+  request<{ allPermission: boolean }>("/me/all-permission", {
+    method: "PUT",
+    body: { allPermission },
+  });
+
+export const changePassword = (currentPassword: string, newPassword: string) =>
+  request<void>("/me/password", { method: "PUT", body: { currentPassword, newPassword } });
+
+// --- Workspaces: who shares an archive ---
+
+export type Workspace = {
+  id: string;
+  name: string;
+  role: "owner" | "member";
+  isOwner: boolean;
+  memberCount: number;
+  createdAt: string;
+};
+
+export type Member = {
+  userId: string;
+  email: string;
+  role: "owner" | "member";
+  joinedAt: string;
+};
+
+export type Invite = {
+  id: string;
+  code: string;
+  /** When set, only that address can accept the code. */
+  email: string | null;
+  expiresAt: string;
+  createdAt: string;
+};
+
+export const listWorkspaces = () => request<Workspace[]>("/workspaces");
+
+export const createWorkspace = (name: string) =>
+  request<Workspace>("/workspaces", { method: "POST", body: { name } });
+
+export const listMembers = (workspaceId: string) =>
+  request<Member[]>(`/workspaces/${workspaceId}/members`);
+
+/** Removing yourself is leaving; removing anyone else is for the owner. */
+export const removeMember = (workspaceId: string, userId: string) =>
+  request<void>(`/workspaces/${workspaceId}/members/${userId}`, { method: "DELETE" });
+
+export const listInvites = (workspaceId: string) =>
+  request<Invite[]>(`/workspaces/${workspaceId}/invites`);
+
+export const createInvite = (workspaceId: string, email: string | null) =>
+  request<Invite>(`/workspaces/${workspaceId}/invites`, { method: "POST", body: { email } });
+
+export const revokeInvite = (id: string) => request<void>(`/invites/${id}`, { method: "DELETE" });
+
+export const acceptInvite = (code: string) =>
+  request<{ id: string; name: string }>(`/invites/${encodeURIComponent(code)}/accept`, {
+    method: "POST",
+  });
 
 // --- Graph, review feed and the two chats ---
 
