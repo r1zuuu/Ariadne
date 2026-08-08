@@ -59,11 +59,12 @@
   --font-prose: Geist, ui-sans-serif, system-ui, sans-serif;
   --font-data: "Geist Mono", ui-monospace, monospace;
 
-  /* A didone wants weight, not tightness: 500 across the headline steps,
-     tracking left at zero so the hairline serifs never collide. */
+  /* A didone wants weight, not tightness: tracking stays at zero so the
+     hairline serifs never collide. The display step carries 600, because at
+     hero sizes the 500 hairlines read as grey rather than as ink. */
   --text-display: 44px;
   --text-display--line-height: 52px;
-  --text-display--font-weight: 500;
+  --text-display--font-weight: 600;
 
   --text-title: 34px;
   --text-title--line-height: 42px;

@@ -45,7 +45,9 @@ export default function TourScreen() {
     <div className="flex h-full flex-col">
       <TitleBar />
 
-      <main className="min-h-0 flex-1 overflow-y-auto px-6 py-9 lg:px-8">
+      {/* Vertically centred: the tour is a ceremony of three sentences, and
+          text pinned to the top of an empty window read as an unfinished page. */}
+      <main className="grid min-h-0 flex-1 place-content-center overflow-y-auto px-6 py-9 lg:px-8">
         <div className="mx-auto flex w-full max-w-[880px] gap-8">
           {/* The thread. One stroke drawing itself down to where the reader is,
               which is the only decoration in the product and the reason it is
@@ -103,8 +105,10 @@ export default function TourScreen() {
 
             {/* Keyed on the step so each one is a fresh mount and fades in. */}
             <FadeIn key={step}>
-              <h1 className="display-serif pt-5 text-title text-ink">{t(`${STEPS[step]}.title`)}</h1>
-              <p className="max-w-[56ch] pt-5 text-lead text-ink-2">{t(`${STEPS[step]}.body`)}</p>
+              <h1 className="pt-5 text-display text-ink">{t(`${STEPS[step]}.title`)}</h1>
+              <p className="max-w-[56ch] pt-5 text-lead font-normal text-ink-2">
+                {t(`${STEPS[step]}.body`)}
+              </p>
             </FadeIn>
 
             <div className="flex flex-wrap items-center gap-4 pt-9">

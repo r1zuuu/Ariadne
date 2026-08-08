@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { useLocale } from "@/app/locale-provider";
 import { useApp, type PendingFeed } from "@/components/app-provider";
 import { EntryCard, headline } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
@@ -32,7 +33,10 @@ export default function PendingScreen() {
   const toast = useToast();
 
   const { pendingFeed: feed, refreshPending } = useApp();
+  const { locale } = useLocale();
   const [working, setWorking] = useState<string | null>(null);
+  const stamp = (iso: string) =>
+    new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(new Date(iso));
 
   // Every button here is the same shape: run one call, say what happened,
   // refetch. Refetching rather than patching locally, because approving an
@@ -80,6 +84,7 @@ export default function PendingScreen() {
                         <li key={action.id}>
                           <ActionCard
                             action={action}
+                            stamp={stamp}
                             busy={working === action.id}
                             onApprove={() =>
                               void act(action.id, () => approvePending(action.id), t("toastApproved"))
@@ -102,7 +107,7 @@ export default function PendingScreen() {
                         <li key={node.id}>
                           <EntryCard
                             entry={node}
-                            meta={`${new Date(node.createdAt).toISOString().slice(0, 10)} · ${node.projectName}`}
+                            meta={`${stamp(node.createdAt)} · ${node.projectName}`}
                             actions={
                               <>
                                 {/* A contradicted entry is already settled: it
@@ -146,11 +151,13 @@ export default function PendingScreen() {
 
 function ActionCard({
   action,
+  stamp,
   busy,
   onApprove,
   onReject,
 }: {
   action: PendingAction;
+  stamp: (iso: string) => string;
   busy: boolean;
   onApprove: () => void;
   onReject: () => void;
@@ -166,7 +173,7 @@ function ActionCard({
         </Status>
         <Meta
           items={[
-            new Date(action.createdAt).toISOString().slice(0, 10),
+            stamp(action.createdAt),
             tEntry(`by.${action.requestedBy === "coder" ? "coder" : "app_chat"}`),
           ]}
         />
