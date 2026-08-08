@@ -84,10 +84,10 @@ export function Composer({
           }}
           placeholder={placeholder}
           style={{ height }}
-          className="block w-full resize-none bg-transparent px-6 pt-5 text-body leading-7 text-ink outline-none placeholder:text-ink-3/60 disabled:cursor-not-allowed"
+          className="block w-full resize-none bg-transparent px-6 pt-5 text-body leading-7 text-ink outline-none placeholder:text-ink-3 disabled:cursor-not-allowed"
         />
         <div className="flex items-center justify-between gap-4 px-6 pb-4 pt-2">
-          <span className="text-data text-ink-3">{hint}</span>
+          <span className="text-data text-ink-2">{hint}</span>
           <Button onClick={() => send(value)} loading={busy} disabled={disabled || !value.trim()}>
             {busy ? busyLabel : submitLabel}
           </Button>
@@ -104,7 +104,7 @@ export function Composer({
                 type="button"
                 disabled={disabled || busy}
                 onClick={() => send(suggestion)}
-                className="group inline-flex items-center gap-2 py-1 text-small text-ink-2 transition-colors duration-state hover:text-ink disabled:opacity-40"
+                className="group inline-flex items-center gap-2 py-2 text-small text-ink-2 transition-colors duration-state hover:text-ink disabled:opacity-40"
               >
                 <span
                   aria-hidden="true"

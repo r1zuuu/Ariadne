@@ -149,14 +149,14 @@ function ReadView({ project }: { project: Project }) {
   return (
     <div className="flex flex-col gap-5">
       <Card className="p-6">
-        <h2 className="pb-2 text-lead text-ink">{t("about")}</h2>
+        <h2 className="pb-2 text-lead font-semibold text-ink">{t("about")}</h2>
         <p className={`text-body leading-8 ${project.opis ? "text-ink-2" : "text-ink-3"}`}>
           {project.opis || t("aboutEmpty")}
         </p>
       </Card>
 
       <Card className="p-6">
-        <h2 className="pb-3 text-lead text-ink">{t("tech")}</h2>
+        <h2 className="pb-3 text-lead font-semibold text-ink">{t("tech")}</h2>
         {stack.length ? (
           // One metadata line, not a row of chips: a stack is a list of names,
           // and eight lozenges made it look like eight things you can click.
@@ -170,7 +170,7 @@ function ReadView({ project }: { project: Project }) {
           steers the agent: everything else describes the project, this one
           constrains what may be done to it. */}
       <Card className="border-thread/25 p-6">
-        <h2 className="text-lead text-ink">{t("limits")}</h2>
+        <h2 className="text-lead font-semibold text-ink">{t("limits")}</h2>
         <p className="pb-3 pt-1 text-small text-ink-3">{t("limitsNote")}</p>
         <p
           className={`whitespace-pre-wrap text-body leading-8 ${

@@ -71,7 +71,7 @@ export function ConversationList({
             {labels.title} ({conversations.length})
           </button>
         ) : (
-          <h2 className="text-lead text-ink">{labels.title}</h2>
+          <h2 className="text-lead font-semibold text-ink">{labels.title}</h2>
         )}
         <Button variant="quiet" onClick={onNew}>
           {labels.newOne}

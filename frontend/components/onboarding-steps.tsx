@@ -45,7 +45,7 @@ export function ProfileStep({
           value={answers[key]}
           onChange={(e) => onAnswer(key, e.target.value)}
           placeholder={t(`${key}.hint`)}
-          className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3/55 focus:border-thread"
+          className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread"
         />
         <p className="pt-4 text-small text-ink-3">{t("optionalAnswer")}</p>
       </div>

@@ -100,7 +100,7 @@ export function Input({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3/60 focus:border-thread focus:ring-2 focus:ring-thread/15 ${
+        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/15 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -130,7 +130,7 @@ export function Textarea({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3/60 focus:border-thread focus:ring-2 focus:ring-thread/15 ${
+        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/15 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -211,7 +211,7 @@ export function SectionHeader({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4 pb-4">
-      <h2 className="flex items-baseline gap-3 text-lead text-ink">
+      <h2 className="flex items-baseline gap-3 text-lead font-semibold text-ink">
         {title}
         {count !== undefined ? (
           <span className="font-prose text-data tabular text-ink-3">{count}</span>
@@ -332,7 +332,7 @@ export function EmptyState({
         height="12"
         viewBox="0 0 56 12"
         aria-hidden="true"
-        className="mx-auto text-thread/45"
+        className="mx-auto text-thread-lift/70"
       >
         <path
           d="M2 8c8-6 14 4 22-2s16-4 24 0"

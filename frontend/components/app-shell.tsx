@@ -305,7 +305,7 @@ function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Pr
                 // project is a decision, so the list folds away with it.
                 event.currentTarget.closest("details")?.removeAttribute("open");
               }}
-              className={`flex w-full items-baseline justify-between gap-3 rounded-control px-4 py-3 text-left text-small transition-colors duration-state hover:bg-plaster-sunk ${
+              className={`flex w-full items-baseline justify-between gap-3 rounded-control px-4 py-3 text-left text-small transition-colors duration-state hover:bg-surface-2 ${
                 project.id === active.id ? "text-ink" : "text-ink-2"
               }`}
             >
