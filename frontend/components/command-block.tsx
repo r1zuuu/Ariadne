@@ -62,7 +62,7 @@ export function CommandBlock({
       <p className="max-w-[68ch] text-small text-ink-2">{what}</p>
 
       <pre
-        className="mt-5 overflow-x-auto bg-canvas px-6 py-5 font-data text-canvas-ink"
+        className="mt-5 overflow-x-auto rounded-card bg-canvas px-6 py-5 font-data text-canvas-ink"
         style={{
           fontSize: 14,
           lineHeight: "24px",
@@ -72,10 +72,6 @@ export function CommandBlock({
           // look like exactly what it is.
           fontVariantLigatures: "none",
           fontFeatureSettings: '"liga" 0, "calt" 0',
-          // Martian Mono's hyphen fills nearly the whole cell, so two of them touch
-          // and read as one long dash. A little tracking keeps --scope legible as
-          // two characters.
-          letterSpacing: "0.035em",
           // Wrapped remainder sits in from the left, so a wrap is visible without
           // adding a character that would change what gets pasted.
           textIndent: "-2ch",

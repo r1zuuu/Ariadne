@@ -4,7 +4,6 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { Section } from "@/components/app-shell";
 import { FadeIn } from "@/components/motion";
-import { IconButton } from "@/components/ui";
 import { hasSeenHint, markHintSeen } from "@/lib/first-run";
 
 // One sentence saying what this screen is for, the first time it is opened and
@@ -47,26 +46,24 @@ export function ScreenHint({
   };
 
   return (
+    // A guide's aside, not a banner: one quiet line under the heading, marked
+    // by a thread dot, dismissed in words. It stopped being a tinted box that
+    // pushed every page's real content down a row.
     <FadeIn className="pb-6">
-      <div className="flex items-start gap-4 border-l-2 border-thread bg-plaster-sunk/50 py-4 pl-5 pr-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-small font-medium text-ink">{title}</p>
-          {note ? <p className="max-w-[68ch] pt-1 text-small text-ink-2">{note}</p> : null}
-        </div>
-        <IconButton label={t("dismiss")} onClick={dismiss} className="-mt-1 shrink-0">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 14 14"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.4"
-            aria-hidden="true"
+      <p className="flex max-w-[74ch] items-baseline gap-3 text-small text-ink-2">
+        <span aria-hidden="true" className="h-[5px] w-[5px] shrink-0 translate-y-[-2px] rounded-pill bg-thread" />
+        <span className="min-w-0">
+          <span className="font-medium text-ink">{title}</span>
+          {note ? <> {note}</> : null}{" "}
+          <button
+            type="button"
+            onClick={dismiss}
+            className="whitespace-nowrap text-ink-3 underline underline-offset-2 transition-colors duration-state hover:text-ink"
           >
-            <path d="M3 3l8 8M11 3l-8 8" />
-          </svg>
-        </IconButton>
-      </div>
+            {t("dismiss")}
+          </button>
+        </span>
+      </p>
     </FadeIn>
   );
 }

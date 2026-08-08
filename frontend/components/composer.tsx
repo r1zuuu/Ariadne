@@ -61,7 +61,14 @@ export function Composer({
 
   return (
     <div>
-      <div className="rounded-card border border-edge/50 bg-surface shadow-card transition-colors duration-state focus-within:border-thread focus-within:ring-2 focus-within:ring-thread/15">
+      {/* The most important object in the product, and the one thing allowed to
+          borrow the thread while it is awake: focus pulls the left edge taut
+          in madder and lifts the paper. Everything else on screen stays flat. */}
+      <div className="group relative rounded-card border border-edge/50 bg-surface shadow-card transition-[border-color,box-shadow] duration-state focus-within:border-edge focus-within:shadow-lifted">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-[10px] left-0 top-[10px] w-[2px] origin-top scale-y-0 bg-thread transition-transform duration-enter ease-out-quint group-focus-within:scale-y-100"
+        />
         <textarea
           ref={field}
           rows={rows}
@@ -77,9 +84,9 @@ export function Composer({
           }}
           placeholder={placeholder}
           style={{ height }}
-          className="block w-full resize-none bg-transparent px-5 pt-4 text-body leading-7 text-ink outline-none placeholder:text-ink-3/60 disabled:cursor-not-allowed"
+          className="block w-full resize-none bg-transparent px-6 pt-5 text-body leading-7 text-ink outline-none placeholder:text-ink-3/60 disabled:cursor-not-allowed"
         />
-        <div className="flex items-center justify-between gap-4 px-5 pb-4 pt-2">
+        <div className="flex items-center justify-between gap-4 px-6 pb-4 pt-2">
           <span className="text-data text-ink-3">{hint}</span>
           <Button onClick={() => send(value)} loading={busy} disabled={disabled || !value.trim()}>
             {busy ? busyLabel : submitLabel}
@@ -87,16 +94,22 @@ export function Composer({
         </div>
       </div>
 
+      {/* Questions, not chips: each suggestion reads as a line you could have
+          written, marked by the thread taking it up on hover. */}
       {suggestions.length ? (
-        <ul className="flex flex-wrap gap-2 pt-4">
+        <ul className="flex flex-wrap gap-x-7 gap-y-2 pt-4">
           {suggestions.map((suggestion) => (
             <li key={suggestion}>
               <button
                 type="button"
                 disabled={disabled || busy}
                 onClick={() => send(suggestion)}
-                className="rounded-control border border-hairline bg-surface px-5 py-[7px] text-small text-ink-2 transition-colors duration-state hover:border-edge/60 hover:text-ink disabled:opacity-40"
+                className="group inline-flex items-center gap-2 py-1 text-small text-ink-3 transition-colors duration-state hover:text-ink disabled:opacity-40"
               >
+                <span
+                  aria-hidden="true"
+                  className="h-[5px] w-[5px] rounded-pill bg-edge/70 transition-colors duration-state group-hover:bg-thread"
+                />
                 {suggestion}
               </button>
             </li>

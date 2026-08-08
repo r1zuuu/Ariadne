@@ -182,7 +182,7 @@ function ActionCard({
       {action.payload?.content ? (
         <div className="grid gap-3 pt-4 sm:grid-cols-2">
           <div className="rounded-control bg-plaster-sunk/70 p-4">
-            <p className="pb-2 font-data text-label uppercase tracking-[0.12em] text-ink-3">
+            <p className="pb-2 text-label uppercase tracking-[0.12em] text-ink-3">
               {t("before")}
             </p>
             <p className="line-clamp-6 whitespace-pre-wrap text-small leading-6 text-ink-3">
@@ -190,7 +190,7 @@ function ActionCard({
             </p>
           </div>
           <div className="rounded-control border border-thread/20 bg-thread/5 p-4">
-            <p className="pb-2 font-data text-label uppercase tracking-[0.12em] text-thread">
+            <p className="pb-2 text-label uppercase tracking-[0.12em] text-thread">
               {t("after")}
             </p>
             <p className="line-clamp-6 whitespace-pre-wrap text-small leading-6 text-ink">

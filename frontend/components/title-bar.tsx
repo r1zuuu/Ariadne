@@ -31,14 +31,16 @@ export function TitleBar({ project, server }: { project?: string; server?: Serve
       className="flex h-[38px] shrink-0 select-none items-center justify-between border-b border-hairline bg-plaster-sunk px-5"
     >
       <div className="flex items-baseline gap-4">
-        <span className="font-data text-label uppercase tracking-[0.12em] text-ink">Ariadne</span>
+        {/* The wordmark is the one word in the frame allowed the brand face.
+            15px keeps the didone's hairlines alive in a 38px bar. */}
+        <span className="display-serif text-[15px] tracking-[0.08em] text-ink">ARIADNE</span>
         {project ? <span className="text-small text-ink-2">{project}</span> : null}
       </div>
       <div className="flex items-center gap-5">
         {/* Words, not a coloured dot: the reader should not have to learn what
             green means before trusting the app. */}
         {server ? (
-          <span className={`font-data text-data ${server === "down" ? "text-iron" : "text-ink-3"}`}>
+          <span className={`text-data ${server === "down" ? "text-iron" : "text-ink-3"}`}>
             {t(server, { url: serverUrl.replace(/^https?:\/\//, "") })}
           </span>
         ) : null}

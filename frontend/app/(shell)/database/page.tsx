@@ -187,7 +187,7 @@ export default function DatabaseScreen() {
         <ul className="flex flex-col gap-9 pt-9">
           {turns.map((turn, i) => (
             <li key={i}>
-              <p className="font-data text-label uppercase tracking-[0.12em] text-ink-3">
+              <p className="text-label uppercase tracking-[0.12em] text-ink-3">
                 {t("youWrote")}
               </p>
               <p className="pt-2 text-body text-ink">{turn.message}</p>
@@ -196,7 +196,7 @@ export default function DatabaseScreen() {
                 <p className="pt-5 text-body text-iron">{turn.error}</p>
               ) : turn.reply ? (
                 <FadeIn>
-                  <p className="pt-5 font-data text-label uppercase tracking-[0.12em] text-ink-3">
+                  <p className="pt-5 text-label uppercase tracking-[0.12em] text-ink-3">
                     {t("ariadneProposed")}
                   </p>
                   <p className="pt-2 text-body leading-8 text-ink">{turn.reply}</p>
@@ -248,7 +248,7 @@ function Queued({
 
   return (
     <div className="pt-5">
-      <p className="pb-3 font-data text-label uppercase tracking-[0.12em] text-ink-3">
+      <p className="pb-3 text-label uppercase tracking-[0.12em] text-ink-3">
         {t("willSave")}
       </p>
       <ul className="flex flex-col gap-3">

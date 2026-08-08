@@ -28,7 +28,7 @@ export function RecordPreview({
 
   return (
     <aside className="border-l border-hairline pl-8">
-      <h2 className="font-data text-label uppercase tracking-[0.12em] text-ink-3">{title}</h2>
+      <h2 className="text-label uppercase tracking-[0.12em] text-ink-3">{title}</h2>
 
       {filled.length === 0 ? (
         <p className="pt-5 text-small text-ink-3">{emptyNote}</p>
@@ -36,7 +36,7 @@ export function RecordPreview({
         <dl className="pt-5">
           {filled.map((entry) => (
             <div key={entry.label} className="border-b border-hairline py-4 first:pt-0">
-              <dt className="font-data text-label uppercase tracking-[0.12em] text-ink-3">
+              <dt className="text-label uppercase tracking-[0.12em] text-ink-3">
                 {entry.label}
               </dt>
               <dd className="pt-2 text-small text-ink">{entry.value}</dd>

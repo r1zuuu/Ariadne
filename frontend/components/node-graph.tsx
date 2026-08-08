@@ -93,7 +93,7 @@ export function NodeGraph({ nodes, edges }: { nodes: Node[]; edges: GraphEdge[] 
       <div className="min-w-[260px] flex-1">
         {selected ? (
           <>
-            <p className="font-data text-label uppercase tracking-[0.12em] text-ink-3">
+            <p className="text-label uppercase tracking-[0.12em] text-ink-3">
               {selected.type} · {new Date(selected.createdAt).toISOString().slice(0, 10)}
             </p>
             <p className="whitespace-pre-wrap pt-3 text-small text-ink">{selected.content}</p>

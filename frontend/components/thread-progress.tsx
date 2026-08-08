@@ -55,7 +55,7 @@ export function ThreadProgress({ step }: { step: 1 | 2 | 3 }) {
                     }`}
                   />
                   <span
-                    className={`font-data text-label uppercase tracking-[0.12em] ${
+                    className={`text-label uppercase tracking-[0.12em] ${
                       reached ? "text-ink" : "text-ink-3"
                     }`}
                   >
@@ -67,7 +67,7 @@ export function ThreadProgress({ step }: { step: 1 | 2 | 3 }) {
           })}
         </div>
 
-        <span aria-live="polite" className="shrink-0 font-data text-data tabular text-ink-3">
+        <span aria-live="polite" className="shrink-0 text-data tabular text-ink-3">
           {t("step", { current: String(step), total: String(TOTAL) })}
         </span>
       </div>

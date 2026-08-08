@@ -117,7 +117,7 @@ export default function HomeScreen() {
           <ScreenHint screen="home" title={tHint("title")} note={tHint("note")} />
 
           <section className="pb-10">
-            <p className="pb-2 font-data text-data text-ink-3">
+            <p className="pb-2 text-data text-ink-3">
               {since ? t("seen", { at: stamp(since, true) }) : t("seenFirst")}
             </p>
             <h1 className="text-title text-ink">{t("askTitle")}</h1>
@@ -193,13 +193,13 @@ export default function HomeScreen() {
                       const changed = node.updatedAt !== node.createdAt;
                       return (
                         <div key={node.id} className="flex items-baseline gap-4 px-5 py-4">
-                          <span className="shrink-0 font-data text-data text-ink-3">
+                          <span className="shrink-0 text-data text-ink-3">
                             {t(changed ? "activityChanged" : "activityAdded")}
                           </span>
                           <span className="min-w-0 flex-1 truncate text-small text-ink">
                             {headline(node.content)}
                           </span>
-                          <span className="shrink-0 font-data text-data tabular text-ink-3">
+                          <span className="shrink-0 text-data tabular text-ink-3">
                             {stamp(new Date(changed ? node.updatedAt : node.createdAt))}
                           </span>
                         </div>
@@ -280,12 +280,12 @@ export default function HomeScreen() {
                               With a single workspace this line would repeat
                               the same name under every project. */}
                           {shared && project.workspaceName ? (
-                            <span className="pl-3 font-data text-data uppercase tracking-[0.08em] text-ink-3">
+                            <span className="pl-3 text-data uppercase tracking-[0.08em] text-ink-3">
                               {project.workspaceName}
                             </span>
                           ) : null}
                         </span>
-                        <span className="shrink-0 font-data text-data tabular text-ink-3">
+                        <span className="shrink-0 text-data tabular text-ink-3">
                           {t("entries", { count: project.nodeCount ?? 0 })}
                         </span>
                       </button>
@@ -330,7 +330,7 @@ function AboutProject({ project, onOpen }: { project: Project; onOpen: () => voi
 
         {project.ograniczenia ? (
           <div>
-            <p className="pb-1 font-data text-label uppercase tracking-[0.12em] text-ink-3">
+            <p className="pb-1 text-label uppercase tracking-[0.12em] text-ink-3">
               {t("aboutLimits")}
             </p>
             <p className="line-clamp-4 text-small leading-6 text-ink-2">{project.ograniczenia}</p>

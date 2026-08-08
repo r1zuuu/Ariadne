@@ -82,7 +82,7 @@ export default function TourScreen() {
                     }`}
                   />
                   <span
-                    className={`whitespace-nowrap font-data text-label uppercase tracking-[0.12em] ${
+                    className={`whitespace-nowrap text-label uppercase tracking-[0.12em] ${
                       reached ? "text-ink" : "text-ink-3"
                     }`}
                   >
@@ -96,7 +96,7 @@ export default function TourScreen() {
           <div className="min-w-0 flex-1">
             <p
               aria-live="polite"
-              className="font-data text-label uppercase tracking-[0.12em] tabular text-ink-3"
+              className="text-label uppercase tracking-[0.12em] tabular text-ink-3"
             >
               {t("step", { current: String(step + 1), total: String(STEPS.length) })}
             </p>
