@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppShell, readActiveProject } from "@/components/app-shell";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
-import { Collapse, FadeIn } from "@/components/motion";
+import { Collapse } from "@/components/motion";
 import { ScreenHint } from "@/components/screen-hint";
 import { Card, EmptyState, Meta } from "@/components/ui";
 import { takePendingQuestion } from "@/lib/handoff";
