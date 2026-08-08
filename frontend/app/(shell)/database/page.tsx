@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { AppShell, queueChanged, readActiveProject } from "@/components/app-shell";
+import { queueChanged, readActiveProject } from "@/components/app-shell";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
 import { FadeIn } from "@/components/motion";
@@ -169,8 +169,7 @@ export default function DatabaseScreen() {
   const empty = turns.length === 0;
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-[760px]">
+    <div className="mx-auto max-w-[760px]">
         <PageHeader title={t("title")} lead={t("lead")} />
         <ScreenHint screen="database" title={tHint("title")} note={tHint("note")} />
 
@@ -235,8 +234,7 @@ export default function DatabaseScreen() {
             }}
           />
         </div>
-      </div>
-    </AppShell>
+    </div>
   );
 }
 

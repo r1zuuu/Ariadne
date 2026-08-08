@@ -3,7 +3,6 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { LOCALES, useLocale } from "@/app/locale-provider";
-import { AppShell } from "@/components/app-shell";
 import { CommandBlock } from "@/components/command-block";
 import { ScreenHint } from "@/components/screen-hint";
 import { useToast } from "@/components/toast";
@@ -61,23 +60,21 @@ export default function SettingsScreen() {
   }, []);
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-[860px]">
-        <PageHeader title={t("title")} lead={t("lead")} />
-        <ScreenHint screen="settings" title={tHint("title")} note={tHint("note")} />
+    <div className="mx-auto max-w-[860px]">
+      <PageHeader title={t("title")} lead={t("lead")} />
+      <ScreenHint screen="settings" title={tHint("title")} note={tHint("note")} />
 
-        {account === null ? (
-          <p className="text-body text-ink-3">{t("loading")}</p>
-        ) : (
-          <>
-            <AccountSection account={account} onSaved={setAccount} toast={toast} />
-            <PermissionSection account={account} onSaved={setAccount} toast={toast} />
-            <TokensSection toast={toast} />
-            <TeamSection account={account} toast={toast} />
-          </>
-        )}
-      </div>
-    </AppShell>
+      {account === null ? (
+        <p className="text-body text-ink-3">{t("loading")}</p>
+      ) : (
+        <>
+          <AccountSection account={account} onSaved={setAccount} toast={toast} />
+          <PermissionSection account={account} onSaved={setAccount} toast={toast} />
+          <TokensSection toast={toast} />
+          <TeamSection account={account} toast={toast} />
+        </>
+      )}
+    </div>
   );
 }
 

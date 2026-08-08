@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppShell, readActiveProject } from "@/components/app-shell";
+import { readActiveProject } from "@/components/app-shell";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
 import { Collapse } from "@/components/motion";
@@ -182,8 +182,7 @@ export default function AssistantScreen() {
   const empty = turns.length === 0;
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-[760px]">
+    <div className="mx-auto max-w-[760px]">
         {empty ? (
           <div className="pt-2">
             <h1 className="text-title text-ink">{t("title")}</h1>
@@ -264,8 +263,7 @@ export default function AssistantScreen() {
             }}
           />
         </div>
-      </div>
-    </AppShell>
+    </div>
   );
 }
 

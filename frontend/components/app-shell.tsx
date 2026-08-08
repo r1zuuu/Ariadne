@@ -93,7 +93,7 @@ export function queueChanged() {
   window.dispatchEvent(new Event("ariadne:queue-changed"));
 }
 
-export function AppShell({ children, banner }: { children: ReactNode; banner?: ReactNode }) {
+export function AppShell({ children }: { children: ReactNode }) {
   const t = useTranslations("nav");
   const router = useRouter();
   const pathname = usePathname();
@@ -112,7 +112,6 @@ export function AppShell({ children, banner }: { children: ReactNode; banner?: R
   return (
     <div className="flex h-full flex-col">
       <TitleBar project={active?.name} server={server} />
-      {banner}
 
       <div className="flex min-h-0 flex-1">
         {/* Icons only below 1024px, which covers the 880px window minimum, and

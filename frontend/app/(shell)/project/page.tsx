@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { AppShell, readActiveProject } from "@/components/app-shell";
+import { readActiveProject } from "@/components/app-shell";
 import { NodeGraph } from "@/components/node-graph";
 import { useToast } from "@/components/toast";
 import { ScreenHint } from "@/components/screen-hint";
@@ -52,8 +52,7 @@ export default function ProjectScreen() {
   }, []);
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-[900px]">
+    <div className="mx-auto max-w-[900px]">
         {project === null ? (
           <p className="text-body text-ink-3">{t("loading")}</p>
         ) : (
@@ -105,9 +104,8 @@ export default function ProjectScreen() {
               )}
             </section>
           </>
-        )}
-      </div>
-    </AppShell>
+      )}
+    </div>
   );
 }
 

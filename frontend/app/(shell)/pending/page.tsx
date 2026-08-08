@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
-import { AppShell, queueChanged } from "@/components/app-shell";
+import { queueChanged } from "@/components/app-shell";
 import { EntryCard, headline } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
 import { ScreenHint } from "@/components/screen-hint";
@@ -69,8 +69,7 @@ export default function PendingScreen() {
   const empty = feed && !feed.pendingActions.length && !feed.nodesToReview.length;
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-[860px]">
+    <div className="mx-auto max-w-[860px]">
         <PageHeader title={t("title")} lead={t("lead")} />
         <ScreenHint screen="pending" title={tHint("title")} note={tHint("note")} />
 
@@ -154,9 +153,8 @@ export default function PendingScreen() {
               </section>
             ))}
           </div>
-        )}
-      </div>
-    </AppShell>
+      )}
+    </div>
   );
 }
 
