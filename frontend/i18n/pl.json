@@ -107,6 +107,7 @@
         "produkcja": "produkcja",
         "utrzymanie": "utrzymanie"
       },
+      "joinInstead": "Dołączasz do cudzego zespołu? Mam kod zaproszenia",
       "required": "wymagane",
       "optional": "możesz zostawić puste",
       "error": {
@@ -438,6 +439,8 @@
     "tokens": "Tokeny agentów",
     "tokensLead": "Jednym tokenem łączy się jeden agent z jednym archiwum. Token widzisz raz, przy tworzeniu.",
     "tokenOnce": "Skopiuj teraz, drugi raz go nie zobaczysz",
+    "copyToken": "Skopiuj token",
+    "copyCode": "Skopiuj kod",
     "tokenOnceWhere": "Wklej go w konfiguracji swojego agenta, w miejscu na token Ariadne.",
     "tokenLabel": "Do czego",
     "tokenPlaceholder": "laptop, komputer w pracy",

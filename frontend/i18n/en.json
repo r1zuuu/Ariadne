@@ -107,6 +107,7 @@
         "produkcja": "production",
         "utrzymanie": "maintenance"
       },
+      "joinInstead": "Joining somebody else's team? I have an invitation code",
       "required": "required",
       "optional": "you can leave this empty",
       "error": {
@@ -438,6 +439,8 @@
     "tokens": "Agent tokens",
     "tokensLead": "One token connects one agent to one archive. You see it once, when it is created.",
     "tokenOnce": "Copy it now, it is not shown again",
+    "copyToken": "Copy token",
+    "copyCode": "Copy code",
     "tokenOnceWhere": "Paste it into your agent's configuration, where it asks for the Ariadne token.",
     "tokenLabel": "What for",
     "tokenPlaceholder": "laptop, work machine",

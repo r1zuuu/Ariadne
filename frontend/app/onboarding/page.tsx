@@ -225,6 +225,20 @@ export default function OnboardingScreen() {
                 </Button>
               ) : null}
             </div>
+
+            {/* Somebody invited into a team has no project of their own, and
+                this wizard is what a fresh account sees first. Without a way
+                out of it the invitation ends here, on a form asking them to
+                start a project they were never going to start. */}
+            {step === 2 ? (
+              <button
+                type="button"
+                onClick={() => router.push("/settings")}
+                className="pb-10 text-small text-blue underline underline-offset-2"
+              >
+                {t("project.joinInstead")}
+              </button>
+            ) : null}
           </div>
 
           {/* Hidden below the two-column breakpoint rather than stacked: on a

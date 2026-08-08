@@ -331,7 +331,12 @@ function TokensSection({ toast }: { toast: Toast }) {
           be scrolled past. */}
       {fresh ? (
         <div className="pb-6">
-          <CommandBlock command={fresh} what={t("tokenOnce")} where={t("tokenOnceWhere")} />
+          <CommandBlock
+            command={fresh}
+            what={t("tokenOnce")}
+            where={t("tokenOnceWhere")}
+            copyLabel={t("copyToken")}
+          />
         </div>
       ) : null}
 
@@ -389,9 +394,12 @@ function TokensSection({ toast }: { toast: Toast }) {
                 <div className="min-w-0">
                   <p className="truncate text-body text-ink">{token.label || t("noLabel")}</p>
                   <div className="pt-1">
+                    {/* Which archive it reaches, but only once there is more
+                        than one. With a single workspace this repeats the same
+                        name under every token, and that name is an address. */}
                     <Meta
                       items={[
-                        token.workspaceName,
+                        workspaces.length > 1 ? token.workspaceName : null,
                         token.lastUsedAt ? t("used") : t("neverUsed"),
                       ]}
                     />
@@ -577,6 +585,7 @@ function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
                         command={invite.code}
                         what={invite.email ? t("inviteFor", { at: invite.email }) : t("inviteOpen")}
                         where={t("inviteWhere")}
+                        copyLabel={t("copyCode")}
                       />
                       <div className="flex items-center justify-between gap-4 pt-3">
                         <Meta
@@ -659,10 +668,12 @@ function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
                     act(
                       "join",
                       async () => {
-                        const joined = await acceptInvite(code.trim());
+                        await acceptInvite(code.trim());
                         setCode("");
-                        setOpenId(joined.id);
-                        load();
+                        // A full reload for the same reason switching project
+                        // does one: every screen and the column itself read the
+                        // project list once on mount, and joining changed it.
+                        window.location.reload();
                       },
                       t("joined"),
                     )
