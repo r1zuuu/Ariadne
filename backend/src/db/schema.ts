@@ -6,6 +6,7 @@ import {
   index,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -22,24 +23,91 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const apiTokens = pgTable("api_tokens", {
+// Who owns an archive. Every user gets a private one at registration, so working
+// alone is a workspace of one and the code has no second path for it.
+export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
+  name: text("name").notNull(),
+  ownerId: uuid("owner_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  tokenHash: text("token_hash").notNull(), // sha256; raw token shown once at generation
-  label: text("label").notNull().default(""), // e.g. "work laptop"
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
 });
+
+// Who may read and write an archive. This table is the whole access rule: every
+// gate in the service layer is a join through it.
+export const memberships = pgTable(
+  "memberships",
+  {
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").notNull().default("member"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.workspaceId, t.userId] }),
+    // The primary key leads with workspace_id, but every gate asks "which
+    // workspaces does this user reach", which needs the other order.
+    index("memberships_by_user").on(t.userId),
+    check("memberships_role_check", sql`${t.role} IN ('owner','member')`),
+  ],
+);
+
+// A code someone pastes to join a workspace. Stored as written, not hashed:
+// the point of the list is to show a code you can copy again, and it expires.
+export const invites = pgTable(
+  "invites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    code: text("code").notNull().unique(),
+    // Optional. When set, the code only works for that address, so an
+    // intercepted one opens nothing, and a mail sender has somewhere to read
+    // the recipient from once this runs on a server that can send.
+    email: text("email"),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    // Set once, on the single use. Kept afterwards so the list can say who came in.
+    acceptedBy: uuid("accepted_by").references(() => users.id, { onDelete: "set null" }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("invites_by_workspace").on(t.workspaceId, t.createdAt.desc())],
+);
+
+export const apiTokens = pgTable(
+  "api_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id") // who generated it, so it can be listed and revoked
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id") // which archive it reaches
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(), // sha256; raw token shown once at generation
+    label: text("label").notNull().default(""), // e.g. "work laptop"
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  },
+  (t) => [index("api_tokens_by_user").on(t.userId)],
+);
 
 export const projects = pgTable(
   "projects",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    workspaceId: uuid("workspace_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => workspaces.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     repoRef: text("repo_ref").notNull(), // normalized git remote origin URL (no .git, lowercase host)
     opis: text("opis").notNull().default(""),
@@ -53,7 +121,7 @@ export const projects = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    unique().on(t.userId, t.repoRef),
+    unique().on(t.workspaceId, t.repoRef),
     check("projects_etap_check", sql`${t.etap} IN ('prototyp','produkcja','utrzymanie')`),
   ],
 );
@@ -62,12 +130,19 @@ export const nodes = pgTable(
   "nodes",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    workspaceId: uuid("workspace_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => workspaces.id, { onDelete: "cascade" }),
     projectId: uuid("project_id")
       .notNull()
       .references(() => projects.id, { onDelete: "cascade" }),
+    // Who wrote it. Null after that account is gone: a shared archive outlives
+    // the person who filled it, so this cannot cascade.
+    authorId: uuid("author_id").references(() => users.id, { onDelete: "set null" }),
+    // Who moved it from proposed to confirmed. Anyone in the workspace may, so
+    // the status is only readable if it says whose judgement it was.
+    confirmedBy: uuid("confirmed_by").references(() => users.id, { onDelete: "set null" }),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     type: text("type").notNull(),
     content: text("content").notNull(), // one human-readable thought; this gets embedded
     status: text("status").notNull().default("proposed"),
@@ -83,7 +158,7 @@ export const nodes = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index("nodes_lookup").on(t.userId, t.projectId, t.status, t.createdAt.desc()),
+    index("nodes_lookup").on(t.workspaceId, t.projectId, t.status, t.createdAt.desc()),
     index("nodes_embedding_hnsw").using("hnsw", t.embedding.op("vector_cosine_ops")),
     check("nodes_type_check", sql`${t.type} IN ('session_summary','decision','note')`),
     check(
@@ -114,20 +189,27 @@ export const pendingActions = pgTable(
   "pending_actions",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
+    workspaceId: uuid("workspace_id")
       .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => workspaces.id, { onDelete: "cascade" }),
     nodeId: uuid("node_id")
       .notNull()
       .references(() => nodes.id, { onDelete: "cascade" }),
     action: text("action").notNull(),
     payload: jsonb("payload").notNull().default(sql`'{}'::jsonb`), // for update: { "content": "...", "anchors": [...] }
-    requestedBy: text("requested_by").notNull(),
+    requestedBy: text("requested_by").notNull(), // which channel asked: coder or app_agent
+    // Which person was behind that channel, and which one settled it. Both null
+    // once the account is gone; the queue entry is still readable without them.
+    requestedByUserId: uuid("requested_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    resolvedBy: uuid("resolved_by").references(() => users.id, { onDelete: "set null" }),
     status: text("status").notNull().default("pending"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
   },
   (t) => [
+    index("pending_actions_lookup").on(t.workspaceId, t.status, t.createdAt.desc()),
     check("pending_actions_action_check", sql`${t.action} IN ('update','delete')`),
     check(
       "pending_actions_requested_by_check",

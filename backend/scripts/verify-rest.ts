@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 process.loadEnvFile("../.env");
 
 const { db } = await import("../src/db/client.js");
-const { codeAnchors, nodes, pendingActions, projects, users } = await import(
+const { codeAnchors, nodes, pendingActions, projects, users, workspaces } = await import(
   "../src/db/schema.js"
 );
 const { eq, inArray } = await import("drizzle-orm");
@@ -203,11 +203,17 @@ check(
 // Nodes are inserted straight into the table: this checks the feed query and the
 // lifecycle routes, and going through add_context would call Gemini for nothing.
 const [{ id: userId }] = await db.select({ id: users.id }).from(users).where(eq(users.email, MINE));
+// The private workspace registration made. Nodes belong to it, not to the user.
+const [{ id: workspaceId }] = await db
+  .select({ id: workspaces.id })
+  .from(workspaces)
+  .where(eq(workspaces.ownerId, userId));
 const embedding = Array.from({ length: 768 }, () => 0.01);
 const [proposed] = await db
   .insert(nodes)
   .values({
-    userId,
+    workspaceId,
+    authorId: userId,
     projectId,
     type: "decision",
     content: "Kolejnosc kart ustalamy recznie",
@@ -215,7 +221,8 @@ const [proposed] = await db
   })
   .returning({ id: nodes.id });
 await db.insert(pendingActions).values({
-  userId,
+  workspaceId,
+  requestedByUserId: userId,
   nodeId: proposed.id,
   action: "update",
   payload: { content: "Kolejnosc kart ustalamy data" },
@@ -277,7 +284,8 @@ const seeded = await db
   .insert(nodes)
   .values([
     {
-      userId,
+      workspaceId,
+      authorId: userId,
       projectId: listProjectId,
       type: "decision",
       content: "Drizzle zamiast Prismy",
@@ -285,7 +293,8 @@ const seeded = await db
       createdAt: day(1),
     },
     {
-      userId,
+      workspaceId,
+      authorId: userId,
       projectId: listProjectId,
       type: "note",
       content: "Hono trzyma REST i MCP na jednym porcie",
@@ -294,7 +303,8 @@ const seeded = await db
       createdAt: day(2),
     },
     {
-      userId,
+      workspaceId,
+      authorId: userId,
       projectId: listProjectId,
       type: "note",
       content: "Stary wybor: Express",
@@ -303,7 +313,8 @@ const seeded = await db
       createdAt: day(3),
     },
     {
-      userId,
+      workspaceId,
+      authorId: userId,
       projectId: listProjectId,
       type: "session_summary",
       content: "Sesja: skonczylismy na kursorze",
@@ -311,7 +322,8 @@ const seeded = await db
       createdAt: day(4),
     },
     {
-      userId,
+      workspaceId,
+      authorId: userId,
       projectId: listProjectId,
       type: "decision",
       content: "Migracje generuje drizzle-kit",
@@ -319,7 +331,8 @@ const seeded = await db
       createdAt: day(5),
     },
     {
-      userId,
+      workspaceId,
+      authorId: userId,
       projectId: listProjectId,
       type: "note",
       content: "Tokeny MCP trzymamy jako sha256",
@@ -476,7 +489,8 @@ const otherProject = await call("/projects", {
 const [elsewhere] = await db
   .insert(nodes)
   .values({
-    userId,
+    workspaceId,
+    authorId: userId,
     projectId: otherProject.body.id,
     type: "note",
     content: "Wpis z innego projektu",
@@ -554,7 +568,264 @@ check(
   })).status,
   404,
 );
-check("my project is still mine", (await call("/projects", { token })).body[0].name, "Check");
+// Sorted rather than indexed: the list comes back newest-touched first, which is
+// an ordering this check has no business depending on.
+check(
+  "and everything of mine is still mine",
+  (await call("/projects", { token })).body.map((p: { name: string }) => p.name).sort(),
+  ["Check", "Lista", "Other"],
+);
+
+// --- Workspaces, invitations and one archive read by two people ---
+
+const [{ id: theirUserId }] = await db
+  .select({ id: users.id })
+  .from(users)
+  .where(eq(users.email, THEIRS));
+
+const myWorkspaces = await call("/workspaces", { token });
+check("registration leaves exactly one workspace", myWorkspaces.body.length, 1);
+check("owned by the person who registered", myWorkspaces.body[0].isOwner, true);
+check("with one member in it", myWorkspaces.body[0].memberCount, 1);
+
+const team = await call("/workspaces", { method: "POST", token, body: { name: "Zespol" } });
+check("creating a workspace returns 201", team.status, 201);
+const teamId: string = team.body.id;
+check(
+  "a nameless workspace is rejected",
+  (await call("/workspaces", { method: "POST", token, body: { name: "  " } })).status,
+  400,
+);
+check(
+  "someone outside cannot read the member list",
+  (await call(`/workspaces/${teamId}/members`, { token: theirToken })).status,
+  404,
+);
+check(
+  "nor invite anyone into it",
+  (await call(`/workspaces/${teamId}/invites`, { method: "POST", token: theirToken, body: {} }))
+    .status,
+  404,
+);
+
+const invite = await call(`/workspaces/${teamId}/invites`, { method: "POST", token, body: {} });
+check("an invitation comes back with a code", typeof invite.body.code, "string");
+check(
+  "and sits on the open list",
+  (await call(`/workspaces/${teamId}/invites`, { token })).body.length,
+  1,
+);
+check(
+  "a made-up code opens nothing",
+  (await call("/invites/not-a-real-code/accept", { method: "POST", token: theirToken })).status,
+  404,
+);
+
+const joined = await call(`/invites/${invite.body.code}/accept`, {
+  method: "POST",
+  token: theirToken,
+});
+check("accepting hands back the workspace", joined.body.name, "Zespol");
+check(
+  "a code works once and only once",
+  (await call(`/invites/${invite.body.code}/accept`, { method: "POST", token: theirToken })).status,
+  404,
+);
+check(
+  "the workspace now holds two people",
+  (await call(`/workspaces/${teamId}/members`, { token })).body.length,
+  2,
+);
+check(
+  "and the used code is off the open list",
+  (await call(`/workspaces/${teamId}/invites`, { token })).body.length,
+  0,
+);
+
+const bound = await call(`/workspaces/${teamId}/invites`, {
+  method: "POST",
+  token,
+  body: { email: "somebody-else@ariadne.local" },
+});
+check("an invitation can be written for one address", bound.body.email, "somebody-else@ariadne.local");
+check(
+  "and refuses anyone else",
+  (await call(`/invites/${bound.body.code}/accept`, { method: "POST", token: theirToken })).status,
+  401,
+);
+check(
+  "without burning the code on the refusal",
+  (await call(`/workspaces/${teamId}/invites`, { token })).body.length,
+  1,
+);
+
+const teamProject = await call("/projects", {
+  method: "POST",
+  token,
+  body: { name: "Wspolny", repoRef: "github.com/r1zuuu/Wspolny", workspaceId: teamId },
+});
+check("a project can be filed under the shared workspace", teamProject.status, 201);
+const teamProjectId: string = teamProject.body.id;
+check("and says which archive it belongs to", teamProject.body.workspaceId, teamId);
+check(
+  "the other member finds it in their own list",
+  (await call("/projects", { token: theirToken })).body.some(
+    (p: { id: string }) => p.id === teamProjectId,
+  ),
+  true,
+);
+
+const [shared] = await db
+  .insert(nodes)
+  .values({
+    workspaceId: teamId,
+    authorId: userId,
+    projectId: teamProjectId,
+    type: "decision",
+    content: "Zespolowa decyzja: trzymamy sie Drizzle",
+    embedding,
+  })
+  .returning({ id: nodes.id });
+
+const theirView = await call(`/projects/${teamProjectId}/nodes`, { token: theirToken });
+check("they read an entry they did not write", theirView.body.nodes.length, 1);
+check("and it says who wrote it", theirView.body.nodes[0].author, MINE);
+check(
+  "any member can confirm",
+  (await call(`/nodes/${shared.id}/confirm`, { method: "POST", token: theirToken })).status,
+  204,
+);
+check(
+  "and the entry keeps whose judgement it was",
+  (await call(`/projects/${teamProjectId}/nodes`, { token })).body.nodes[0].confirmedBy,
+  THEIRS,
+);
+
+check(
+  "the owner cannot walk out of their own workspace",
+  (await call(`/workspaces/${teamId}/members/${userId}`, { method: "DELETE", token })).status,
+  400,
+);
+check(
+  "a member cannot remove anyone but themselves",
+  (await call(`/workspaces/${teamId}/members/${userId}`, {
+    method: "DELETE",
+    token: theirToken,
+  })).status,
+  401,
+);
+check(
+  "but can leave",
+  (await call(`/workspaces/${teamId}/members/${theirUserId}`, {
+    method: "DELETE",
+    token: theirToken,
+  })).status,
+  204,
+);
+check(
+  "after which the shared project is gone from their list",
+  (await call("/projects", { token: theirToken })).body.length,
+  0,
+);
+check(
+  "and its entries answer 404 again",
+  (await call(`/projects/${teamProjectId}/nodes`, { token: theirToken })).status,
+  404,
+);
+
+// --- A conversation belongs to the person, not to the workspace ---
+
+const conversation = await call("/conversations", {
+  method: "POST",
+  token,
+  body: { projectId, kind: "ask", messages: [{ role: "user", text: "Dlaczego Drizzle?" }] },
+});
+check("a conversation is created", conversation.status, 200);
+check(
+  "another account cannot read it",
+  (await call(`/conversations/${conversation.body.id}`, { token: theirToken })).status,
+  404,
+);
+check(
+  "nor overwrite the transcript",
+  (await call(`/conversations/${conversation.body.id}`, {
+    method: "PUT",
+    token: theirToken,
+    body: { messages: [{ role: "user", text: "Przejete" }] },
+  })).status,
+  404,
+);
+check(
+  "nor delete it",
+  (await call(`/conversations/${conversation.body.id}`, { method: "DELETE", token: theirToken }))
+    .status,
+  404,
+);
+check(
+  "and it is still there for whoever wrote it",
+  (await call(`/conversations/${conversation.body.id}`, { token })).body.title,
+  "Dlaczego Drizzle?",
+);
+
+// --- Changing a password ---
+
+const NEW_PASSWORD = "verify-password-456";
+check(
+  "changing a password needs the current one",
+  (await call("/me/password", {
+    method: "PUT",
+    token,
+    body: { currentPassword: "wrong", newPassword: NEW_PASSWORD },
+  })).status,
+  401,
+);
+check(
+  "a short new password is rejected",
+  (await call("/me/password", {
+    method: "PUT",
+    token,
+    body: { currentPassword: PASSWORD, newPassword: "short" },
+  })).status,
+  400,
+);
+check(
+  "changing it returns 204",
+  (await call("/me/password", {
+    method: "PUT",
+    token,
+    body: { currentPassword: PASSWORD, newPassword: NEW_PASSWORD },
+  })).status,
+  204,
+);
+check(
+  "the old password stops working",
+  (await call("/auth/login", { method: "POST", body: { email: MINE, password: PASSWORD } })).status,
+  401,
+);
+check(
+  "and the new one works",
+  (await call("/auth/login", { method: "POST", body: { email: MINE, password: NEW_PASSWORD } }))
+    .status,
+  200,
+);
+
+// --- Guessing at a password runs out ---
+
+const LOCKED = "locked-out@ariadne.local";
+for (let attempt = 0; attempt < 10; attempt++) {
+  await call("/auth/login", { method: "POST", body: { email: LOCKED, password: "wrong" } });
+}
+check(
+  "the eleventh wrong password in a row is refused outright",
+  (await call("/auth/login", { method: "POST", body: { email: LOCKED, password: "wrong" } })).status,
+  429,
+);
+check(
+  "and another address is unaffected by it",
+  (await call("/auth/login", { method: "POST", body: { email: MINE, password: NEW_PASSWORD } }))
+    .status,
+  200,
+);
 
 // --- Revoking a token ---
 

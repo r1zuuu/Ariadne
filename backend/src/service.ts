@@ -1,15 +1,19 @@
 import { createHash, randomBytes } from "node:crypto";
 import { hash as hashPassword, verify as verifyArgon2 } from "@node-rs/argon2";
-import { and, cosineDistance, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, cosineDistance, desc, eq, gt, inArray, isNull, ne, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "./db/client.js";
 import {
   apiTokens,
   codeAnchors,
   conversations,
+  invites,
+  memberships,
   nodes,
   pendingActions,
   projects,
   users,
+  workspaces,
 } from "./db/schema.js";
 import { embed } from "./gemini.js";
 
@@ -18,7 +22,12 @@ import { embed } from "./gemini.js";
 
 export class ServiceError extends Error {
   constructor(
-    public code: "validation" | "unknown_repo" | "not_found" | "unauthorized",
+    public code:
+      | "validation"
+      | "unknown_repo"
+      | "not_found"
+      | "unauthorized"
+      | "rate_limited",
     message: string,
   ) {
     super(message);
@@ -47,7 +56,9 @@ const CHANNELS = ["coder", "app_chat", "app_form"] as const;
 const ETAPY = ["prototyp", "produkcja", "utrzymanie"] as const;
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_LABEL_LENGTH = 100;
+const MAX_NAME_LENGTH = 80;
 const FEED_LIMIT = 100;
+const INVITE_TTL_DAYS = 7;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -89,14 +100,43 @@ function isUniqueViolation(error: unknown): boolean {
   return (error as { code?: string } | null)?.code === "23505";
 }
 
-async function assertProjectOwned(userId: string, projectId: string) {
+// --- Access (plan section 3) ---
+//
+// A workspace owns the archive; a person reaches it by being a member. These
+// three helpers are the whole access rule, and each one hands back the workspace
+// it just proved, so the caller writes with a tenant it did not have to guess.
+
+/** Workspaces this user reaches, for statements that cannot carry a join. */
+function reachableWorkspaces(userId: string) {
+  return db
+    .select({ id: memberships.workspaceId })
+    .from(memberships)
+    .where(eq(memberships.userId, userId));
+}
+
+async function assertMember(userId: string, workspaceId: string): Promise<"owner" | "member"> {
+  assertUuid(userId, "userId");
+  assertUuid(workspaceId, "workspaceId");
+  const [row] = await db
+    .select({ role: memberships.role })
+    .from(memberships)
+    .where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.userId, userId)));
+  if (!row) throw new ServiceError("not_found", "workspace not found for this user");
+  return row.role as "owner" | "member";
+}
+
+async function workspaceOfProject(userId: string, projectId: string): Promise<string> {
+  assertUuid(userId, "userId");
+  assertUuid(projectId, "projectId");
   const [project] = await db
-    .select({ id: projects.id })
+    .select({ workspaceId: projects.workspaceId })
     .from(projects)
-    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)));
+    .innerJoin(memberships, eq(memberships.workspaceId, projects.workspaceId))
+    .where(and(eq(projects.id, projectId), eq(memberships.userId, userId)));
   if (!project) {
     throw new ServiceError("not_found", "project not found for this user");
   }
+  return project.workspaceId;
 }
 
 export async function createNode(input: {
@@ -124,7 +164,7 @@ export async function createNode(input: {
   }
   const anchors = input.anchors ?? [];
   assertAnchors(anchors);
-  await assertProjectOwned(input.userId, input.projectId);
+  const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
   // Network call stays outside the transaction.
   const embedding = await embed(content, "RETRIEVAL_DOCUMENT");
@@ -133,7 +173,8 @@ export async function createNode(input: {
     const [node] = await tx
       .insert(nodes)
       .values({
-        userId: input.userId,
+        workspaceId,
+        authorId: input.userId,
         projectId: input.projectId,
         type: input.type,
         content,
@@ -153,7 +194,7 @@ export async function createNode(input: {
         .where(
           and(
             eq(nodes.id, input.replacesNodeId),
-            eq(nodes.userId, input.userId),
+            eq(nodes.workspaceId, workspaceId),
             eq(nodes.projectId, input.projectId),
           ),
         )
@@ -187,12 +228,15 @@ export function normalizeRepoRef(raw: string): string {
   return ref.slice(0, slash).toLowerCase() + ref.slice(slash);
 }
 
-export async function resolveProjectByRepoRef(userId: string, repoRef: string) {
+// Takes a workspace, not a user: the same repo can be recorded in two workspaces
+// a person belongs to, and a coder's token says which archive it is speaking to.
+export async function resolveProjectByRepoRef(workspaceId: string, repoRef: string) {
+  assertUuid(workspaceId, "workspaceId");
   const normalized = normalizeRepoRef(repoRef);
   const [project] = await db
     .select()
     .from(projects)
-    .where(and(eq(projects.userId, userId), eq(projects.repoRef, normalized)));
+    .where(and(eq(projects.workspaceId, workspaceId), eq(projects.repoRef, normalized)));
   if (!project) {
     throw new ServiceError(
       "unknown_repo",
@@ -211,9 +255,14 @@ const NODE_COLUMNS = {
   status: nodes.status,
   source: nodes.source,
   supersededBy: nodes.supersededBy,
+  confirmedAt: nodes.confirmedAt,
   createdAt: nodes.createdAt,
   updatedAt: nodes.updatedAt,
 };
+
+// The users table is joined twice on a node (who wrote it, who confirmed it),
+// so the second one needs a name of its own.
+const confirmer = alias(users, "confirmer");
 
 // Anchors arrive in a second query instead of a join: a node can carry several,
 // and a join would repeat the node row per anchor for every caller to regroup.
@@ -250,7 +299,7 @@ export async function searchNodes(input: {
   // Checked rather than left to the scope filter, which would answer a search of
   // someone else's project with an empty list - the one result a client cannot
   // tell apart from "nothing recorded yet".
-  await assertProjectOwned(input.userId, input.projectId);
+  const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
   const queryVector = await embed(input.query, "RETRIEVAL_QUERY");
   const distance = cosineDistance(nodes.embedding, queryVector);
@@ -264,12 +313,16 @@ export async function searchNodes(input: {
       status: nodes.status,
       source: nodes.source,
       createdAt: nodes.createdAt,
+      author: users.email,
       similarity: sql<number>`1 - (${distance})`,
     })
     .from(nodes)
+    // Left, not inner: an entry whose author closed their account is still part
+    // of the archive, and an inner join would quietly drop it from every search.
+    .leftJoin(users, eq(users.id, nodes.authorId))
     .where(
       and(
-        eq(nodes.userId, input.userId),
+        eq(nodes.workspaceId, workspaceId),
         eq(nodes.projectId, input.projectId),
         ne(nodes.status, "archived"),
       ),
@@ -311,10 +364,10 @@ export async function listNodes(input: {
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_LIST_LIMIT) {
     throw new ServiceError("validation", `limit must be an integer between 1 and ${MAX_LIST_LIMIT}`);
   }
-  await assertProjectOwned(input.userId, input.projectId);
+  const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
   const filters = [
-    eq(nodes.userId, input.userId),
+    eq(nodes.workspaceId, workspaceId),
     eq(nodes.projectId, input.projectId),
     // Archived nodes are out of the default view for the reason they are out of
     // search: they were taken back. Asking for them by name still works.
@@ -341,8 +394,11 @@ export async function listNodes(input: {
   }
 
   const rows = await db
-    .select(NODE_COLUMNS)
+    .select({ ...NODE_COLUMNS, author: users.email, confirmedBy: confirmer.email })
     .from(nodes)
+    // Both left: an entry outlives the account that wrote or settled it.
+    .leftJoin(users, eq(users.id, nodes.authorId))
+    .leftJoin(confirmer, eq(confirmer.id, nodes.confirmedBy))
     .where(and(...filters))
     // id breaks ties: two nodes written in the same millisecond would otherwise
     // come back in an arbitrary order and the cursor could skip or repeat one.
@@ -386,9 +442,13 @@ function headline(content: string) {
 
 // Boot context for a coder session start: user profile + project card +
 // last session summary + an index of what else is recorded (plan section 6).
-export async function getBootContext(input: { userId: string; repoRef: string }) {
+export async function getBootContext(input: {
+  userId: string;
+  workspaceId: string;
+  repoRef: string;
+}) {
   assertUuid(input.userId, "userId");
-  const project = await resolveProjectByRepoRef(input.userId, input.repoRef);
+  const project = await resolveProjectByRepoRef(input.workspaceId, input.repoRef);
 
   const [user] = await db
     .select({ profile: users.profile })
@@ -397,10 +457,12 @@ export async function getBootContext(input: { userId: string; repoRef: string })
   if (!user) throw new ServiceError("not_found", "user not found");
 
   const [lastSummary] = await db
-    .select({ content: nodes.content, createdAt: nodes.createdAt })
+    .select({ content: nodes.content, createdAt: nodes.createdAt, author: users.email })
     .from(nodes)
+    .leftJoin(users, eq(users.id, nodes.authorId))
     .where(
       and(
+        eq(nodes.workspaceId, input.workspaceId),
         eq(nodes.projectId, project.id),
         eq(nodes.type, "session_summary"),
         ne(nodes.status, "archived"),
@@ -415,10 +477,19 @@ export async function getBootContext(input: { userId: string; repoRef: string })
   // sample rather than an index - then pick by anchors matching the files in play,
   // or cluster by topic.
   const index = await db
-    .select({ node_id: nodes.id, type: nodes.type, content: nodes.content })
+    .select({
+      node_id: nodes.id,
+      type: nodes.type,
+      content: nodes.content,
+      // Who recorded it. In a shared archive this is the difference between "I
+      // decided that" and "someone else decided that and I am about to undo it".
+      author: users.email,
+    })
     .from(nodes)
+    .leftJoin(users, eq(users.id, nodes.authorId))
     .where(
       and(
+        eq(nodes.workspaceId, input.workspaceId),
         eq(nodes.projectId, project.id),
         inArray(nodes.type, ["decision", "note"]),
         // Contradicted ones are out too, not just archived: a headline carries no
@@ -457,14 +528,16 @@ export async function getBootContext(input: { userId: string; repoRef: string })
 export type RequestedBy = "coder" | "app_agent";
 type UpdatePayload = { content?: string; anchors?: Anchor[] };
 
-async function assertNodeOwned(userId: string, nodeId: string) {
+async function workspaceOfNode(userId: string, nodeId: string): Promise<string> {
   assertUuid(userId, "userId");
   assertUuid(nodeId, "nodeId");
   const [node] = await db
-    .select({ id: nodes.id })
+    .select({ workspaceId: nodes.workspaceId })
     .from(nodes)
-    .where(and(eq(nodes.id, nodeId), eq(nodes.userId, userId)));
+    .innerJoin(memberships, eq(memberships.workspaceId, nodes.workspaceId))
+    .where(and(eq(nodes.id, nodeId), eq(memberships.userId, userId)));
   if (!node) throw new ServiceError("not_found", "node not found for this user");
+  return node.workspaceId;
 }
 
 async function hasAllPermission(userId: string): Promise<boolean> {
@@ -478,7 +551,10 @@ async function hasAllPermission(userId: string): Promise<boolean> {
 
 // Applies an update to a node's content and/or anchors. Content change
 // recomputes the embedding - otherwise RAG keeps searching stale meaning.
+// The workspace is passed in rather than assumed from an earlier check: this is
+// the statement that actually writes, so it carries the tenant itself.
 async function applyNodeUpdate(
+  workspaceId: string,
   nodeId: string,
   payload: UpdatePayload,
   editedVia?: SourceMeta["channel"],
@@ -503,8 +579,9 @@ async function applyNodeUpdate(
     const [row] = await tx
       .update(nodes)
       .set(stamped)
-      .where(eq(nodes.id, nodeId))
+      .where(and(eq(nodes.id, nodeId), eq(nodes.workspaceId, workspaceId)))
       .returning(NODE_COLUMNS);
+    if (!row) throw new ServiceError("not_found", "node not found in this workspace");
     if (payload.anchors) {
       await tx.delete(codeAnchors).where(eq(codeAnchors.nodeId, nodeId));
       if (payload.anchors.length) {
@@ -517,11 +594,13 @@ async function applyNodeUpdate(
   });
 }
 
-async function archiveNodeById(nodeId: string) {
-  await db
+async function archiveNodeById(workspaceId: string, nodeId: string) {
+  const [archived] = await db
     .update(nodes)
     .set({ status: "archived", updatedAt: new Date() })
-    .where(eq(nodes.id, nodeId));
+    .where(and(eq(nodes.id, nodeId), eq(nodes.workspaceId, workspaceId)))
+    .returning({ id: nodes.id });
+  if (!archived) throw new ServiceError("not_found", "node not found in this workspace");
 }
 
 export async function requestUpdate(input: {
@@ -537,17 +616,18 @@ export async function requestUpdate(input: {
   // Fail fast on bad payload even when it only goes to the pending queue.
   if (input.content !== undefined) validateContent(input.content);
   if (input.anchors) assertAnchors(input.anchors);
-  await assertNodeOwned(input.userId, input.nodeId);
+  const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
 
   const payload: UpdatePayload = { content: input.content, anchors: input.anchors };
   if (await hasAllPermission(input.userId)) {
-    await applyNodeUpdate(input.nodeId, payload);
+    await applyNodeUpdate(workspaceId, input.nodeId, payload);
     return { applied: true };
   }
   const [pending] = await db
     .insert(pendingActions)
     .values({
-      userId: input.userId,
+      workspaceId,
+      requestedByUserId: input.userId,
       nodeId: input.nodeId,
       action: "update",
       payload,
@@ -562,16 +642,17 @@ export async function requestDelete(input: {
   nodeId: string;
   requestedBy: RequestedBy;
 }): Promise<{ applied: true } | { applied: false; pendingActionId: string }> {
-  await assertNodeOwned(input.userId, input.nodeId);
+  const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
 
   if (await hasAllPermission(input.userId)) {
-    await archiveNodeById(input.nodeId); // never a physical DELETE
+    await archiveNodeById(workspaceId, input.nodeId); // never a physical DELETE
     return { applied: true };
   }
   const [pending] = await db
     .insert(pendingActions)
     .values({
-      userId: input.userId,
+      workspaceId,
+      requestedByUserId: input.userId,
       nodeId: input.nodeId,
       action: "delete",
       requestedBy: input.requestedBy,
@@ -584,28 +665,43 @@ export async function approvePending(input: { userId: string; pendingActionId: s
   assertUuid(input.userId, "userId");
   assertUuid(input.pendingActionId, "pendingActionId");
   const [pending] = await db
-    .select()
+    .select({
+      id: pendingActions.id,
+      action: pendingActions.action,
+      payload: pendingActions.payload,
+      nodeId: pendingActions.nodeId,
+      workspaceId: pendingActions.workspaceId,
+    })
     .from(pendingActions)
+    .innerJoin(memberships, eq(memberships.workspaceId, pendingActions.workspaceId))
     .where(
       and(
         eq(pendingActions.id, input.pendingActionId),
-        eq(pendingActions.userId, input.userId),
+        eq(memberships.userId, input.userId),
         eq(pendingActions.status, "pending"),
       ),
     );
   if (!pending) throw new ServiceError("not_found", "pending action not found");
 
+  // Both writes below carry pending.workspaceId, so a queue entry pointing at a
+  // node in another workspace fails as not_found instead of editing it. Nothing
+  // else compares the two tables.
+  //
   // ponytail: apply-then-flip is not atomic; two concurrent approves can
-  // double-apply. Fine for a single user clicking a feed; add a conditional
-  // status flip if this ever runs multi-client.
+  // double-apply. Fine for a queue a person clicks through; add a conditional
+  // status flip if two members ever race on the same entry.
   if (pending.action === "update") {
-    await applyNodeUpdate(pending.nodeId, pending.payload as UpdatePayload);
+    await applyNodeUpdate(
+      pending.workspaceId,
+      pending.nodeId,
+      pending.payload as UpdatePayload,
+    );
   } else {
-    await archiveNodeById(pending.nodeId);
+    await archiveNodeById(pending.workspaceId, pending.nodeId);
   }
   await db
     .update(pendingActions)
-    .set({ status: "approved", resolvedAt: new Date() })
+    .set({ status: "approved", resolvedAt: new Date(), resolvedBy: input.userId })
     .where(eq(pendingActions.id, pending.id));
 }
 
@@ -614,11 +710,13 @@ export async function rejectPending(input: { userId: string; pendingActionId: st
   assertUuid(input.pendingActionId, "pendingActionId");
   const [rejected] = await db
     .update(pendingActions)
-    .set({ status: "rejected", resolvedAt: new Date() })
+    .set({ status: "rejected", resolvedAt: new Date(), resolvedBy: input.userId })
+    // A subquery rather than a join: the check and the write stay one statement,
+    // so two members rejecting at once cannot both win.
     .where(
       and(
         eq(pendingActions.id, input.pendingActionId),
-        eq(pendingActions.userId, input.userId),
+        inArray(pendingActions.workspaceId, reachableWorkspaces(input.userId)),
         eq(pendingActions.status, "pending"),
       ),
     )
@@ -626,15 +724,22 @@ export async function rejectPending(input: { userId: string; pendingActionId: st
   if (!rejected) throw new ServiceError("not_found", "pending action not found");
 }
 
+// Anyone in the workspace may confirm, and the entry records who did. Without
+// the signature "confirmed" in a team says only that somebody, once, agreed.
 export async function confirmNode(input: { userId: string; nodeId: string }) {
-  await assertNodeOwned(input.userId, input.nodeId);
+  const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
   const [confirmed] = await db
     .update(nodes)
-    .set({ status: "confirmed", updatedAt: new Date() })
+    .set({
+      status: "confirmed",
+      confirmedBy: input.userId,
+      confirmedAt: new Date(),
+      updatedAt: new Date(),
+    })
     .where(
       and(
         eq(nodes.id, input.nodeId),
-        eq(nodes.userId, input.userId),
+        eq(nodes.workspaceId, workspaceId),
         eq(nodes.status, "proposed"), // only proposed can be confirmed (plan section 4)
       ),
     )
@@ -645,8 +750,8 @@ export async function confirmNode(input: { userId: string; nodeId: string }) {
 }
 
 export async function archiveNode(input: { userId: string; nodeId: string }) {
-  await assertNodeOwned(input.userId, input.nodeId);
-  await archiveNodeById(input.nodeId);
+  const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
+  await archiveNodeById(workspaceId, input.nodeId);
 }
 
 // The app's own edit, applied on the spot rather than queued. The pending queue
@@ -661,8 +766,9 @@ export async function editNode(input: {
   if (input.content === undefined && input.anchors === undefined) {
     throw new ServiceError("validation", "nothing to update: provide content and/or anchors");
   }
-  await assertNodeOwned(input.userId, input.nodeId);
+  const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
   const row = await applyNodeUpdate(
+    workspaceId,
     input.nodeId,
     { content: input.content, anchors: input.anchors },
     "app_form",
@@ -686,15 +792,16 @@ export async function contradictNode(input: {
     throw new ServiceError("validation", "a node cannot supersede itself");
   }
 
+  const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
   const [[target], [superseder]] = await Promise.all([
     db
       .select({ status: nodes.status, projectId: nodes.projectId })
       .from(nodes)
-      .where(and(eq(nodes.id, input.nodeId), eq(nodes.userId, input.userId))),
+      .where(and(eq(nodes.id, input.nodeId), eq(nodes.workspaceId, workspaceId))),
     db
       .select({ projectId: nodes.projectId })
       .from(nodes)
-      .where(and(eq(nodes.id, input.supersededBy), eq(nodes.userId, input.userId))),
+      .where(and(eq(nodes.id, input.supersededBy), eq(nodes.workspaceId, workspaceId))),
   ]);
   if (!target) throw new ServiceError("not_found", "node not found for this user");
   if (!superseder) {
@@ -712,7 +819,7 @@ export async function contradictNode(input: {
   await db
     .update(nodes)
     .set({ status: "contradicted", supersededBy: input.supersededBy, updatedAt: new Date() })
-    .where(eq(nodes.id, input.nodeId));
+    .where(and(eq(nodes.id, input.nodeId), eq(nodes.workspaceId, workspaceId)));
 }
 
 // --- Accounts and auth (plan section 10) ---
@@ -747,14 +854,57 @@ export async function registerUser(input: {
   // @node-rs/argon2 defaults to argon2id with the OWASP-recommended cost
   // (19 MiB, 2 iterations), so there is nothing to tune here.
   const passwordHash = await hashPassword(input.password);
+  return db.transaction(async (tx) => {
+    const [user] = await tx
+      .insert(users)
+      .values({ email, passwordHash })
+      // The check above races; this is what actually keeps the address unique.
+      .onConflictDoNothing({ target: users.email })
+      .returning({ id: users.id });
+    if (!user) throw new ServiceError("validation", "email already registered");
+
+    // A private workspace right away, so working alone is a workspace of one and
+    // nothing downstream needs a branch for "no workspace yet". Named after the
+    // address because there is nothing else to name it after at this point.
+    const [workspace] = await tx
+      .insert(workspaces)
+      .values({ name: email, ownerId: user.id })
+      .returning({ id: workspaces.id });
+    await tx
+      .insert(memberships)
+      .values({ workspaceId: workspace.id, userId: user.id, role: "owner" });
+
+    return { userId: user.id, workspaceId: workspace.id };
+  });
+}
+
+export async function changePassword(input: {
+  userId: string;
+  currentPassword: string;
+  newPassword: string;
+}) {
+  assertUuid(input.userId, "userId");
+  if ((input.newPassword ?? "").length < MIN_PASSWORD_LENGTH) {
+    throw new ServiceError(
+      "validation",
+      `password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+    );
+  }
   const [user] = await db
-    .insert(users)
-    .values({ email, passwordHash })
-    // The check above races; this is what actually keeps the address unique.
-    .onConflictDoNothing({ target: users.email })
-    .returning({ id: users.id });
-  if (!user) throw new ServiceError("validation", "email already registered");
-  return { userId: user.id };
+    .select({ passwordHash: users.passwordHash })
+    .from(users)
+    .where(eq(users.id, input.userId));
+  if (!user) throw new ServiceError("not_found", "user not found");
+  if (!(await verifyPassword(user.passwordHash, input.currentPassword))) {
+    throw new ServiceError("unauthorized", "current password is not correct");
+  }
+  // ponytail: tokens issued before the change keep working until they expire.
+  // A denylist is the fix, and it is a table plus a check on every request for
+  // one case; the 30 day ttl is the ceiling until sessions matter more.
+  await db
+    .update(users)
+    .set({ passwordHash: await hashPassword(input.newPassword) })
+    .where(eq(users.id, input.userId));
 }
 
 // A stored hash that argon2 cannot parse (the seed script writes a placeholder)
@@ -835,6 +985,233 @@ export async function setAllPermission(input: { userId: string; allPermission: b
   return updated;
 }
 
+// --- Workspaces and invitations ---
+
+// Where a project lands when the caller does not say. The private workspace made
+// at registration is always the oldest membership, so this is that one until the
+// person joins or creates another, and it stays that one afterwards.
+async function defaultWorkspace(userId: string): Promise<string> {
+  const [first] = await db
+    .select({ id: memberships.workspaceId })
+    .from(memberships)
+    .where(eq(memberships.userId, userId))
+    .orderBy(memberships.createdAt)
+    .limit(1);
+  if (!first) throw new ServiceError("not_found", "user has no workspace");
+  return first.id;
+}
+
+export async function listWorkspaces(userId: string) {
+  assertUuid(userId, "userId");
+  return db
+    .select({
+      id: workspaces.id,
+      name: workspaces.name,
+      role: memberships.role,
+      isOwner: sql<boolean>`${workspaces.ownerId} = ${userId}`,
+      memberCount: sql<number>`(
+        SELECT count(*)::int FROM memberships m WHERE m.workspace_id = ${workspaces.id}
+      )`,
+      createdAt: workspaces.createdAt,
+    })
+    .from(memberships)
+    .innerJoin(workspaces, eq(workspaces.id, memberships.workspaceId))
+    .where(eq(memberships.userId, userId))
+    .orderBy(memberships.createdAt);
+}
+
+function validateName(raw: string): string {
+  const name = (raw ?? "").trim();
+  if (!name) throw new ServiceError("validation", "name must not be empty");
+  if (name.length > MAX_NAME_LENGTH) {
+    throw new ServiceError("validation", `name must be at most ${MAX_NAME_LENGTH} characters`);
+  }
+  return name;
+}
+
+export async function createWorkspace(input: { userId: string; name: string }) {
+  assertUuid(input.userId, "userId");
+  const name = validateName(input.name);
+  return db.transaction(async (tx) => {
+    const [workspace] = await tx
+      .insert(workspaces)
+      .values({ name, ownerId: input.userId })
+      .returning();
+    await tx
+      .insert(memberships)
+      .values({ workspaceId: workspace.id, userId: input.userId, role: "owner" });
+    return workspace;
+  });
+}
+
+export async function listMembers(input: { userId: string; workspaceId: string }) {
+  await assertMember(input.userId, input.workspaceId);
+  return db
+    .select({
+      userId: users.id,
+      email: users.email,
+      role: memberships.role,
+      joinedAt: memberships.createdAt,
+    })
+    .from(memberships)
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(eq(memberships.workspaceId, input.workspaceId))
+    .orderBy(memberships.createdAt);
+}
+
+// One door for two actions: an owner removing someone, and anyone walking out.
+// They differ in who is allowed, not in what happens.
+export async function removeMember(input: {
+  userId: string;
+  workspaceId: string;
+  memberId: string;
+}) {
+  const role = await assertMember(input.userId, input.workspaceId);
+  assertUuid(input.memberId, "memberId");
+  const leaving = input.memberId === input.userId;
+  if (!leaving && role !== "owner") {
+    throw new ServiceError("unauthorized", "only the owner removes other members");
+  }
+  const [workspace] = await db
+    .select({ ownerId: workspaces.ownerId })
+    .from(workspaces)
+    .where(eq(workspaces.id, input.workspaceId));
+  // The owner leaving would leave the archive with tokens minted against a
+  // workspace nobody administers. Handing it over is a feature that does not
+  // exist yet, so the answer for now is no.
+  if (workspace?.ownerId === input.memberId) {
+    throw new ServiceError("validation", "the owner cannot leave their own workspace");
+  }
+  const [removed] = await db
+    .delete(memberships)
+    .where(
+      and(eq(memberships.workspaceId, input.workspaceId), eq(memberships.userId, input.memberId)),
+    )
+    .returning({ userId: memberships.userId });
+  if (!removed) throw new ServiceError("not_found", "member not found in this workspace");
+
+  // Their coder tokens for this workspace go with them. resolveActorByToken
+  // would refuse them anyway; deleting the rows keeps the two from disagreeing.
+  await db
+    .delete(apiTokens)
+    .where(
+      and(eq(apiTokens.workspaceId, input.workspaceId), eq(apiTokens.userId, input.memberId)),
+    );
+}
+
+export async function createInvite(input: {
+  userId: string;
+  workspaceId: string;
+  email?: string | null;
+}) {
+  await assertMember(input.userId, input.workspaceId);
+  // Optional, and when given it binds the code to one address. An intercepted
+  // code then opens nothing, and the field is where a delivered invitation will
+  // read the recipient from once this runs somewhere with a mail sender.
+  const email = input.email ? normalizeEmail(input.email) : null;
+  if (email && !EMAIL_RE.test(email)) {
+    throw new ServiceError("validation", "email does not look like an email address");
+  }
+  const expiresAt = new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000);
+  const [invite] = await db
+    .insert(invites)
+    .values({
+      workspaceId: input.workspaceId,
+      code: randomBytes(16).toString("base64url"),
+      createdBy: input.userId,
+      email,
+      expiresAt,
+    })
+    .returning({
+      id: invites.id,
+      code: invites.code,
+      email: invites.email,
+      expiresAt: invites.expiresAt,
+    });
+  return invite;
+}
+
+export async function listInvites(input: { userId: string; workspaceId: string }) {
+  await assertMember(input.userId, input.workspaceId);
+  // Open ones only: a used or expired code is not something anyone acts on, and
+  // showing it invites a second attempt with a code that cannot work.
+  return db
+    .select({
+      id: invites.id,
+      code: invites.code,
+      email: invites.email,
+      expiresAt: invites.expiresAt,
+      createdAt: invites.createdAt,
+    })
+    .from(invites)
+    .where(
+      and(
+        eq(invites.workspaceId, input.workspaceId),
+        isNull(invites.acceptedAt),
+        gt(invites.expiresAt, new Date()),
+      ),
+    )
+    .orderBy(desc(invites.createdAt));
+}
+
+export async function revokeInvite(input: { userId: string; inviteId: string }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.inviteId, "inviteId");
+  const [deleted] = await db
+    .delete(invites)
+    .where(
+      and(
+        eq(invites.id, input.inviteId),
+        inArray(invites.workspaceId, reachableWorkspaces(input.userId)),
+      ),
+    )
+    .returning({ id: invites.id });
+  if (!deleted) throw new ServiceError("not_found", "invite not found");
+}
+
+export async function acceptInvite(input: { userId: string; code: string }) {
+  assertUuid(input.userId, "userId");
+  const code = (input.code ?? "").trim();
+  if (!code) throw new ServiceError("validation", "code must not be empty");
+
+  const [user] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, input.userId));
+  if (!user) throw new ServiceError("not_found", "user not found");
+
+  return db.transaction(async (tx) => {
+    // The single use is the update itself: a second acceptance finds no row with
+    // accepted_at still null and stops here, so two people cannot share a code.
+    const [invite] = await tx
+      .update(invites)
+      .set({ acceptedBy: input.userId, acceptedAt: new Date() })
+      .where(
+        and(eq(invites.code, code), isNull(invites.acceptedAt), gt(invites.expiresAt, new Date())),
+      )
+      .returning({ workspaceId: invites.workspaceId, email: invites.email });
+    if (!invite) {
+      throw new ServiceError("not_found", "this code is not valid, or was already used");
+    }
+    if (invite.email && invite.email !== user.email) {
+      throw new ServiceError("unauthorized", "this invitation was written for another address");
+    }
+
+    const [joined] = await tx
+      .insert(memberships)
+      .values({ workspaceId: invite.workspaceId, userId: input.userId, role: "member" })
+      .onConflictDoNothing()
+      .returning({ workspaceId: memberships.workspaceId });
+    if (!joined) throw new ServiceError("validation", "you are already in this workspace");
+
+    const [workspace] = await tx
+      .select({ id: workspaces.id, name: workspaces.name })
+      .from(workspaces)
+      .where(eq(workspaces.id, invite.workspaceId));
+    return workspace;
+  });
+}
+
 // --- MCP tokens (plan section 9) ---
 
 // The raw token is shown once at generation; only its sha256 reaches the DB,
@@ -847,26 +1224,44 @@ export function hashToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
 }
 
-// Every MCP call scopes to the user behind the bearer token.
-export async function resolveUserByToken(rawToken: string): Promise<string> {
+/** Who is calling and which archive they are calling about. */
+export type Actor = { userId: string; workspaceId: string };
+
+// Every MCP call scopes to the workspace the token was minted for. The person
+// behind it still matters, because what they write is signed with their name.
+export async function resolveActorByToken(rawToken: string): Promise<Actor> {
   const [token] = await db
-    .select({ id: apiTokens.id, userId: apiTokens.userId })
+    .select({ id: apiTokens.id, userId: apiTokens.userId, workspaceId: apiTokens.workspaceId })
     .from(apiTokens)
+    // A token whose owner was removed from the workspace stops working here,
+    // rather than keeping a way in that the members list no longer shows.
+    .innerJoin(
+      memberships,
+      and(
+        eq(memberships.workspaceId, apiTokens.workspaceId),
+        eq(memberships.userId, apiTokens.userId),
+      ),
+    )
     .where(eq(apiTokens.tokenHash, hashToken(rawToken)));
   if (!token) throw new ServiceError("unauthorized", "invalid token");
   await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, token.id));
-  return token.userId;
+  return { userId: token.userId, workspaceId: token.workspaceId };
 }
 
 // The only place the raw token exists after generation is this return value.
 // Whoever calls it has one chance to show it to the user.
-export async function createApiToken(input: { userId: string; label?: string }) {
-  assertUuid(input.userId, "userId");
+export async function createApiToken(input: {
+  userId: string;
+  workspaceId?: string;
+  label?: string;
+}) {
+  const workspaceId = input.workspaceId ?? (await defaultWorkspace(input.userId));
+  await assertMember(input.userId, workspaceId);
   const label = (input.label ?? "").trim().slice(0, MAX_LABEL_LENGTH);
   const token = generateToken();
   const [row] = await db
     .insert(apiTokens)
-    .values({ userId: input.userId, tokenHash: hashToken(token), label })
+    .values({ userId: input.userId, workspaceId, tokenHash: hashToken(token), label })
     .returning({ id: apiTokens.id, label: apiTokens.label, createdAt: apiTokens.createdAt });
   return { ...row, token };
 }
@@ -879,10 +1274,13 @@ export async function listApiTokens(userId: string) {
     .select({
       id: apiTokens.id,
       label: apiTokens.label,
+      workspaceId: apiTokens.workspaceId,
+      workspaceName: workspaces.name,
       createdAt: apiTokens.createdAt,
       lastUsedAt: apiTokens.lastUsedAt,
     })
     .from(apiTokens)
+    .innerJoin(workspaces, eq(workspaces.id, apiTokens.workspaceId))
     .where(eq(apiTokens.userId, userId))
     .orderBy(desc(apiTokens.createdAt));
 }
@@ -944,6 +1342,8 @@ export async function listProjects(userId: string) {
       stack: projects.stack,
       etap: projects.etap,
       ograniczenia: projects.ograniczenia,
+      workspaceId: projects.workspaceId,
+      workspaceName: workspaces.name,
       createdAt: projects.createdAt,
       updatedAt: projects.updatedAt,
       // Archived nodes are out of the count for the same reason they are out of
@@ -955,8 +1355,11 @@ export async function listProjects(userId: string) {
     // Left, not inner: a project with no entries yet is exactly the one the
     // empty state is written for, and an inner join would hide it.
     .leftJoin(nodes, eq(nodes.projectId, projects.id))
-    .where(eq(projects.userId, userId))
-    .groupBy(projects.id)
+    .innerJoin(workspaces, eq(workspaces.id, projects.workspaceId))
+    // Every workspace this person belongs to, in one list. A project from a team
+    // sits next to a private one and says which archive it came from.
+    .where(inArray(projects.workspaceId, reachableWorkspaces(userId)))
+    .groupBy(projects.id, workspaces.id)
     .orderBy(desc(projects.updatedAt));
 }
 
@@ -968,9 +1371,7 @@ const SIMILARITY_FLOOR = 0.75;
 const NEIGHBOURS = 3;
 
 export async function getGraph(input: { userId: string; projectId: string }) {
-  assertUuid(input.userId, "userId");
-  assertUuid(input.projectId, "projectId");
-  await assertProjectOwned(input.userId, input.projectId);
+  const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
   const graphNodes = await db
     .select({
@@ -984,7 +1385,7 @@ export async function getGraph(input: { userId: string; projectId: string }) {
     .where(
       and(
         eq(nodes.projectId, input.projectId),
-        eq(nodes.userId, input.userId),
+        eq(nodes.workspaceId, workspaceId),
         ne(nodes.status, "archived"),
       ),
     )
@@ -1004,6 +1405,7 @@ export async function getGraph(input: { userId: string; projectId: string }) {
     JOIN nodes n1 ON n1.id = a1.node_id
     JOIN nodes n2 ON n2.id = a2.node_id
     WHERE n1.project_id = ${input.projectId} AND n2.project_id = ${input.projectId}
+      AND n1.workspace_id = ${workspaceId} AND n2.workspace_id = ${workspaceId}
       AND n1.status <> 'archived' AND n2.status <> 'archived'
     GROUP BY a1.node_id, a2.node_id
   `);
@@ -1020,11 +1422,12 @@ export async function getGraph(input: { userId: string; projectId: string }) {
     CROSS JOIN LATERAL (
       SELECT o.id, 1 - (o.embedding <=> n.embedding) AS similarity
       FROM nodes o
-      WHERE o.project_id = n.project_id AND o.id <> n.id AND o.status <> 'archived'
+      WHERE o.project_id = n.project_id AND o.workspace_id = ${workspaceId}
+        AND o.id <> n.id AND o.status <> 'archived'
       ORDER BY o.embedding <=> n.embedding
       LIMIT ${NEIGHBOURS}
     ) m
-    WHERE n.project_id = ${input.projectId} AND n.user_id = ${input.userId}
+    WHERE n.project_id = ${input.projectId} AND n.workspace_id = ${workspaceId}
       AND n.status <> 'archived' AND m.similarity >= ${SIMILARITY_FLOOR}
   `);
 
@@ -1110,7 +1513,9 @@ export async function listConversations(input: {
   assertUuid(input.userId, "userId");
   assertUuid(input.projectId, "projectId");
   assertKind(input.kind);
-  await assertProjectOwned(input.userId, input.projectId);
+  // A conversation belongs to the person, not the workspace, so this only proves
+  // they can reach the project it is filed under.
+  await workspaceOfProject(input.userId, input.projectId);
 
   // Titles and timestamps only. The list is a way back into a conversation, and
   // shipping every message of the last twenty would be most of the table.
@@ -1157,7 +1562,7 @@ export async function createConversation(input: {
   assertUuid(input.projectId, "projectId");
   assertKind(input.kind);
   assertMessages(input.messages);
-  await assertProjectOwned(input.userId, input.projectId);
+  await workspaceOfProject(input.userId, input.projectId);
 
   const opening = input.messages.find((m) => m.role === "user");
   if (!opening) {
@@ -1194,27 +1599,42 @@ export async function appendToConversation(input: {
   const [updated] = await db
     .update(conversations)
     .set({ messages: input.messages, updatedAt: new Date() })
-    .where(eq(conversations.id, input.conversationId))
+    .where(
+      and(eq(conversations.id, input.conversationId), eq(conversations.userId, input.userId)),
+    )
     .returning();
   return updated;
 }
 
 export async function deleteConversation(input: { userId: string; conversationId: string }) {
   await getConversation(input);
-  await db.delete(conversations).where(eq(conversations.id, input.conversationId));
+  await db
+    .delete(conversations)
+    .where(
+      and(eq(conversations.id, input.conversationId), eq(conversations.userId, input.userId)),
+    );
 }
 
-export async function createProject(input: { userId: string; card: ProjectCard }) {
+export async function createProject(input: {
+  userId: string;
+  workspaceId?: string;
+  card: ProjectCard;
+}) {
   assertUuid(input.userId, "userId");
   validateCard(input.card);
+  const workspaceId = input.workspaceId ?? (await defaultWorkspace(input.userId));
+  await assertMember(input.userId, workspaceId);
   const repoRef = normalizeRepoRef(input.card.repoRef);
   const [project] = await db
     .insert(projects)
-    .values({ ...input.card, userId: input.userId, repoRef })
-    .onConflictDoNothing({ target: [projects.userId, projects.repoRef] })
+    .values({ ...input.card, workspaceId, repoRef })
+    .onConflictDoNothing({ target: [projects.workspaceId, projects.repoRef] })
     .returning();
   if (!project) {
-    throw new ServiceError("validation", `you already have a project for repo_ref ${repoRef}`);
+    throw new ServiceError(
+      "validation",
+      `this workspace already has a project for repo_ref ${repoRef}`,
+    );
   }
   return project;
 }
@@ -1234,14 +1654,22 @@ export async function updateProject(input: {
     const [project] = await db
       .update(projects)
       .set(patch)
-      .where(and(eq(projects.id, input.projectId), eq(projects.userId, input.userId)))
+      .where(
+        and(
+          eq(projects.id, input.projectId),
+          inArray(projects.workspaceId, reachableWorkspaces(input.userId)),
+        ),
+      )
       .returning();
     if (!project) throw new ServiceError("not_found", "project not found for this user");
     return project;
   } catch (error) {
-    // A repo_ref edit can land on another project of the same user.
+    // A repo_ref edit can land on another project in the same workspace.
     if (isUniqueViolation(error)) {
-      throw new ServiceError("validation", "another project of yours already uses this repo_ref");
+      throw new ServiceError(
+        "validation",
+        "another project in this workspace already uses this repo_ref",
+      );
     }
     throw error;
   }
@@ -1268,11 +1696,20 @@ export async function getReviewFeed(userId: string) {
       nodeContent: nodes.content,
       projectId: projects.id,
       projectName: projects.name,
+      workspaceName: workspaces.name,
+      requestedByEmail: users.email,
     })
     .from(pendingActions)
     .innerJoin(nodes, eq(nodes.id, pendingActions.nodeId))
     .innerJoin(projects, eq(projects.id, nodes.projectId))
-    .where(and(eq(pendingActions.userId, userId), eq(pendingActions.status, "pending")))
+    .innerJoin(workspaces, eq(workspaces.id, pendingActions.workspaceId))
+    .leftJoin(users, eq(users.id, pendingActions.requestedByUserId))
+    .where(
+      and(
+        inArray(pendingActions.workspaceId, reachableWorkspaces(userId)),
+        eq(pendingActions.status, "pending"),
+      ),
+    )
     .orderBy(desc(pendingActions.createdAt))
     .limit(FEED_LIMIT);
 
@@ -1289,10 +1726,19 @@ export async function getReviewFeed(userId: string) {
       createdAt: nodes.createdAt,
       projectId: projects.id,
       projectName: projects.name,
+      workspaceName: workspaces.name,
+      author: users.email,
     })
     .from(nodes)
     .innerJoin(projects, eq(projects.id, nodes.projectId))
-    .where(and(eq(nodes.userId, userId), inArray(nodes.status, ["proposed", "contradicted"])))
+    .innerJoin(workspaces, eq(workspaces.id, nodes.workspaceId))
+    .leftJoin(users, eq(users.id, nodes.authorId))
+    .where(
+      and(
+        inArray(nodes.workspaceId, reachableWorkspaces(userId)),
+        inArray(nodes.status, ["proposed", "contradicted"]),
+      ),
+    )
     .orderBy(desc(nodes.createdAt))
     .limit(FEED_LIMIT);
 
