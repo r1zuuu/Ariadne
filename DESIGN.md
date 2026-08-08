@@ -2,26 +2,32 @@
 name: Ariadne
 register: product
 personality: [attributed, deliberate, quiet]
-theme: dark-only, four given stones
+theme: dark-first, always
 color:
-  plaster:        "#222831"   # app background, the charcoal
-  plaster-raised: "#272e38"
-  plaster-sunk:   "#1c222a"   # title bar, nav column: the frame recedes
-  surface:        "#2e343e"   # cards rise by lightness
-  surface-2:      "#393e46"   # hover, the graphite itself
-  ink:            "#ede4d3"   # 11.8:1, lightened sand, never #fff
-  ink-2:          "#c9bda6"   # 8.0:1
-  ink-3:          "#a79d8c"   # 5.5:1 ground / 4.7:1 card, text floor
-  edge:           "#737981"   # 3.2:1, control borders
-  hairline:       "#393e46"   # the graphite, decoration only
-  thread:         "#dfd0b8"   # 9.8:1, the sand: a linen thread on dark cloth
-  laurel:         "#a9b388"   # 6.7:1, confirmed, dried laurel
-  ochre:          "#d4b483"   # 7.5:1, proposed, sanded gold
-  ochre-mark:     "#c0a46f"   # 6.2:1, markers
-  iron:           "#ce8f79"   # 5.4:1, contradicted, deletions, errors, fired clay
-  stone:          "#a79d8c"   # archived reads as faded text, which is what it is
-  canvas:         "#1a1f27"   # the command block sinks below the page
-  canvas-ink:     "#ede4d3"
+  plaster:        "#181d24"   # canvas, the darkest ground
+  plaster-sunk:   "#222831"   # sidebar, title bar, large structure
+  surface:        "#2c323b"   # cards, inputs
+  surface-2:      "#393e46"   # hover, elevated
+  elevated:       "#393e46"   # composer, menus, toasts
+  ink:            "#f0e7d9"   # text primary, parchment, never #fff
+  ink-2:          "#c7bba9"   # text secondary
+  ink-3:          "#948979"   # text muted: metadata, dates
+  edge:           "#4b515a"   # border default
+  edge-strong:    "#666a6d"   # border strong
+  hairline:       "#353b44"   # border subtle
+  thread:         "#c76f4f"   # terracotta, the brand: path, action, guidance
+  thread-deep:    "#d78260"   # hover
+  thread-press:   "#724536"   # pressed
+  thread-soft:    "#3e2d29"   # selected dark fill
+  thread-lift:    "#e69a78"   # bright cut: decor lines, map edges
+  aegean:         "#67a6a1"   # intelligence: citations, info, context
+  aegean-deep:    "#487b78"
+  laurel:         "#899a6d"   # success olive, confirmed
+  ochre:          "#c3a15a"   # warning antique gold, proposed
+  iron:           "#c66b62"   # error oxide, contradicted
+  stone:          "#948979"   # archived, faded text
+  canvas:         "#14181e"   # the command block sinks below the canvas
+  canvas-ink:     "#f0e7d9"
 type:
   heading: Playfair Display, latin-ext, variable wght, headline steps only
   prose:   Geist, latin-ext, weights 100-900
@@ -41,12 +47,16 @@ a11y: WCAG 2.2 AA, status never colour-only, reduced-motion honoured
 
 # Overview
 
-Ariadne is a desktop window over a research archive, kept in the dark: a
-charcoal ground built on four given stones (#222831, #393E46, #948979,
-#DFD0B8), sand-inked text, a display serif for what is scanned, and a single
-sand thread that marks where you are and where the sequence leads. It shows
-what a coding agent decided, when, in which files, and whether a human has
-vouched for it.
+Ariadne is a desktop window over a research archive, kept in the dark:
+parchment text on a charcoal ground, a display serif for what is scanned, a
+terracotta thread that marks where you are, and an aegean accent for what
+Ariadne knows. It shows what a coding agent decided, when, in which files, and
+whether a human has vouched for it.
+
+**The Dark-First Rule.** Ariadne is a dark-first application. Contrast and
+hierarchy problems are never solved by converting surfaces to a light theme;
+they are solved through controlled luminance differences between canvas
+(#181D24), surfaces, borders and typography. Text is parchment, not white.
 
 **The Instrument Rule.** Nothing on screen celebrates a number; every number is
 a reading you can act on.
@@ -66,27 +76,21 @@ as an invalidation strategy is banned.
 
 # Colors
 
-**The Four Stones Rule.** The whole palette descends from four given colours:
-#222831 is the ground, #393E46 draws the hairlines and hovers, #948979 is what
-has faded, #DFD0B8 is the thread. Every other value (raised and sunk grounds,
-the ink ladder, the status hues) is derived from them and stays warm-tuned to
-them. Pure black and pure white are absent.
+**Elevation Is Luminance.** On a dark ground nothing floats on a shadow alone:
+the closer a surface sits to the reader, the lighter it is (canvas 181D24 →
+structure 222831 → card 2C323B → hover/elevated 393E46). Shadows are black
+and only anchor what genuinely floats.
 
-**Elevation Is Lightness.** On a dark ground nothing floats on a shadow alone:
-the closer a surface sits to the reader, the lighter it is (sunk 1C222A →
-ground 222831 → raised 272E38 → card 2E343E → hover 393E46). Shadows are
-black and only anchor what genuinely floats.
+**The Two Accents Rule.** Terracotta is the thread: the user's path, action
+and guidance - the nav marker, the focused input, the drawn line, the primary
+CTA, the active node. Aegean is intelligence: citations, info states, what
+Ariadne knows. Neither is decoration, neither covers a large surface, and
+together they stay in single percents of any screen.
 
-**The Thread Rule.** The sand is the brand and it only guides: the active
-navigation marker's taut left edge, the focused composer's edge, focus rings,
-the drawn thread in the tour, the loose end in an empty state, links, and the
-primary button - on this palette the strongest action and the thread share the
-same fibre.
-
-Statuses: dried laurel is `confirmed`, sanded gold is `proposed`, fired clay is
-`contradicted`, and `archived` is the given taupe - faded text, which is what
-an archived entry is. The hues stay quiet because the shapes and words carry
-the meaning.
+Statuses: olive is `confirmed`, antique gold is `proposed`, oxide is
+`contradicted`, and `archived` is the muted stone - faded text, which is what
+an archived entry is. Badge fills are dark desaturated tints of their hue; the
+shapes and words carry the meaning.
 
 # Typography
 

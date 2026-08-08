@@ -20,11 +20,11 @@ import type { ReactNode } from "react";
 type ButtonVariant = "primary" | "secondary" | "quiet" | "destructive";
 type ButtonSize = "md" | "lg";
 
-// Primary is ink, not the accent. The thread points at things; a button full of
-// it on every screen would be the accent shouting, which is the generic look
-// this system replaces.
+// Primary is the thread: the terracotta belongs to the strongest action on
+// the screen and to nothing decorative, which is what keeps it precious.
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-ink text-plaster-raised border border-ink hover:bg-ink/90",
+  primary:
+    "bg-thread text-plaster border border-thread hover:bg-thread-deep hover:border-thread-deep active:bg-thread-press",
   secondary: "border border-edge/60 bg-surface text-ink hover:bg-plaster-sunk hover:border-edge",
   quiet: "border border-transparent text-ink-2 hover:bg-plaster-sunk hover:text-ink",
   destructive: "border border-iron/40 bg-surface text-iron hover:bg-iron/10 hover:border-iron",
@@ -354,8 +354,8 @@ type BannerVariant = "error" | "notice" | "done";
 
 const BANNER_VARIANTS: Record<BannerVariant, string> = {
   error: "border-iron/40 bg-iron/5",
-  notice: "border-ochre/40 bg-ochre/5",
-  done: "border-thread/40 bg-thread/5",
+  notice: "border-ochre-mark/40 bg-ochre-mark/5",
+  done: "border-aegean/40 bg-aegean/5",
 };
 
 // Always the same three parts in the same order: what happened, what it means

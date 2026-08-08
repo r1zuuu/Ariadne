@@ -64,7 +64,7 @@ export function Composer({
       {/* The most important object in the product, and the one thing allowed to
           borrow the thread while it is awake: focus pulls the left edge taut
           in madder and lifts the paper. Everything else on screen stays flat. */}
-      <div className="group relative rounded-card border border-edge/80 bg-surface shadow-lifted transition-[border-color,box-shadow] duration-state focus-within:border-edge">
+      <div className="group relative rounded-card border border-edge/80 bg-elevated shadow-lifted transition-[border-color,box-shadow] duration-state focus-within:border-thread-lift">
         <span
           aria-hidden="true"
           className="pointer-events-none absolute bottom-[10px] left-0 top-[10px] w-[2px] origin-top scale-y-0 bg-thread transition-transform duration-enter ease-out-quint group-focus-within:scale-y-100"

@@ -8,43 +8,50 @@
    a WCAG script against these exact numbers. */
 
 @theme {
-  /* Colour. Dark only, built on four given stones: #222831 charcoal, #393E46
-     graphite, #948979 taupe, #DFD0B8 sand. The ground is the charcoal, the
-     graphite draws the hairlines and hovers, the taupe is what has faded, and
-     the sand is the linen thread that guides. Elevation is lightness: the
-     further a surface is from the dark, the closer it sits to the reader.
-     Everything else is derived from those four. */
-  --color-plaster: #222831; /* app background */
-  --color-plaster-raised: #272e38;
-  --color-plaster-sunk: #1c222a; /* title bar, nav column: the frame recedes */
+  /* Colour. Ariadne is a dark-first application: contrast and hierarchy are
+     solved through controlled luminance steps between canvas, surfaces,
+     borders and type - never by lightening the theme. Text is parchment
+     (#F0E7D9), not white. Two accents with meaning, not decoration:
+     terracotta is the thread - the user's path, action, guidance - and
+     aegean is intelligence - context, information, what Ariadne knows. */
+  --color-plaster: #181d24; /* canvas, the darkest ground */
+  --color-plaster-raised: #222831;
+  --color-plaster-sunk: #222831; /* sidebar, title bar, large structural surfaces */
 
-  /* Cards rise out of the dark by lightness, not by outline. */
-  --color-surface: #2e343e;
-  --color-surface-2: #393e46; /* hover on a card that is clickable, the graphite itself */
+  --color-surface: #2c323b; /* cards, inputs */
+  --color-surface-2: #393e46; /* hover, elevated cards */
+  --color-elevated: #393e46; /* the composer, a menu, a toast */
 
-  --color-ink: #ede4d3; /* 11.8:1, lightened sand, never #fff */
-  --color-ink-2: #c9bda6; /* 8.0:1 */
-  --color-ink-3: #a79d8c; /* 5.5:1 on the ground, 4.7:1 on a card, floor for text */
-  --color-edge: #737981; /* 3.2:1, control borders */
-  --color-hairline: #393e46; /* the graphite, decoration only */
+  --color-ink: #f0e7d9; /* text primary, parchment, never #fff */
+  --color-ink-2: #c7bba9; /* text secondary */
+  --color-ink-3: #948979; /* text muted: metadata, dates */
+  --color-edge: #4b515a; /* border default, controls */
+  --color-edge-strong: #666a6d; /* border strong, secondary focus */
+  --color-hairline: #353b44; /* border subtle, separators */
 
-  /* The thread. The sand itself - a linen thread on dark cloth - the one brand
-     accent, reserved for guidance: the active marker, the drawn thread, focus,
-     links, "you are here". Primary buttons are sand-inked too: on this palette
-     the thread and the strongest action share the same fibre. */
-  --color-thread: #dfd0b8; /* 9.8:1 */
-  --color-thread-lift: #dfd0b8;
+  /* The thread. Terracotta, the brand: the nav marker, the focused input,
+     the drawn line, the primary CTA, the active node. Never a red sidebar,
+     never a large surface. */
+  --color-thread: #c76f4f;
+  --color-thread-deep: #d78260; /* hover rises on a dark ground */
+  --color-thread-press: #724536; /* pressed */
+  --color-thread-soft: #3e2d29; /* selected/active dark fill */
+  --color-thread-lift: #e69a78; /* bright cut: decor lines, map edges */
 
-  /* The four statuses. Never colour alone - each carries a marker shape and
-     its written name - so the hues stay quiet, warm-tuned to the palette. */
-  --color-laurel: #a9b388; /* 6.7:1, confirmed, dried laurel */
-  --color-ochre: #d4b483; /* 7.5:1, proposed, sanded gold */
-  --color-ochre-mark: #c0a46f; /* 6.2:1, markers */
-  --color-iron: #ce8f79; /* 5.4:1, contradicted, deletions, errors, fired clay */
-  --color-stone: #a79d8c; /* archived reads as faded text, which is what it is */
+  /* Aegean: intelligence, context, information. Citations, info states,
+     knowledge accents - single percents of the interface. */
+  --color-aegean: #67a6a1;
+  --color-aegean-deep: #487b78;
 
-  --color-canvas: #1a1f27; /* the command block sinks below the page */
-  --color-canvas-ink: #ede4d3;
+  /* Statuses, dusty on purpose; badge fills are their own dark tints. */
+  --color-laurel: #899a6d; /* success olive, confirmed */
+  --color-ochre: #c3a15a; /* warning antique gold, proposed */
+  --color-ochre-mark: #c3a15a;
+  --color-iron: #c66b62; /* error oxide, contradicted, deletions */
+  --color-stone: #948979; /* archived reads as faded text, which is what it is */
+
+  --color-canvas: #14181e; /* the command block sinks below the canvas */
+  --color-canvas-ink: #f0e7d9;
 
   /* Type. Three voices split by what the reader does with the text. Playfair
      Display sets what is scanned: the headline steps, applied through the
@@ -137,17 +144,17 @@
   }
 }
 
-/* Two shadows. On a dark ground a shadow is depth, not decoration: the card
-   one anchors a lighter surface to the night, the lifted one is for things
-   that genuinely float - a menu, a toast, the composer. */
+/* Two black shadows anchor what luminance already lifted: the card one is a
+   quiet seam, the lifted one is for what genuinely floats - a menu, a toast,
+   the composer. */
 @utility shadow-card {
   box-shadow:
-    0 1px 2px oklch(0 0 0 / 0.35),
-    0 2px 10px -2px oklch(0 0 0 / 0.3);
+    0 1px 2px rgb(0 0 0 / 0.35),
+    0 2px 10px -2px rgb(0 0 0 / 0.3);
 }
 
 @utility shadow-lifted {
-  box-shadow: 0 10px 28px oklch(0 0 0 / 0.5);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.5);
 }
 
 /* Counters change while the reader is looking at them, so mono digits never

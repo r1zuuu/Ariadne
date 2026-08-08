@@ -277,7 +277,7 @@ function CitationMark({ n, onCite }: { n: number; onCite: (n: number) => void })
       type="button"
       onClick={() => onCite(n)}
       aria-label={`[${n}]`}
-      className="mx-[2px] inline-flex h-[18px] min-w-[18px] translate-y-[-2px] items-center justify-center rounded-label bg-thread/15 px-[5px] text-[11px] font-medium leading-none text-thread transition-colors duration-state hover:bg-thread/30"
+      className="mx-[2px] inline-flex h-[18px] min-w-[18px] translate-y-[-2px] items-center justify-center rounded-label bg-aegean/20 px-[5px] text-[11px] font-medium leading-none text-aegean transition-colors duration-state hover:bg-aegean/35"
     >
       {n}
     </button>
@@ -380,12 +380,12 @@ function Sources({
             <li key={source.id}>
               <Card
                 className={`p-4 transition-[border-color] duration-state ${
-                  active === i + 1 ? "border-thread" : ""
+                  active === i + 1 ? "border-aegean" : ""
                 }`}
               >
                 <div className="flex items-start gap-3">
                   {/* The same mark the answer points with. */}
-                  <span className="mt-[2px] inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-label bg-thread/15 px-[5px] text-[11px] font-medium leading-none text-thread">
+                  <span className="mt-[2px] inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-label bg-aegean/20 px-[5px] text-[11px] font-medium leading-none text-aegean">
                     {i + 1}
                   </span>
                   <div className="min-w-0">
