@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/app-provider";
-import { NodeGraph } from "@/components/node-graph";
+import { MemoryGraph } from "@/components/memory-graph";
 import { useToast } from "@/components/toast";
 import { ScreenHint } from "@/components/screen-hint";
 import {
@@ -47,7 +47,7 @@ export default function ProjectScreen() {
     setGraphError(false);
     void getGraph(id)
       .then(setGraph)
-      // An unreachable graph is an error with a retry, not an empty graph:
+      // An unreachable map is an error with a retry, not an empty archive:
       // "no entries yet" and "the server did not answer" mean opposite things.
       .catch(() => setGraphError(true));
   }, []);
@@ -131,9 +131,7 @@ export default function ProjectScreen() {
               ) : graph.nodes.length === 0 ? (
                 <EmptyState title={t("graphEmpty")} note={t("graphEmptyNote")} />
               ) : (
-                <Card className="p-5">
-                  <NodeGraph nodes={graph.nodes} edges={graph.edges} />
-                </Card>
+                <MemoryGraph nodes={graph.nodes} edges={graph.edges} />
               )}
             </section>
           </>

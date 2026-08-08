@@ -104,7 +104,7 @@ export function Composer({
                 type="button"
                 disabled={disabled || busy}
                 onClick={() => send(suggestion)}
-                className="group inline-flex items-center gap-2 py-1 text-small text-ink-3 transition-colors duration-state hover:text-ink disabled:opacity-40"
+                className="group inline-flex items-center gap-2 py-1 text-small text-ink-2 transition-colors duration-state hover:text-ink disabled:opacity-40"
               >
                 <span
                   aria-hidden="true"

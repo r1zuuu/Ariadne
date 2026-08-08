@@ -125,7 +125,7 @@ export default function HomeScreen() {
                 product exists to answer. Left-aligned, with the right side
                 left open on purpose. */}
             <h1 className="max-w-[16ch] text-display text-ink">{t("askTitle")}</h1>
-            <p className="max-w-[58ch] pt-3 text-lead font-normal text-ink-2">{t("askLead")}</p>
+            <p className="max-w-[58ch] pt-3 text-lead text-ink-2">{t("askLead")}</p>
 
             <div className="max-w-[820px] pt-7">
               <Composer

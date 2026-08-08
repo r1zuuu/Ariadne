@@ -259,8 +259,9 @@ const STATUS_TONES = {
 
 // One shape per status, so the four survive greyscale and every colour
 // blindness: an open circle is still being decided, a filled square is settled,
-// a cross is overruled, a dash is put away.
-function StatusMark({ tone }: { tone: keyof typeof STATUS_TONES }) {
+// a cross is overruled, a dash is put away. Exported for the thread of
+// entries, which hangs the same four shapes on the project's timeline.
+export function StatusMark({ tone }: { tone: keyof typeof STATUS_TONES }) {
   const shared = { width: 7, height: 7, viewBox: "0 0 8 8", "aria-hidden": true as const };
   switch (tone) {
     case "proposed":

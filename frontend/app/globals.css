@@ -48,31 +48,30 @@
   --color-canvas: oklch(0.23 0.015 60); /* graph only, not a second theme */
   --color-canvas-ink: oklch(0.94 0.006 85); /* 14.2:1 on canvas */
 
-  /* Type. Three voices split by what the reader does with the text. Bodoni
-     Moda sets what is scanned: the headline steps, applied through the h1/h2
-     base rule and the display-serif utility. Its optical-size axis keeps the
-     hairlines alive at interface sizes, and it still never goes below the
-     section step. Geist sets everything read sentence by sentence. Geist Mono
-     sets only what a machine produced: paths, hashes, code - not dates, not
-     labels. */
-  --font-heading: "Bodoni Moda", Georgia, serif;
+  /* Type. Three voices split by what the reader does with the text. Playfair
+     Display sets what is scanned: the headline steps, applied through the
+     h1/h2 base rule and the display-serif utility, and it never goes below
+     the section step. Geist sets everything read sentence by sentence. Geist
+     Mono sets only what a machine produced: paths, hashes, code - not dates,
+     not labels. */
+  --font-heading: "Playfair Display", Georgia, serif;
   --font-prose: Geist, ui-sans-serif, system-ui, sans-serif;
   --font-data: "Geist Mono", ui-monospace, monospace;
 
-  /* A didone wants weight, not tightness: tracking stays at zero so the
-     hairline serifs never collide. The display step carries 600, because at
-     hero sizes the 500 hairlines read as grey rather than as ink. */
-  --text-display: 44px;
-  --text-display--line-height: 52px;
-  --text-display--font-weight: 600;
+  /* Display serifs want weight, not tightness: tracking stays at zero so the
+     serifs never collide. 700/600, not the elegant 400-500 print would take -
+     on a screen the thin cuts read as grey fog, not as ink. */
+  --text-display: 46px;
+  --text-display--line-height: 54px;
+  --text-display--font-weight: 700;
 
   --text-title: 34px;
   --text-title--line-height: 42px;
-  --text-title--font-weight: 500;
+  --text-title--font-weight: 600;
 
   --text-section: 27px;
   --text-section--line-height: 34px;
-  --text-section--font-weight: 500;
+  --text-section--font-weight: 600;
 
   --text-lead: 21px;
   --text-lead--line-height: 32px;
@@ -164,7 +163,7 @@
    login tagline. Headings get the same face from the base rule below. */
 @utility display-serif {
   font-family: var(--font-heading);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -187,7 +186,7 @@
   h1,
   h2 {
     font-family: var(--font-heading);
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: 0;
   }
 

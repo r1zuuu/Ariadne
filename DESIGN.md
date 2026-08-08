@@ -23,10 +23,10 @@ color:
   canvas:         oklch(0.23 0.015 60)     # graph only
   canvas-ink:     oklch(0.94 0.006 85)     # 14.2:1 on canvas
 type:
-  heading: Bodoni Moda, latin-ext, variable opsz+wght, headline steps only
+  heading: Playfair Display, latin-ext, variable wght, headline steps only
   prose:   Geist, latin-ext, weights 100-900
   data:    Geist Mono, latin-ext, weights 400/500, machine output only
-  scale: 44/34/27/21/17/15/13/11
+  scale: 46/34/27/21/17/15/13/11, headline weights 700/600
   measure: 68ch
 space: [2, 4, 8, 12, 16, 24, 32, 48, 72, 112]
 radius: [0, 3, 6, 8, 999]   # none, label, control, card, dot
@@ -42,10 +42,10 @@ a11y: WCAG 2.2 AA, status never colour-only, reduced-motion honoured
 # Overview
 
 Ariadne is a desktop window over a research archive, and it now looks like
-one: warm bone paper, an almost-black warm ink, a didone for what is scanned,
-and a single madder-red thread that marks where you are and where the sequence
-leads. It shows what a coding agent decided, when, in which files, and whether
-a human has vouched for it.
+one: warm bone paper, an almost-black warm ink, a display serif for what is
+scanned, and a single madder-red thread that marks where you are and where the
+sequence leads. It shows what a coding agent decided, when, in which files,
+and whether a human has vouched for it.
 
 **The Instrument Rule.** Nothing on screen celebrates a number; every number is
 a reading you can act on.
@@ -81,20 +81,23 @@ cutting across an old decision), stone is `archived`.
 **The Marker Floor Rule.** Saturated ochre lives only in markers at 3.3:1; any
 ochre carrying text uses the 5.1:1 cut.
 
-**The One Dark Surface Rule.** The graph canvas (and the command block, which
-really is a terminal command) are the only dark regions in the product.
+**The One Dark Surface Rule.** The command block is the only dark region in
+the product, and it earns it: it really is a terminal command. The entry map
+lives on light paper like everything else.
 
 # Typography
 
 Three voices, split by what the reader does with the text, and the split is now
-enforced by the platform rather than by discipline: `h1` and `h2` take Bodoni
-Moda from a base rule, so a screen cannot forget its own brand face.
+enforced by the platform rather than by discipline: `h1` and `h2` take
+Playfair Display from a base rule, so a screen cannot forget its own brand
+face. (Bodoni Moda held this role for an afternoon; its hairline strokes
+dissolved into grey at interface sizes, and a heading you squint at is not a
+heading.)
 
-**The Scanned Serif Rule.** Bodoni Moda sets only what is scanned: display (44,
-weight 600), title (34) and section (27) at weight 500, tracking zero, never
-tighter - a didone's hairlines collide before Geist's stems do. Its optical
-size axis keeps the small cuts sturdy. It never goes below the section step and
-never sets a sentence someone reads word by word.
+**The Scanned Serif Rule.** Playfair sets only what is scanned: display (46,
+weight 700), title (34) and section (27) at weight 600, tracking zero, never
+tighter. It never goes below the section step and never sets a sentence
+someone reads word by word.
 
 **The Read Sans Rule.** Geist sets everything read: leads, body, small, labels,
 dates, metadata. The metadata voice is 13px Geist in sentence case strung with
@@ -151,10 +154,12 @@ because the shell never remounts.
 under the heading - a thread dot, one sentence, "Rozumiem" in words. It stopped
 being a tinted banner that pushed every page's content down a row.
 
-**The Graph Earns Its Canvas.** d3-force settles positions synchronously before
-first paint; nodes are the four status shapes, labels appear on hover and
-always when the graph is small, a hovered node dims everything unconnected, and
-the legend spells the shapes out in words.
+**The Map Shows the Entries.** The entry map is React Flow with real cards as
+nodes - status chip, first line, type and date - laid out oldest to newest
+along the timeline, alternating above and below it, deterministically. Edges
+run older to newer: solid for a shared file (a fact), dashed for similarity
+(a guess). No abstract dots: a visualization that shows shapes without words
+is banned in this product.
 
 **The Feedback Rule.** Every action that writes says what happened, in a toast,
 in the words the reader would use.

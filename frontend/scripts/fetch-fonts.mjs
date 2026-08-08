@@ -11,12 +11,12 @@ const UA =
 // name, which no screen ever rendered, so it went with Literata.
 const SUBSETS = new Set(["latin", "latin-ext"]);
 
-// All three are variable, one file per subset covering every weight. Bodoni
-// Moda carries an optical-size axis (6..96): browsers pick the right cut for
-// the rendered size on their own, which matters for a didone whose hairlines
-// vanish when a display cut is shrunk.
+// All three are variable, one file per subset covering every weight. Playfair
+// Display replaced Bodoni Moda: the same editorial genre, but its thin strokes
+// are genuinely drawn rather than hairline, so headings stay legible at
+// interface sizes instead of dissolving into grey.
 const FAMILIES = [
-  ["bodoni-moda", "Bodoni+Moda:opsz,wght@6..96,400..900"],
+  ["playfair-display", "Playfair+Display:wght@400..900"],
   ["geist", "Geist:wght@100..900"],
   ["geist-mono", "Geist+Mono:wght@400..500"],
 ];
