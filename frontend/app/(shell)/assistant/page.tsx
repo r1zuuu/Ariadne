@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
@@ -195,9 +196,9 @@ export default function AssistantScreen() {
   return (
     <div className="mx-auto max-w-[760px]">
         {empty ? (
-          <div className="pt-2">
-            <h1 className="text-title text-ink">{t("title")}</h1>
-            <p className="max-w-[62ch] pt-2 text-body text-ink-2">{t("lead")}</p>
+          <div className="pt-6">
+            <h1 className="max-w-[14ch] text-display text-ink">{t("title")}</h1>
+            <p className="max-w-[62ch] pt-4 text-body text-ink-2">{t("lead")}</p>
           </div>
         ) : null}
 
@@ -219,15 +220,7 @@ export default function AssistantScreen() {
                     <EmptyState title={t("nothingRecorded")} note={t("nothingRecordedNote")} />
                   </div>
                 ) : (
-                  <>
-                    <p className="whitespace-pre-wrap pt-5 text-body leading-8 text-ink">
-                      {turn.answer}
-                      {!turn.done ? (
-                        <span className="ml-[3px] inline-block h-[1.1em] w-[2px] translate-y-[2px] bg-ink-3" />
-                      ) : null}
-                    </p>
-                    {turn.sources.length ? <Sources sources={turn.sources} /> : null}
-                  </>
+                  <Answer turn={turn} />
                 )}
               </li>
             ))}
@@ -275,20 +268,94 @@ export default function AssistantScreen() {
   );
 }
 
+/** A [1] or [1, 3] the model wrote becomes clickable citation marks. */
+function CitationMark({ n, onCite }: { n: number; onCite: (n: number) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onCite(n)}
+      aria-label={`[${n}]`}
+      className="mx-[2px] inline-flex h-[18px] min-w-[18px] translate-y-[-2px] items-center justify-center rounded-label bg-thread/15 px-[5px] text-[11px] font-medium leading-none text-thread transition-colors duration-state hover:bg-thread/30"
+    >
+      {n}
+    </button>
+  );
+}
+
+// The answer with its citations made tangible: every [n] the model writes
+// renders as a small numbered mark that opens the matching entry below, the
+// way a reader expects citations to behave. The prose stays prose; the marks
+// are the only interactive thing inside it.
+function Answer({ turn }: { turn: Turn }) {
+  const t = useTranslations("assistant");
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState<number | null>(null);
+
+  const cite = (n: number) => {
+    setOpen(true);
+    setActive(n);
+  };
+
+  const parts = turn.answer.split(/(\[\d+(?:\s*,\s*\d+)*\])/g).map((part, i) => {
+    const match = /^\[(\d+(?:\s*,\s*\d+)*)\]$/.exec(part);
+    if (!match) return <span key={i}>{part}</span>;
+    return (
+      <span key={i} className="whitespace-nowrap">
+        {match[1].split(/\s*,\s*/).map((n) => (
+          <CitationMark key={n} n={Number(n)} onCite={cite} />
+        ))}
+      </span>
+    );
+  });
+
+  return (
+    <>
+      <p className="whitespace-pre-wrap pt-5 text-body leading-8 text-ink">
+        {parts}
+        {!turn.done ? (
+          <span className="ml-[3px] inline-block h-[1.1em] w-[2px] translate-y-[2px] bg-ink-3" />
+        ) : null}
+      </p>
+      {turn.sources.length ? (
+        <Sources
+          sources={turn.sources}
+          open={open}
+          onToggle={() => setOpen(!open)}
+          active={active}
+          countLabel={t("sourcesCount", { count: turn.sources.length })}
+        />
+      ) : null}
+    </>
+  );
+}
+
 // Closed until asked for. The count is the trust signal and stays visible; the
 // entries themselves grow out of the answer, which is what says they belong to
 // it rather than being a separate panel.
-function Sources({ sources }: { sources: Source[] }) {
-  const t = useTranslations("assistant");
+function Sources({
+  sources,
+  open,
+  onToggle,
+  active,
+  countLabel,
+}: {
+  sources: Source[];
+  open: boolean;
+  onToggle: () => void;
+  active: number | null;
+  countLabel: string;
+}) {
   const tHome = useTranslations("home");
   const tEntry = useTranslations("entry");
-  const [open, setOpen] = useState(false);
+  const { locale } = useLocale();
+  const stamp = (iso: string) =>
+    new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(new Date(iso));
 
   return (
     <div className="pt-4">
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={onToggle}
         aria-expanded={open}
         className="inline-flex items-center gap-3 rounded-control border border-hairline bg-surface px-4 py-[6px] text-data text-ink-2 transition-colors duration-state hover:border-edge/60 hover:text-ink"
       >
@@ -302,29 +369,41 @@ function Sources({ sources }: { sources: Source[] }) {
         >
           <path d="M4.5 2.5 8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.4" />
         </svg>
-        {t("sourcesCount", { count: sources.length })}
+        {countLabel}
       </button>
 
       <Collapse open={open}>
         <ol className="flex flex-col gap-2 pt-3">
           {sources.map((source, i) => (
             <li key={source.id}>
-              <Card className="p-4">
-                {/* The number is the pointer the answer writes as [1]. */}
-                <Meta
-                  items={[
-                    `[${i + 1}]`,
-                    tEntry(`type.${source.type}`),
-                    new Date(source.createdAt).toISOString().slice(0, 10),
-                    tHome(`status.${source.status}`),
-                  ]}
-                />
-                <p className="line-clamp-3 pt-2 text-small leading-6 text-ink-2">{source.content}</p>
-                {source.anchors?.length ? (
-                  <p className="truncate pt-2 font-data text-data text-ink-3">
-                    {source.anchors.map((a) => a.path).join(" · ")}
-                  </p>
-                ) : null}
+              <Card
+                className={`p-4 transition-[border-color] duration-state ${
+                  active === i + 1 ? "border-thread" : ""
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  {/* The same mark the answer points with. */}
+                  <span className="mt-[2px] inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-label bg-thread/15 px-[5px] text-[11px] font-medium leading-none text-thread">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <Meta
+                      items={[
+                        tEntry(`type.${source.type}`),
+                        stamp(source.createdAt),
+                        tHome(`status.${source.status}`),
+                      ]}
+                    />
+                    <p className="line-clamp-3 pt-2 text-small leading-6 text-ink-2">
+                      {source.content}
+                    </p>
+                    {source.anchors?.length ? (
+                      <p className="truncate pt-2 font-data text-data text-ink-3">
+                        {source.anchors.map((a) => a.path).join(" · ")}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
               </Card>
             </li>
           ))}

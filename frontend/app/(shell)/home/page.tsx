@@ -8,10 +8,18 @@ import { useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
 import { headline } from "@/components/entry-card";
+import { useToast } from "@/components/toast";
 import { hasSeenTour } from "@/lib/first-run";
 import { PENDING_QUESTION } from "@/lib/handoff";
-import { listNodes, type Node } from "@/lib/api";
-import { Banner, Button, EmptyState, SectionHeader, Status } from "@/components/ui";
+import {
+  approvePending,
+  archiveNode,
+  confirmNode,
+  listNodes,
+  rejectPending,
+  type Node,
+} from "@/lib/api";
+import { Banner, Button, Card, EmptyState, IconButton, SectionHeader, Status } from "@/components/ui";
 
 // Screen 03. A welcome and a question, not a dashboard.
 //
@@ -25,13 +33,17 @@ const LAST_SEEN_KEY = "ariadne.lastSeen";
 
 export default function HomeScreen() {
   const t = useTranslations("home");
+  const tQueue = useTranslations("pending");
   const router = useRouter();
+  const toast = useToast();
   const { locale } = useLocale();
-  const { projects, activeProject, pendingFeed, server, refreshProjects } = useApp();
+  const { projects, activeProject, pendingFeed, server, refreshProjects, refreshPending } =
+    useApp();
 
   const [latestDecision, setLatestDecision] = useState<Node[] | null>(null);
   const [since, setSince] = useState<Date | null>(null);
   const [question, setQuestion] = useState("");
+  const [settling, setSettling] = useState(false);
 
   // Read once, then stamped forward, so the line answers "since when" with the
   // previous visit rather than with this one.
@@ -74,18 +86,52 @@ export default function HomeScreen() {
     router.push("/assistant");
   };
 
-  const waiting = pendingFeed
-    ? [
-        ...pendingFeed.pendingActions.map((a) => ({
-          text: headline(a.payload?.content ?? a.nodeContent),
-          label: t(`pendingAction.${a.action}`),
-        })),
-        ...pendingFeed.nodesToReview.map((n) => ({
-          text: headline(n.content),
-          label: t(`status.${n.status}`),
-        })),
-      ]
-    : null;
+  // The head of the review queue, with enough identity to settle it here: a
+  // tick and a cross on the overview is the whole point of surfacing it.
+  const waitingCount = pendingFeed
+    ? pendingFeed.pendingActions.length + pendingFeed.nodesToReview.length
+    : 0;
+  const action = pendingFeed?.pendingActions[0];
+  const node = pendingFeed?.nodesToReview[0];
+  const head = action
+    ? {
+        id: action.id,
+        label: t(`pendingAction.${action.action}`),
+        text: headline(action.payload?.content ?? action.nodeContent),
+        accept: () => approvePending(action.id),
+        acceptToast: tQueue("toastApproved"),
+        dismiss: () => rejectPending(action.id),
+        dismissToast: tQueue("toastRejected"),
+        acceptable: true,
+      }
+    : node
+      ? {
+          id: node.id,
+          label: t(`status.${node.status}`),
+          text: headline(node.content),
+          accept: () => confirmNode(node.id),
+          acceptToast: tQueue("toastConfirmed"),
+          dismiss: () => archiveNode(node.id),
+          dismissToast: tQueue("toastArchived"),
+          // A contradicted entry is already settled; confirming it would put
+          // two contradicting entries on equal footing.
+          acceptable: node.status === "proposed",
+        }
+      : null;
+
+  const settle = async (accept: boolean) => {
+    if (!head) return;
+    setSettling(true);
+    try {
+      await (accept ? head.accept() : head.dismiss());
+      toast(accept ? head.acceptToast : head.dismissToast);
+      await refreshPending();
+    } catch {
+      toast(tQueue("toastFailed"), "error");
+    } finally {
+      setSettling(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-[1080px]">
@@ -176,10 +222,15 @@ export default function HomeScreen() {
               ) : latestDecision.length === 0 ? (
                 <EmptyState title={t("decisionsEmpty")} note={t("decisionsEmptyNote")} />
               ) : (
-                <Link href="/project" className="group block max-w-[52ch]">
-                  <p className="line-clamp-2 text-body font-medium leading-7 text-ink transition-colors duration-state group-hover:text-thread">
-                    {headline(latestDecision[0].content)}
-                  </p>
+                <Link href="/project" className="block">
+                  <Card interactive className="p-5">
+                    <p className="line-clamp-2 text-body font-medium leading-7 text-ink">
+                      {headline(latestDecision[0].content)}
+                    </p>
+                    <p className="pt-2 text-data text-ink-3">
+                      {stamp(new Date(latestDecision[0].createdAt))}
+                    </p>
+                  </Card>
                 </Link>
               )}
             </section>
@@ -188,27 +239,76 @@ export default function HomeScreen() {
               <SectionHeader
                 title={t("waitingTitle")}
                 action={
-                  waiting?.length ? (
+                  waitingCount ? (
                     <Link
                       href="/pending"
                       className="text-small text-thread underline underline-offset-2"
                     >
-                      {t("waitingAll")} ({waiting.length})
+                      {t("waitingAll")} ({waitingCount})
                     </Link>
                   ) : null
                 }
               />
-              {waiting === null ? (
+              {pendingFeed === null ? (
                 <p className="text-small text-ink-3">{t("loading")}</p>
-              ) : waiting.length === 0 ? (
+              ) : head === null ? (
                 <EmptyState title={t("waitingEmpty")} note={t("waitingEmptyNote")} />
               ) : (
-                <Link href="/pending" className="group block max-w-[52ch]">
-                  <Status tone="proposed">{waiting[0].label}</Status>
-                  <p className="line-clamp-2 pt-2 text-body font-medium leading-7 text-ink transition-colors duration-state group-hover:text-thread">
-                    {waiting[0].text}
-                  </p>
-                </Link>
+                <Card className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <Status tone="proposed">{head.label}</Status>
+                      <p className="line-clamp-2 pt-2 text-body font-medium leading-7 text-ink">
+                        {head.text}
+                      </p>
+                    </div>
+                    {/* Settled without leaving the overview: a tick keeps it,
+                        a cross sends it away. The queue screen holds the rest. */}
+                    <div className="flex shrink-0 gap-1 pt-1">
+                      {head.acceptable ? (
+                        <IconButton
+                          label={tQueue("confirm")}
+                          disabled={settling}
+                          onClick={() => void settle(true)}
+                          className="hover:bg-laurel/10 hover:text-laurel"
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M2.5 8.5 6 12l7.5-8" />
+                          </svg>
+                        </IconButton>
+                      ) : null}
+                      <IconButton
+                        label={tQueue("archive")}
+                        disabled={settling}
+                        onClick={() => void settle(false)}
+                        className="hover:bg-iron/10 hover:text-iron"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
+                        </svg>
+                      </IconButton>
+                    </div>
+                  </div>
+                </Card>
               )}
             </section>
           </div>

@@ -221,7 +221,7 @@
     }
   },
   "assistant": {
-    "title": "Ask Ariadne about your project",
+    "title": "Ask Ariadne",
     "empty": "Ask about the project's past. The answer is built only from recorded entries, and you will see which ones underneath it.",
     "placeholder": "What would you like to ask?",
     "ask": "Ask",
@@ -242,7 +242,7 @@
     "historyEmptyNote": "Ask your first question and the conversation stays here, so you can come back to it."
   },
   "database": {
-    "title": "Add information to the context",
+    "title": "Add to memory",
     "note": "Write what changed. Nothing is saved straight away: you get proposals to approve.",
     "placeholder": "E.g. We switched the form library from X to Y, because...",
     "send": "Prepare entry",
@@ -256,7 +256,7 @@
       "delete": "To delete",
       "create": "New entry"
     },
-    "lead": "Describe a decision, a change or an agreement. Ariadne prepares a proposed entry for approval; nothing is saved automatically.",
+    "lead": "Describe a decision or an agreement. Ariadne prepares an entry for approval.",
     "hint": "Enter sends, Shift + Enter starts a new line",
     "suggest1": "We switched the form library from X to Y.",
     "suggest2": "We are not using a backend; the app stays static.",
@@ -279,8 +279,6 @@
     "title": "To approve",
     "loading": "Loading...",
     "empty": "Nothing is waiting for a decision.",
-    "queued": "Proposed changes",
-    "entries": "Entries to review",
     "action": {
       "update": "Entry correction",
       "delete": "Entry deletion"
@@ -289,7 +287,6 @@
     "reject": "Reject",
     "confirm": "Confirm",
     "archive": "Archive",
-    "lead": "Nothing enters the project's memory without your say-so. You can leave this screen for later.",
     "emptyNote": "When an agent or a conversation proposes a change, it shows up here.",
     "count": "{count, plural, one {# waiting} other {# waiting}}",
     "before": "Now",
@@ -298,7 +295,9 @@
     "toastRejected": "The proposal was rejected.",
     "toastConfirmed": "Entry added to the project context.",
     "toastArchived": "The entry was archived.",
-    "toastFailed": "That did not work. Try again."
+    "toastFailed": "That did not work. Try again.",
+    "showChange": "Show the change",
+    "hideChange": "Hide the change"
   },
   "project": {
     "title": "Project",

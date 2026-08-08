@@ -8,45 +8,43 @@
    a WCAG script against these exact numbers. */
 
 @theme {
-  /* Colour. Warm limestone and bone in place of the old cool grey-blue: every
-     neutral carries a little chroma toward ochre, so nothing on screen is a
-     pure grey and nothing is #000 or #fff. */
-  --color-plaster: oklch(0.97 0.006 85);
-  --color-plaster-raised: oklch(0.984 0.004 85);
-  --color-plaster-sunk: oklch(0.945 0.008 85);
+  /* Colour. Dark only, and Greek about it: the ground is the Aegean at night -
+     deep navy, never pure black - the text is marble ivory, the gold is ochre,
+     and the thread is the lapis blue the whole room is tuned to. Elevation is
+     lightness: the further a surface is from the night, the closer it sits to
+     the reader. */
+  --color-plaster: oklch(0.21 0.025 258); /* app background, night sea */
+  --color-plaster-raised: oklch(0.235 0.025 258);
+  --color-plaster-sunk: oklch(0.18 0.024 258); /* title bar, nav column: the frame recedes */
 
-  /* Cards sit on the plaster as paper. The app background carries the tint and
-     the card does not, which is what separates a group of related things from
-     the page without needing a border on every side. */
-  --color-surface: oklch(0.995 0.002 85);
-  --color-surface-2: oklch(0.985 0.004 85); /* hover on a card that is clickable */
+  /* Cards rise out of the night by lightness, not by outline. */
+  --color-surface: oklch(0.25 0.026 258);
+  --color-surface-2: oklch(0.28 0.026 258); /* hover on a card that is clickable */
 
-  --color-ink: oklch(0.26 0.015 60); /* 14.3:1, warm charcoal, never pure black */
-  --color-ink-2: oklch(0.44 0.015 60); /* 7.2:1 */
-  --color-ink-3: oklch(0.52 0.012 60); /* 5.1:1, floor for text */
-  --color-edge: oklch(0.62 0.012 60); /* 3.4:1, borders of controls */
-  --color-hairline: oklch(0.87 0.008 60); /* 1.4:1, decoration only */
+  --color-ink: oklch(0.93 0.01 90); /* 14.4:1, marble ivory, never #fff */
+  --color-ink-2: oklch(0.79 0.015 95); /* 9.2:1 */
+  --color-ink-3: oklch(0.68 0.018 100); /* 6.2:1, floor for text */
+  --color-edge: oklch(0.53 0.02 258); /* 3.4:1 on plaster, 3.0:1 on surface, control borders */
+  --color-hairline: oklch(0.31 0.02 258); /* decoration only */
 
-  /* The thread. Madder red, the one brand accent, reserved for guidance:
-     the active marker, the drawn thread, focus, "you are here". A colour that
-     names neither a status nor the thread has no business being saturated.
-     Primary buttons are ink, not the accent: the thread points, it does not
-     shout. */
-  --color-thread: oklch(0.45 0.13 28); /* 7.3:1 */
-  --color-thread-lift: oklch(0.7 0.11 30); /* graph canvas only, 6.1:1 on canvas */
+  /* The thread. The lapis blue, lifted to carry on the night, the one brand
+     accent, reserved for guidance: the active marker, the drawn thread, focus,
+     "you are here". A colour that names neither a status nor the thread has no
+     business being saturated. Primary buttons are marble, not the accent: the
+     thread points, it does not shout. */
+  --color-thread: oklch(0.68 0.13 253); /* 6.2:1 */
+  --color-thread-lift: oklch(0.68 0.13 253); /* kept for the command block, same cut */
 
   /* The four statuses. Never colour alone: each carries a marker shape and its
      written name wherever it appears. */
-  --color-laurel: oklch(0.46 0.08 135); /* 6.3:1, confirmed */
-  --color-ochre: oklch(0.52 0.105 78); /* 5.1:1, proposed, text-safe */
-  --color-ochre-mark: oklch(0.63 0.13 78); /* 3.3:1, markers only, never text */
-  --color-iron: oklch(0.505 0.15 27); /* 5.8:1, contradicted, deletions, errors.
-     Deliberately the thread's family: a contradiction is the thread cutting
-     across an old decision. */
-  --color-stone: oklch(0.5 0.01 80); /* 5.5:1, archived, the one status with no chroma */
+  --color-laurel: oklch(0.72 0.09 135); /* 7.4:1, confirmed */
+  --color-ochre: oklch(0.78 0.11 85); /* 8.8:1, proposed, the gold */
+  --color-ochre-mark: oklch(0.7 0.13 80); /* 6.5:1, markers */
+  --color-iron: oklch(0.7 0.13 25); /* 6.3:1, contradicted, deletions, errors */
+  --color-stone: oklch(0.68 0.015 258); /* 6.2:1, archived, the one status with no chroma */
 
-  --color-canvas: oklch(0.23 0.015 60); /* graph only, not a second theme */
-  --color-canvas-ink: oklch(0.94 0.006 85); /* 14.2:1 on canvas */
+  --color-canvas: oklch(0.15 0.02 258); /* the command block sinks below the page */
+  --color-canvas-ink: oklch(0.93 0.01 90);
 
   /* Type. Three voices split by what the reader does with the text. Playfair
      Display sets what is scanned: the headline steps, applied through the
@@ -61,8 +59,8 @@
   /* Display serifs want weight, not tightness: tracking stays at zero so the
      serifs never collide. 700/600, not the elegant 400-500 print would take -
      on a screen the thin cuts read as grey fog, not as ink. */
-  --text-display: 54px;
-  --text-display--line-height: 62px;
+  --text-display: 64px;
+  --text-display--line-height: 72px;
   --text-display--font-weight: 700;
 
   --text-title: 34px;
@@ -139,18 +137,17 @@
   }
 }
 
-/* Two shadows, both tinted with the warm ink rather than neutral black, so a
-   lifted card still belongs to the page. The card one is barely there on
-   purpose: paper off plaster, not a floating rectangle. */
+/* Two shadows. On a dark ground a shadow is depth, not decoration: the card
+   one anchors a lighter surface to the night, the lifted one is for things
+   that genuinely float - a menu, a toast, the composer. */
 @utility shadow-card {
   box-shadow:
-    0 1px 2px oklch(0.26 0.015 60 / 0.05),
-    0 2px 8px -2px oklch(0.26 0.015 60 / 0.05);
+    0 1px 2px oklch(0 0 0 / 0.35),
+    0 2px 10px -2px oklch(0 0 0 / 0.3);
 }
 
-/* For things that genuinely float above the page: a menu, a toast. */
 @utility shadow-lifted {
-  box-shadow: 0 8px 24px oklch(0.26 0.015 60 / 0.14);
+  box-shadow: 0 10px 28px oklch(0 0 0 / 0.5);
 }
 
 /* Counters change while the reader is looking at them, so mono digits never

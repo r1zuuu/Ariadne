@@ -76,18 +76,18 @@ export default function ProjectScreen() {
           )
         ) : (
           <>
-            <div className="flex flex-wrap items-start justify-between gap-5 pb-8">
+            <div className="flex flex-wrap items-end justify-between gap-5 pb-8 pt-6">
               <div className="min-w-0">
-                <h1 className="text-section text-ink">{project.name}</h1>
+                <h1 className="max-w-[14ch] text-display text-ink">{project.name}</h1>
                 {/* Stage and repository are both facts about the project, so
                     they are one metadata line rather than a tinted label beside
                     the name competing with it. */}
-                <div className="pt-2">
+                <div className="pt-3">
                   <Meta items={[t(`etap.${project.etap}`), project.repoRef]} />
                 </div>
               </div>
               {!editing ? (
-                <Button variant="secondary" onClick={() => setEditing(true)}>
+                <Button variant="secondary" onClick={() => setEditing(true)} className="mb-2">
                   {t("edit")}
                 </Button>
               ) : null}

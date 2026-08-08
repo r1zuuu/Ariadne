@@ -190,12 +190,12 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-5 pb-7">
+    <div className="flex flex-wrap items-end justify-between gap-5 pb-7 pt-6">
       <div className="min-w-0">
-        <h1 className="text-title text-ink">{title}</h1>
-        {lead ? <p className="max-w-[62ch] pt-2 text-body text-ink-2">{lead}</p> : null}
+        <h1 className="max-w-[14ch] text-display text-ink">{title}</h1>
+        {lead ? <p className="max-w-[62ch] pt-3 text-body text-ink-2">{lead}</p> : null}
       </div>
-      {actions ? <div className="flex shrink-0 gap-3">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 gap-3 pb-2">{actions}</div> : null}
     </div>
   );
 }

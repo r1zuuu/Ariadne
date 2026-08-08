@@ -269,7 +269,7 @@ function PermissionSection({
   };
 
   return (
-    <section className="pt-10">
+    <section className="mt-10 border-t border-hairline pt-8">
       <SectionHeader title={t("autoApprove")} />
       <Card className="flex flex-wrap items-center justify-between gap-5 p-6">
         <p className="max-w-[54ch] text-small text-ink-2">
@@ -338,7 +338,7 @@ function TokensSection({ toast }: { toast: Toast }) {
   };
 
   return (
-    <section className="pt-10">
+    <section className="mt-10 border-t border-hairline pt-8">
       <SectionHeader title={t("tokens")} count={tokens?.length} />
       <p className="pb-5 text-small text-ink-2">{t("tokensLead")}</p>
 
@@ -486,7 +486,7 @@ function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
   const open = workspaces?.find((w) => w.id === openId) ?? null;
 
   return (
-    <section className="pt-10">
+    <section className="mt-10 border-t border-hairline pt-8">
       <SectionHeader title={t("team")} />
       <p className="pb-5 text-small text-ink-2">{t("teamLead")}</p>
 
@@ -635,7 +635,7 @@ function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
             </>
           ) : null}
 
-          <div className="grid gap-5 pt-8 lg:grid-cols-2">
+          <div className="grid gap-5 pt-8 sm:grid-cols-2">
             <Card className="p-6">
               <Input
                 id="settings-workspace-name"

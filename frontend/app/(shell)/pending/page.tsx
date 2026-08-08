@@ -5,10 +5,10 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useLocale } from "@/app/locale-provider";
 import { useApp, type PendingFeed } from "@/components/app-provider";
-import { enterTransition } from "@/components/motion";
+import { Collapse, enterTransition } from "@/components/motion";
 import { EntryCard, headline } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
-import { Button, Card, EmptyState, Meta, PageHeader, SectionHeader, Status } from "@/components/ui";
+import { Button, Card, EmptyState, Meta, PageHeader, Status } from "@/components/ui";
 import {
   approvePending,
   archiveNode,
@@ -60,7 +60,7 @@ export default function PendingScreen() {
 
   return (
     <div className="mx-auto max-w-[860px]">
-        <PageHeader title={t("title")} lead={t("lead")} />
+        <PageHeader title={t("title")} />
 
         {feed === null ? (
           <p className="text-body text-ink-3">{t("loading")}</p>
@@ -77,7 +77,6 @@ export default function PendingScreen() {
 
                 {group.actions.length ? (
                   <div className="pb-6">
-                    <SectionHeader title={t("queued")} />
                     <ul className="flex flex-col gap-3">
                       {/* A settled card leaves the queue visibly instead of the
                           list snapping shorter: the decision happened here. */}
@@ -109,7 +108,6 @@ export default function PendingScreen() {
 
                 {group.nodes.length ? (
                   <div>
-                    <SectionHeader title={t("entries")} />
                     <ul className="flex flex-col gap-3">
                       <AnimatePresence initial={false}>
                         {group.nodes.map((node) => (
@@ -179,6 +177,9 @@ function ActionCard({
 }) {
   const t = useTranslations("pending");
   const tEntry = useTranslations("entry");
+  // The full before/after is for whoever actually wants to read it; the card
+  // itself stays one headline deep.
+  const [showChange, setShowChange] = useState(false);
 
   return (
     <Card className="p-5">
@@ -194,37 +195,44 @@ function ActionCard({
         />
       </div>
 
-      <p className="pt-3 text-body font-medium leading-7 text-ink">
+      <p className="line-clamp-2 pt-3 text-body font-medium leading-7 text-ink">
         {headline(action.payload?.content ?? action.nodeContent)}
       </p>
 
-      {/* Side by side, both labelled. Struck-through text above replacement text
-          reads as one paragraph with a line through half of it; two labelled
-          columns read as a change. */}
       {action.payload?.content ? (
-        <div className="grid gap-3 pt-4 sm:grid-cols-2">
-          <div className="rounded-control bg-plaster-sunk/70 p-4">
-            <p className="pb-2 text-label uppercase tracking-[0.12em] text-ink-3">
-              {t("before")}
-            </p>
-            <p className="line-clamp-6 whitespace-pre-wrap text-small leading-6 text-ink-3">
-              {action.nodeContent}
-            </p>
-          </div>
-          <div className="rounded-control border border-thread/20 bg-thread/5 p-4">
-            <p className="pb-2 text-label uppercase tracking-[0.12em] text-thread">
-              {t("after")}
-            </p>
-            <p className="line-clamp-6 whitespace-pre-wrap text-small leading-6 text-ink">
-              {action.payload.content}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <p className="line-clamp-4 whitespace-pre-wrap pt-3 text-small leading-6 text-ink-2">
-          {action.nodeContent}
-        </p>
-      )}
+        <>
+          <button
+            type="button"
+            onClick={() => setShowChange((open) => !open)}
+            aria-expanded={showChange}
+            className="pt-2 text-small text-thread underline underline-offset-2"
+          >
+            {t(showChange ? "hideChange" : "showChange")}
+          </button>
+          <Collapse open={showChange}>
+            {/* Side by side, both labelled: two columns read as a change,
+                struck-through text would read as one broken paragraph. */}
+            <div className="grid gap-3 pt-3 sm:grid-cols-2">
+              <div className="rounded-control bg-plaster-sunk/70 p-4">
+                <p className="pb-2 text-label uppercase tracking-[0.12em] text-ink-3">
+                  {t("before")}
+                </p>
+                <p className="whitespace-pre-wrap text-small leading-6 text-ink-3">
+                  {action.nodeContent}
+                </p>
+              </div>
+              <div className="rounded-control border border-thread/20 bg-thread/5 p-4">
+                <p className="pb-2 text-label uppercase tracking-[0.12em] text-thread">
+                  {t("after")}
+                </p>
+                <p className="whitespace-pre-wrap text-small leading-6 text-ink">
+                  {action.payload.content}
+                </p>
+              </div>
+            </div>
+          </Collapse>
+        </>
+      ) : null}
 
       <div className="flex flex-wrap gap-3 pt-4">
         <Button loading={busy} onClick={onApprove}>

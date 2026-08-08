@@ -221,7 +221,7 @@
     }
   },
   "assistant": {
-    "title": "Zapytaj Ariadne o swój projekt",
+    "title": "Zapytaj Ariadne",
     "empty": "Zapytaj o przeszłość projektu. Odpowiedź powstaje wyłącznie z zapisanych wpisów, a pod nią zobaczysz, z których.",
     "placeholder": "O co chcesz zapytać?",
     "ask": "Zapytaj",
@@ -242,7 +242,7 @@
     "historyEmptyNote": "Zadaj pierwsze pytanie, a rozmowa zostanie tutaj i będziesz mógł do niej wrócić."
   },
   "database": {
-    "title": "Dodaj informację do kontekstu",
+    "title": "Dodaj do pamięci",
     "note": "Napisz, co się zmieniło. Nic nie zostanie zapisane od razu: dostaniesz propozycje do zatwierdzenia.",
     "placeholder": "Np. Zmieniliśmy bibliotekę formularzy z X na Y, bo...",
     "send": "Przygotuj wpis",
@@ -256,7 +256,7 @@
       "delete": "Do usunięcia",
       "create": "Nowy wpis"
     },
-    "lead": "Opisz decyzję, zmianę lub ustalenie. Ariadne przygotuje propozycję wpisu do zatwierdzenia, nic nie zostanie zapisane automatycznie.",
+    "lead": "Opisz decyzję albo ustalenie. Ariadne przygotuje wpis do zatwierdzenia.",
     "hint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
     "suggest1": "Zmieniliśmy bibliotekę formularzy z X na Y.",
     "suggest2": "Nie używamy backendu, aplikacja zostaje statyczna.",
@@ -279,8 +279,6 @@
     "title": "Do zatwierdzenia",
     "loading": "Wczytuję...",
     "empty": "Nic nie czeka na decyzję.",
-    "queued": "Proponowane zmiany",
-    "entries": "Wpisy do przejrzenia",
     "action": {
       "update": "Poprawka wpisu",
       "delete": "Usunięcie wpisu"
@@ -289,7 +287,6 @@
     "reject": "Odrzuć",
     "confirm": "Potwierdź",
     "archive": "Do archiwum",
-    "lead": "Nic nie trafia do pamięci projektu bez Twojej zgody. Ten ekran możesz zostawić na później.",
     "emptyNote": "Kiedy agent albo rozmowa zaproponują zmianę, pojawi się tutaj.",
     "count": "{count, plural, one {# oczekuje} few {# oczekują} many {# oczekuje} other {# oczekuje}}",
     "before": "Teraz",
@@ -298,7 +295,9 @@
     "toastRejected": "Propozycja została odrzucona.",
     "toastConfirmed": "Wpis dodano do kontekstu projektu.",
     "toastArchived": "Wpis trafił do archiwum.",
-    "toastFailed": "Nie udało się. Spróbuj jeszcze raz."
+    "toastFailed": "Nie udało się. Spróbuj jeszcze raz.",
+    "showChange": "Pokaż zmianę",
+    "hideChange": "Zwiń zmianę"
   },
   "project": {
     "title": "Projekt",
