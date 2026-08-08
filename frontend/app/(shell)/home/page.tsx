@@ -129,7 +129,6 @@ export default function HomeScreen() {
 
   return (
     <AppShell
-      server={server}
       banner={
         server === "down" ? (
           <Banner

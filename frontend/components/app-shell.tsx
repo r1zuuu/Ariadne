@@ -4,21 +4,19 @@ import { m } from "motion/react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
+import { ACTIVE_PROJECT_KEY, useApp } from "@/components/app-provider";
 import { enterTransition } from "@/components/motion";
-import { TitleBar, type ServerState } from "@/components/title-bar";
-import { clearToken, getPending, listProjects, readToken, type Project } from "@/lib/api";
+import { TitleBar } from "@/components/title-bar";
+import { clearToken, type Project } from "@/lib/api";
 import { resetTour } from "@/lib/first-run";
 
 // The frame every screen inside the app sits in: title bar, a column on the
 // left, content on the right.
 //
 // The column answers "where am I" and "which project is this about" at all
-// times. Those were the two questions the old build left open: the project was
-// a bare select that looked like any other form field, and the current screen
-// was marked by a 2px line you had to look for.
-
-const ACTIVE_PROJECT_KEY = "ariadne.activeProject";
+// times. Data comes from AppProvider in the (shell) layout, so navigating
+// between screens neither refetches it nor remounts this frame.
 
 export type Section = "home" | "project" | "assistant" | "database" | "pending" | "settings";
 
@@ -77,73 +75,32 @@ export function readActiveProject(): string | null {
 }
 
 /**
- * Switch project from anywhere. The reload is deliberate: every screen reads
- * the active project once on mount, and this is the single event that
- * invalidates all of them at once, including the title bar and the column.
+ * Switch project from anywhere. The reload is deliberate for now: screens
+ * still read the active project once on mount. It goes away once every
+ * screen reacts to the context instead.
  */
 export function pickProject(id: string) {
   localStorage.setItem(ACTIVE_PROJECT_KEY, id);
   window.location.reload();
 }
 
-const QUEUE_CHANGED = "ariadne:queue-changed";
-
 /**
- * Tell the column its counter is stale. Called by the review screen after it
- * settles something: without it the column kept saying 6 while the page below
- * said 5, and a number that disagrees with the list under it is worse than no
- * number. A DOM event rather than a store, because there is exactly one
- * listener and it is not on this screen's React tree.
+ * Tell the provider its queue counter is stale. Called by the review screen
+ * after it settles something. Goes away once those screens call
+ * refreshPending directly.
  */
 export function queueChanged() {
-  window.dispatchEvent(new Event(QUEUE_CHANGED));
+  window.dispatchEvent(new Event("ariadne:queue-changed"));
 }
 
-export function AppShell({
-  children,
-  server = "up",
-  banner,
-}: {
-  children: ReactNode;
-  server?: ServerState;
-  banner?: ReactNode;
-}) {
+export function AppShell({ children, banner }: { children: ReactNode; banner?: ReactNode }) {
   const t = useTranslations("nav");
   const router = useRouter();
   const pathname = usePathname();
+  const { projects, activeProject, pendingCount, server } = useApp();
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [waiting, setWaiting] = useState(0);
-
-  useEffect(() => {
-    if (!readToken()) {
-      router.replace("/");
-      return;
-    }
-    void listProjects()
-      .then((rows) => {
-        setProjects(rows);
-        const remembered = readActiveProject();
-        setActiveId(rows.some((p) => p.id === remembered) ? remembered : (rows[0]?.id ?? null));
-      })
-      .catch(() => {});
-  }, [router]);
-
-  // The counter is the one number on screen that is about the whole account
-  // rather than the open project, so it is fetched here and not per screen. It
-  // refetches whenever the review screen settles something.
-  useEffect(() => {
-    const count = () =>
-      void getPending()
-        .then((feed) => setWaiting(feed.pendingActions.length + feed.nodesToReview.length))
-        .catch(() => {});
-    count();
-    window.addEventListener(QUEUE_CHANGED, count);
-    return () => window.removeEventListener(QUEUE_CHANGED, count);
-  }, []);
-
-  const active = projects.find((p) => p.id === activeId) ?? null;
+  const active = activeProject;
+  const waiting = pendingCount;
 
   const signOut = () => {
     clearToken();
@@ -162,11 +119,11 @@ export function AppShell({
             labelled above it. The window opens at 1100px, so the labelled form
             is what anyone actually sees. */}
         <nav className="flex w-[68px] shrink-0 flex-col gap-2 border-r border-hairline bg-plaster-sunk/60 p-3 lg:w-[236px] lg:p-4">
-          <ProjectSwitcher projects={projects} active={active} />
+          <ProjectSwitcher projects={projects ?? []} active={active} />
 
           <ul className="flex flex-col gap-1 pt-2">
             {LINKS.map(({ section, label, href, needsProject, icon }) => {
-              const blocked = needsProject && !activeId;
+              const blocked = needsProject && !active;
               const current = pathname === href;
               const shared =
                 "flex items-center gap-3 rounded-control px-4 py-[10px] text-small transition-colors duration-state";
