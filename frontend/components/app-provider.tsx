@@ -104,15 +104,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void refreshPending();
   }, [refreshProjects, refreshPending, router]);
 
-  // Until every screen calls refreshPending itself, the old DOM event keeps
-  // the badge honest after a review is settled. Deleted in the step that
-  // converts pending and database to the context.
-  useEffect(() => {
-    const onChange = () => void refreshPending();
-    window.addEventListener("ariadne:queue-changed", onChange);
-    return () => window.removeEventListener("ariadne:queue-changed", onChange);
-  }, [refreshPending]);
-
   const setActiveProject = useCallback((id: string) => {
     localStorage.setItem(ACTIVE_PROJECT_KEY, id);
     setActiveId(id);

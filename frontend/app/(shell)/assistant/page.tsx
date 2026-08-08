@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { readActiveProject } from "@/components/app-shell";
+import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
 import { Collapse } from "@/components/motion";
@@ -66,8 +66,9 @@ function toTurns(messages: ConversationMessage[]): Turn[] {
 export default function AssistantScreen() {
   const t = useTranslations("assistant");
   const tHint = useTranslations("hint.assistant");
+  const { activeProject } = useApp();
 
-  const [projectId, setProjectId] = useState<string | null>(null);
+  const projectId = activeProject?.id ?? null;
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
@@ -146,18 +147,23 @@ export default function AssistantScreen() {
     [turns, refreshHistory],
   );
 
-  // A question typed on the dashboard arrives here and runs itself, so the
-  // handover reads as one action rather than as "now ask it again".
+  // Keyed on the project, not on mount: without the reload that used to wipe
+  // this screen, switching projects must clear the transcript itself. An
+  // in-flight answer is safe - ask() closes over the id it started with.
+  // The handed-over question from the dashboard still runs itself here, so
+  // the handover reads as one action rather than as "now ask it again".
   useEffect(() => {
-    const project = readActiveProject();
-    setProjectId(project);
-    if (!project) return;
-    refreshHistory(project);
+    if (!projectId) return;
+    setTurns([]);
+    openId.current = null;
+    setConversationId(null);
+    refreshHistory(projectId);
     const handed = takePendingQuestion();
-    if (handed) void ask(handed, project);
-    // Once, on mount: `ask` changes identity with every turn.
+    if (handed) void ask(handed, projectId);
+    // Only the project change should reset the screen: `ask` changes identity
+    // with every turn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [projectId]);
 
   // Follows the answer as it grows, but only while streaming, so a reader
   // scrolling back through an earlier turn is not yanked to the bottom.

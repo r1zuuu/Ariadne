@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { queueChanged, readActiveProject } from "@/components/app-shell";
+import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
 import { FadeIn } from "@/components/motion";
@@ -14,7 +14,6 @@ import {
   chatEdit,
   createConversation,
   getConversation,
-  getPending,
   listConversations,
   saveConversation,
   type ConversationMessage,
@@ -63,16 +62,26 @@ export default function DatabaseScreen() {
   const tHint = useTranslations("hint.database");
   const toast = useToast();
 
-  const [projectId, setProjectId] = useState<string | null>(null);
+  const { activeProject, pendingFeed, refreshPending } = useApp();
+
+  const projectId = activeProject?.id ?? null;
   const [sessionId, setSessionId] = useState("");
   const [message, setMessage] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<ConversationSummary[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  // Ids still waiting in the review queue. Anything a past proposal points at
-  // that is not in here has been settled one way or the other.
-  const [stillWaiting, setStillWaiting] = useState<Set<string> | null>(null);
+
+  // Ids still waiting in the review queue, derived from the shared feed.
+  // Anything a past proposal points at that is not in here has been settled
+  // one way or the other.
+  const stillWaiting =
+    pendingFeed === null
+      ? null
+      : new Set([
+          ...pendingFeed.pendingActions.map((a) => a.id),
+          ...pendingFeed.nodesToReview.map((n) => n.id),
+        ]);
 
   const refreshHistory = useCallback((project: string) => {
     void listConversations(project, "memory")
@@ -80,30 +89,18 @@ export default function DatabaseScreen() {
       .catch(() => {});
   }, []);
 
-  const refreshWaiting = useCallback(
-    () =>
-      getPending()
-        .then((feed) =>
-          setStillWaiting(
-            new Set([
-              ...feed.pendingActions.map((a) => a.id),
-              ...feed.nodesToReview.map((n) => n.id),
-            ]),
-          ),
-        )
-        .catch(() => setStillWaiting(new Set())),
-    [],
-  );
-
+  // Keyed on the project: without the reload that used to wipe this screen,
+  // switching projects must clear the transcript itself.
   useEffect(() => {
-    const project = readActiveProject();
-    setProjectId(project);
+    if (!projectId) return;
+    setTurns([]);
+    setConversationId(null);
+    setMessage("");
     // One conversation is one session, so entries created from it group the way
     // a coder's session does.
     setSessionId(crypto.randomUUID());
-    if (project) refreshHistory(project);
-    void refreshWaiting();
-  }, [refreshHistory, refreshWaiting]);
+    refreshHistory(projectId);
+  }, [projectId, refreshHistory]);
 
   const send = async (said: string) => {
     if (!projectId) return;
@@ -122,11 +119,10 @@ export default function DatabaseScreen() {
       patch({ reply: answer.reply, queued: answer.queued });
       if (answer.queued.length) {
         toast(t("toast"));
-        // The set was read on mount and knows nothing about what was queued a
-        // second ago, so without this the new card claims "saved" about
-        // something still waiting. The column's counter is equally stale.
-        await refreshWaiting();
-        queueChanged();
+        // The shared feed knows nothing about what was queued a second ago,
+        // so without this the new card claims "saved" about something still
+        // waiting, and the column's counter is equally stale.
+        await refreshPending();
       }
     } catch (caught) {
       const error = caught instanceof Error ? caught.message : String(caught);

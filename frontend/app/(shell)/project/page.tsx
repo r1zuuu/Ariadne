@@ -1,8 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
-import { readActiveProject } from "@/components/app-shell";
+import { useCallback, useEffect, useState } from "react";
+import { useApp } from "@/components/app-provider";
 import { NodeGraph } from "@/components/node-graph";
 import { useToast } from "@/components/toast";
 import { ScreenHint } from "@/components/screen-hint";
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui";
 import {
   getGraph,
-  listProjects,
   updateProject,
   type GraphEdge,
   type Node,
@@ -35,26 +34,48 @@ export default function ProjectScreen() {
   const t = useTranslations("project");
   const tHint = useTranslations("hint.project");
   const toast = useToast();
+  const { projects, activeProject, refreshProjects, server } = useApp();
 
-  const [project, setProject] = useState<Project | null>(null);
   const [graph, setGraph] = useState<{ nodes: Node[]; edges: GraphEdge[] } | null>(null);
+  const [graphError, setGraphError] = useState(false);
   const [editing, setEditing] = useState(false);
 
-  useEffect(() => {
-    const id = readActiveProject();
-    if (!id) return;
-    void listProjects()
-      .then((rows) => setProject(rows.find((p) => p.id === id) ?? null))
-      .catch(() => {});
+  const project = activeProject;
+
+  const loadGraph = useCallback((id: string) => {
+    setGraph(null);
+    setGraphError(false);
     void getGraph(id)
       .then(setGraph)
-      .catch(() => setGraph({ nodes: [], edges: [] }));
+      // An unreachable graph is an error with a retry, not an empty graph:
+      // "no entries yet" and "the server did not answer" mean opposite things.
+      .catch(() => setGraphError(true));
   }, []);
+
+  useEffect(() => {
+    if (project?.id) loadGraph(project.id);
+  }, [project?.id, loadGraph]);
 
   return (
     <div className="mx-auto max-w-[900px]">
         {project === null ? (
-          <p className="text-body text-ink-3">{t("loading")}</p>
+          server === "down" ? (
+            // A dead backend used to park this screen on "loading" forever.
+            // Say what happened and offer the one thing that can fix it.
+            <EmptyState
+              title={t("unreachable")}
+              note={t("unreachableNote")}
+              action={
+                <Button variant="secondary" onClick={() => void refreshProjects()}>
+                  {t("retry")}
+                </Button>
+              }
+            />
+          ) : projects !== null && projects.length === 0 ? (
+            <EmptyState title={t("noProject")} note={t("noProjectNote")} />
+          ) : (
+            <p className="text-body text-ink-3">{t("loading")}</p>
+          )
         ) : (
           <>
             <div className="flex flex-wrap items-start justify-between gap-5 pb-8">
@@ -80,8 +101,10 @@ export default function ProjectScreen() {
               <EditCard
                 project={project}
                 onCancel={() => setEditing(false)}
-                onSaved={(updated) => {
-                  setProject(updated);
+                onSaved={() => {
+                  // The context owns the project row now; refreshing it keeps
+                  // the title bar, the switcher and this header in one truth.
+                  void refreshProjects();
                   setEditing(false);
                   toast(t("toastSaved"));
                 }}
@@ -93,7 +116,17 @@ export default function ProjectScreen() {
             <section className="pt-10">
               <SectionHeader title={t("graph")} />
               <p className="pb-4 text-small text-ink-2">{t("graphLead")}</p>
-              {graph === null ? (
+              {graphError ? (
+                <EmptyState
+                  title={t("graphError")}
+                  note={t("graphErrorNote")}
+                  action={
+                    <Button variant="secondary" onClick={() => loadGraph(project.id)}>
+                      {t("retry")}
+                    </Button>
+                  }
+                />
+              ) : graph === null ? (
                 <p className="text-body text-ink-3">{t("loading")}</p>
               ) : graph.nodes.length === 0 ? (
                 <EmptyState title={t("graphEmpty")} note={t("graphEmptyNote")} />

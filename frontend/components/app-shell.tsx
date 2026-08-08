@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { ACTIVE_PROJECT_KEY, useApp } from "@/components/app-provider";
+import { useApp } from "@/components/app-provider";
 import { enterTransition } from "@/components/motion";
 import { TitleBar } from "@/components/title-bar";
 import { clearToken, type Project } from "@/lib/api";
@@ -67,31 +67,6 @@ const LINKS: {
     icon: <IconSettings />,
   },
 ];
-
-/** Read by every screen that needs to know which project it is showing. */
-export function readActiveProject(): string | null {
-  if (typeof localStorage === "undefined") return null;
-  return localStorage.getItem(ACTIVE_PROJECT_KEY);
-}
-
-/**
- * Switch project from anywhere. The reload is deliberate for now: screens
- * still read the active project once on mount. It goes away once every
- * screen reacts to the context instead.
- */
-export function pickProject(id: string) {
-  localStorage.setItem(ACTIVE_PROJECT_KEY, id);
-  window.location.reload();
-}
-
-/**
- * Tell the provider its queue counter is stale. Called by the review screen
- * after it settles something. Goes away once those screens call
- * refreshPending directly.
- */
-export function queueChanged() {
-  window.dispatchEvent(new Event("ariadne:queue-changed"));
-}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useTranslations("nav");
@@ -223,6 +198,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Project | null }) {
   const t = useTranslations("nav");
   const tProject = useTranslations("project");
+  const { setActiveProject } = useApp();
 
   if (!active) {
     return (
@@ -278,7 +254,12 @@ function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Pr
           <li key={project.id}>
             <button
               type="button"
-              onClick={() => pickProject(project.id)}
+              onClick={(event) => {
+                setActiveProject(project.id);
+                // <details> only closes itself on outside click; picking a
+                // project is a decision, so the list folds away with it.
+                event.currentTarget.closest("details")?.removeAttribute("open");
+              }}
               className={`flex w-full items-baseline justify-between gap-3 rounded-control px-4 py-3 text-left text-small transition-colors duration-state hover:bg-plaster-sunk ${
                 project.id === active.id ? "text-ink" : "text-ink-2"
               }`}

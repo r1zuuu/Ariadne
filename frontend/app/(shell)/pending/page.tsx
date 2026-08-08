@@ -1,8 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
-import { queueChanged } from "@/components/app-shell";
+import { useState } from "react";
+import { useApp, type PendingFeed } from "@/components/app-provider";
 import { EntryCard, headline } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
 import { ScreenHint } from "@/components/screen-hint";
@@ -11,7 +11,6 @@ import {
   approvePending,
   archiveNode,
   confirmNode,
-  getPending,
   rejectPending,
   type PendingAction,
   type ReviewNode,
@@ -32,32 +31,19 @@ export default function PendingScreen() {
   const tHint = useTranslations("hint.pending");
   const toast = useToast();
 
-  const [feed, setFeed] = useState<{
-    pendingActions: PendingAction[];
-    nodesToReview: ReviewNode[];
-  } | null>(null);
+  const { pendingFeed: feed, refreshPending } = useApp();
   const [working, setWorking] = useState<string | null>(null);
-
-  const load = useCallback(() => {
-    void getPending()
-      .then(setFeed)
-      .catch(() => setFeed({ pendingActions: [], nodesToReview: [] }));
-  }, []);
-
-  useEffect(load, [load]);
 
   // Every button here is the same shape: run one call, say what happened,
   // refetch. Refetching rather than patching locally, because approving an
-  // update changes a node the second list may also be showing.
+  // update changes a node the second list may also be showing - and the
+  // column's counter reads the same feed, so it stays honest for free.
   const act = async (key: string, run: () => Promise<void>, message: string) => {
     setWorking(key);
     try {
       await run();
       toast(message);
-      load();
-      // The column's counter lives outside this tree and would otherwise keep
-      // showing the number from page load.
-      queueChanged();
+      await refreshPending();
     } catch {
       toast(t("toastFailed"), "error");
     } finally {
@@ -232,7 +218,7 @@ function ActionCard({
 
 // The feed arrives as two flat account-wide lists; the screen needs them per
 // project. Order follows first appearance, which is newest-first from the API.
-function groupByProject(feed: { pendingActions: PendingAction[]; nodesToReview: ReviewNode[] }) {
+function groupByProject(feed: PendingFeed) {
   const groups = new Map<string, { project: string; actions: PendingAction[]; nodes: ReviewNode[] }>();
   const of = (name: string) => {
     if (!groups.has(name)) groups.set(name, { project: name, actions: [], nodes: [] });

@@ -388,7 +388,14 @@
     "limitsEmpty": "Brak ograniczeń. Tu wpisz zasady, których agent ma się trzymać.",
     "toastSaved": "Zmiany w projekcie zostały zapisane.",
     "graphLead": "Linia ciągła: wspólny plik. Linia przerywana: podobna treść.",
-    "graphEmptyNote": "Każdy zapisany wpis to punkt, a połączenia liczą się same."
+    "graphEmptyNote": "Każdy zapisany wpis to punkt, a połączenia liczą się same.",
+    "unreachable": "Serwer nie odpowiada",
+    "unreachableNote": "Nie udało się pobrać projektu. Sprawdź, czy serwer Ariadne działa, i spróbuj ponownie.",
+    "retry": "Spróbuj ponownie",
+    "noProject": "Nie masz jeszcze projektu",
+    "noProjectNote": "Załóż projekt na ekranie przeglądu, a jego karta pojawi się tutaj.",
+    "graphError": "Graf się nie wczytał",
+    "graphErrorNote": "Serwer nie odpowiedział na zapytanie o graf. Wpisy są bezpieczne, spróbuj ponownie."
   },
   "entry": {
     "type": {
@@ -410,6 +417,9 @@
     "lead": "Konto, uprawnienia agentów, tokeny i zespół.",
     "loading": "Wczytuję...",
     "failed": "Nie udało się. Spróbuj jeszcze raz.",
+    "accountError": "Serwer nie odpowiada",
+    "accountErrorNote": "Nie udało się pobrać ustawień konta. Sprawdź, czy serwer Ariadne działa, i spróbuj ponownie.",
+    "retry": "Spróbuj ponownie",
     "account": "Konto",
     "memberSince": "konto od {at}",
     "profile": "Kim jesteś przy pracy",

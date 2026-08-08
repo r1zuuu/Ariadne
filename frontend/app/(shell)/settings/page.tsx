@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { LOCALES, useLocale } from "@/app/locale-provider";
+import { useApp } from "@/components/app-provider";
 import { CommandBlock } from "@/components/command-block";
 import { ScreenHint } from "@/components/screen-hint";
 import { useToast } from "@/components/toast";
@@ -54,10 +55,18 @@ export default function SettingsScreen() {
   const toast = useToast();
 
   const [account, setAccount] = useState<Account | null>(null);
+  const [accountError, setAccountError] = useState(false);
 
-  useEffect(() => {
-    void getAccount().then(setAccount).catch(() => {});
+  const loadAccount = useCallback(() => {
+    setAccountError(false);
+    // A failed fetch used to park this screen on "loading" forever; the error
+    // state with a retry is the difference between stuck and delayed.
+    void getAccount()
+      .then(setAccount)
+      .catch(() => setAccountError(true));
   }, []);
+
+  useEffect(loadAccount, [loadAccount]);
 
   return (
     <div className="mx-auto max-w-[860px]">
@@ -65,7 +74,19 @@ export default function SettingsScreen() {
       <ScreenHint screen="settings" title={tHint("title")} note={tHint("note")} />
 
       {account === null ? (
-        <p className="text-body text-ink-3">{t("loading")}</p>
+        accountError ? (
+          <EmptyState
+            title={t("accountError")}
+            note={t("accountErrorNote")}
+            action={
+              <Button variant="secondary" onClick={loadAccount}>
+                {t("retry")}
+              </Button>
+            }
+          />
+        ) : (
+          <p className="text-body text-ink-3">{t("loading")}</p>
+        )
       ) : (
         <>
           <AccountSection account={account} onSaved={setAccount} toast={toast} />
@@ -423,6 +444,7 @@ function TokensSection({ toast }: { toast: Toast }) {
 function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
   const t = useTranslations("settings");
   const failure = useFailure();
+  const { refreshProjects, refreshPending } = useApp();
 
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -667,10 +689,10 @@ function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
                       async () => {
                         await acceptInvite(code.trim());
                         setCode("");
-                        // A full reload for the same reason switching project
-                        // does one: every screen and the column itself read the
-                        // project list once on mount, and joining changed it.
-                        window.location.reload();
+                        // Joining changed what the account can see; the shared
+                        // context re-reads it in place, no reload needed.
+                        load();
+                        await Promise.all([refreshProjects(), refreshPending()]);
                       },
                       t("joined"),
                     )
