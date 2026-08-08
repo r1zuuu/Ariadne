@@ -187,7 +187,7 @@ export default function DatabaseScreen() {
           suggestions={empty ? [t("suggest1"), t("suggest2"), t("suggest3")] : []}
         />
 
-        <ul className="flex flex-col gap-9 pt-9">
+        <ul className="flex flex-col gap-8 pt-8">
           {turns.map((turn, i) => (
             <li key={i}>
               <p className="text-label uppercase tracking-[0.12em] text-ink-3">
@@ -218,7 +218,7 @@ export default function DatabaseScreen() {
           ))}
         </ul>
 
-        <div className="pt-9">
+        <div className="pt-8">
           <ConversationList
             conversations={history}
             activeId={conversationId}

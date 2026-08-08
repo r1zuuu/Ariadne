@@ -98,14 +98,16 @@ export function MemoryGraph({ nodes, edges }: { nodes: Node[]; edges: GraphEdge[
 
   return (
     <div>
-      <div className="h-[400px] overflow-hidden rounded-card border border-hairline bg-plaster-sunk/50">
+      <div className="h-[440px] overflow-hidden rounded-card border border-hairline bg-plaster-sunk/50">
         <ReactFlow
           nodes={flowNodes}
           edges={flowEdges}
           nodeTypes={nodeTypes}
           fitView
-          fitViewOptions={{ padding: 0.15, maxZoom: 1 }}
-          minZoom={0.3}
+          fitViewOptions={{ padding: 0.12, maxZoom: 1 }}
+          /* The floor keeps every card legible: a big archive pans instead of
+             shrinking into confetti. */
+          minZoom={0.75}
           maxZoom={1.4}
           nodesConnectable={false}
           deleteKeyCode={null}

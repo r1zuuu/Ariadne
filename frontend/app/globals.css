@@ -8,43 +8,43 @@
    a WCAG script against these exact numbers. */
 
 @theme {
-  /* Colour. Dark only, and Greek about it: the ground is the Aegean at night -
-     deep navy, never pure black - the text is marble ivory, the gold is ochre,
-     and the thread is the lapis blue the whole room is tuned to. Elevation is
-     lightness: the further a surface is from the night, the closer it sits to
-     the reader. */
-  --color-plaster: oklch(0.21 0.025 258); /* app background, night sea */
-  --color-plaster-raised: oklch(0.235 0.025 258);
-  --color-plaster-sunk: oklch(0.18 0.024 258); /* title bar, nav column: the frame recedes */
+  /* Colour. Dark only, built on four given stones: #222831 charcoal, #393E46
+     graphite, #948979 taupe, #DFD0B8 sand. The ground is the charcoal, the
+     graphite draws the hairlines and hovers, the taupe is what has faded, and
+     the sand is the linen thread that guides. Elevation is lightness: the
+     further a surface is from the dark, the closer it sits to the reader.
+     Everything else is derived from those four. */
+  --color-plaster: #222831; /* app background */
+  --color-plaster-raised: #272e38;
+  --color-plaster-sunk: #1c222a; /* title bar, nav column: the frame recedes */
 
-  /* Cards rise out of the night by lightness, not by outline. */
-  --color-surface: oklch(0.25 0.026 258);
-  --color-surface-2: oklch(0.28 0.026 258); /* hover on a card that is clickable */
+  /* Cards rise out of the dark by lightness, not by outline. */
+  --color-surface: #2e343e;
+  --color-surface-2: #393e46; /* hover on a card that is clickable, the graphite itself */
 
-  --color-ink: oklch(0.93 0.01 90); /* 14.4:1, marble ivory, never #fff */
-  --color-ink-2: oklch(0.79 0.015 95); /* 9.2:1 */
-  --color-ink-3: oklch(0.68 0.018 100); /* 6.2:1, floor for text */
-  --color-edge: oklch(0.53 0.02 258); /* 3.4:1 on plaster, 3.0:1 on surface, control borders */
-  --color-hairline: oklch(0.31 0.02 258); /* decoration only */
+  --color-ink: #ede4d3; /* 11.8:1, lightened sand, never #fff */
+  --color-ink-2: #c9bda6; /* 8.0:1 */
+  --color-ink-3: #a79d8c; /* 5.5:1 on the ground, 4.7:1 on a card, floor for text */
+  --color-edge: #737981; /* 3.2:1, control borders */
+  --color-hairline: #393e46; /* the graphite, decoration only */
 
-  /* The thread. The lapis blue, lifted to carry on the night, the one brand
+  /* The thread. The sand itself - a linen thread on dark cloth - the one brand
      accent, reserved for guidance: the active marker, the drawn thread, focus,
-     "you are here". A colour that names neither a status nor the thread has no
-     business being saturated. Primary buttons are marble, not the accent: the
-     thread points, it does not shout. */
-  --color-thread: oklch(0.68 0.13 253); /* 6.2:1 */
-  --color-thread-lift: oklch(0.68 0.13 253); /* kept for the command block, same cut */
+     links, "you are here". Primary buttons are sand-inked too: on this palette
+     the thread and the strongest action share the same fibre. */
+  --color-thread: #dfd0b8; /* 9.8:1 */
+  --color-thread-lift: #dfd0b8;
 
-  /* The four statuses. Never colour alone: each carries a marker shape and its
-     written name wherever it appears. */
-  --color-laurel: oklch(0.72 0.09 135); /* 7.4:1, confirmed */
-  --color-ochre: oklch(0.78 0.11 85); /* 8.8:1, proposed, the gold */
-  --color-ochre-mark: oklch(0.7 0.13 80); /* 6.5:1, markers */
-  --color-iron: oklch(0.7 0.13 25); /* 6.3:1, contradicted, deletions, errors */
-  --color-stone: oklch(0.68 0.015 258); /* 6.2:1, archived, the one status with no chroma */
+  /* The four statuses. Never colour alone - each carries a marker shape and
+     its written name - so the hues stay quiet, warm-tuned to the palette. */
+  --color-laurel: #a9b388; /* 6.7:1, confirmed, dried laurel */
+  --color-ochre: #d4b483; /* 7.5:1, proposed, sanded gold */
+  --color-ochre-mark: #c0a46f; /* 6.2:1, markers */
+  --color-iron: #ce8f79; /* 5.4:1, contradicted, deletions, errors, fired clay */
+  --color-stone: #a79d8c; /* archived reads as faded text, which is what it is */
 
-  --color-canvas: oklch(0.15 0.02 258); /* the command block sinks below the page */
-  --color-canvas-ink: oklch(0.93 0.01 90);
+  --color-canvas: #1a1f27; /* the command block sinks below the page */
+  --color-canvas-ink: #ede4d3;
 
   /* Type. Three voices split by what the reader does with the text. Playfair
      Display sets what is scanned: the headline steps, applied through the
@@ -187,11 +187,20 @@
     letter-spacing: 0;
   }
 
-  /* Visible on every surface it can land on, which includes the dark graph
-     canvas, so the ring is the thread and never a browser default. */
+  /* Visible on every surface it can land on, so the ring is the thread and
+     never a browser default. */
   :focus-visible {
     outline: 2px solid var(--color-thread);
     outline-offset: 2px;
+  }
+
+  /* React Flow ships a white attribution chip; on the dark map it becomes a
+     quiet line instead of a sticker. The credit stays. */
+  .react-flow__attribution {
+    background: transparent;
+  }
+  .react-flow__attribution a {
+    color: var(--color-ink-3);
   }
 
   ::selection {

@@ -326,7 +326,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="px-7 py-9 text-center">
+    <div className="px-7 py-8 text-center">
       <svg
         width="56"
         height="12"

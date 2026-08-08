@@ -153,7 +153,7 @@ export default function HomeScreen() {
         />
       ) : (
         <>
-          <section className="pb-9 pt-6">
+          <section className="pb-8 pt-6">
             <p className="pb-3 text-data text-ink-3">
               {since ? t("seen", { at: stamp(since, true) }) : t("seenFirst")}
             </p>
@@ -190,7 +190,7 @@ export default function HomeScreen() {
 
           {/* The thread picks up where the question ends: a short taut lead-in
               on the hairline that carries the eye down to what was decided. */}
-          <div className="relative mb-9 border-t border-hairline" aria-hidden="true">
+          <div className="relative mb-8 border-t border-hairline" aria-hidden="true">
             <svg
               width="64"
               height="9"

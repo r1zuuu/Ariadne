@@ -89,7 +89,7 @@ export default function EntryScreen() {
         <ArtPanel tagline={t("tagline")} />
 
         {/* Scrolls on its own so a short window never clips the submit button. */}
-        <div className="flex min-h-0 items-center justify-center overflow-y-auto px-6 py-10 sm:px-10">
+        <div className="flex min-h-0 items-center justify-center overflow-y-auto px-6 py-8 sm:px-10">
           <div className="w-full max-w-[400px]">
             <p className="display-serif text-lead uppercase tracking-[0.2em] text-ink-2">Ariadne</p>
 
@@ -157,7 +157,7 @@ export default function EntryScreen() {
 
             {/* System status, not a headline. A dot plus one quiet line, and it
                 only asks for attention in the one case where it has to. */}
-            <p className="flex items-center gap-2 pt-10 text-data text-ink-3">
+            <p className="flex items-center gap-2 pt-8 text-data text-ink-3">
               <span
                 aria-hidden="true"
                 className={`h-[6px] w-[6px] rounded-pill ${

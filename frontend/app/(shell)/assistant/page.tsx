@@ -203,7 +203,7 @@ export default function AssistantScreen() {
         ) : null}
 
         {!empty ? (
-          <ul className="flex flex-col gap-10 pb-6">
+          <ul className="flex flex-col gap-8 pb-6">
             {turns.map((turn, i) => (
               <li key={i}>
                 {/* The question sits in a tinted block and the answer on the
@@ -224,9 +224,11 @@ export default function AssistantScreen() {
                 )}
               </li>
             ))}
-            <div ref={endRef} />
           </ul>
         ) : null}
+        {/* Outside the list: as a flex child it claimed a whole gap slot of
+            its own, which read as a hole between the answer and the composer. */}
+        <div ref={endRef} aria-hidden="true" />
 
         <div
           className={
@@ -249,7 +251,7 @@ export default function AssistantScreen() {
           />
         </div>
 
-        <div className="pt-9">
+        <div className="pt-8">
           <ConversationList
             conversations={history}
             activeId={conversationId}

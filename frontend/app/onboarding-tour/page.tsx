@@ -111,7 +111,7 @@ export default function TourScreen() {
               </p>
             </FadeIn>
 
-            <div className="flex flex-wrap items-center gap-4 pt-9">
+            <div className="flex flex-wrap items-center gap-4 pt-8">
               <Button variant="quiet" onClick={() => leave("/home")}>
                 {t("skip")}
               </Button>

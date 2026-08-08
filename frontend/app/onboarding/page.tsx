@@ -181,7 +181,7 @@ export default function OnboardingScreen() {
       <ThreadProgress step={step} />
 
       <main className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-x-16 px-8 pt-10 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="mx-auto grid max-w-[1180px] grid-cols-1 gap-x-16 px-8 pt-8 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div>
             {step === 1 ? (
               <ProfileStep
@@ -210,7 +210,7 @@ export default function OnboardingScreen() {
             {/* Set off by a rule and a wider gap above: the actions are a
                 different kind of thing from the question, and uniform spacing was
                 making the whole screen read as one undifferentiated column. */}
-            <div className="mt-9 flex items-center gap-6 border-t border-hairline pb-10 pt-6">
+            <div className="mt-9 flex items-center gap-6 border-t border-hairline pb-8 pt-6">
               <Button onClick={() => void advance()} disabled={busy}>
                 {step === 3 ? t("finish") : t("next")}
               </Button>
@@ -234,7 +234,7 @@ export default function OnboardingScreen() {
               <button
                 type="button"
                 onClick={() => router.push("/settings")}
-                className="pb-10 text-small text-thread underline underline-offset-2"
+                className="pb-8 text-small text-thread underline underline-offset-2"
               >
                 {t("project.joinInstead")}
               </button>

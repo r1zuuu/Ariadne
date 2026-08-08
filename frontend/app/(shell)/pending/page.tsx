@@ -67,7 +67,7 @@ export default function PendingScreen() {
         ) : empty ? (
           <EmptyState title={t("empty")} note={t("emptyNote")} />
         ) : (
-          <div className="flex flex-col gap-10">
+          <div className="flex flex-col gap-8">
             {groups.map((group) => (
               <section key={group.project}>
                 <div className="flex items-baseline gap-4 pb-4">

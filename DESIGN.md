@@ -2,31 +2,31 @@
 name: Ariadne
 register: product
 personality: [attributed, deliberate, quiet]
-theme: light-only, dark graph canvas
+theme: dark-only, four given stones
 color:
-  plaster:        oklch(0.97 0.006 85)     # app background, warm bone
-  plaster-raised: oklch(0.984 0.004 85)    # reading surface
-  plaster-sunk:   oklch(0.945 0.008 85)    # title bar, nav column, hover, data blocks
-  surface:        oklch(0.995 0.002 85)    # card paper, never pure white
-  ink:            oklch(0.26 0.015 60)     # 14.3:1 on plaster, warm charcoal
-  ink-2:          oklch(0.44 0.015 60)     # 7.2:1
-  ink-3:          oklch(0.52 0.012 60)     # 5.1:1, text floor
-  edge:           oklch(0.62 0.012 60)     # 3.4:1, control borders
-  hairline:       oklch(0.87 0.008 60)     # 1.4:1, decoration only
-  thread:         oklch(0.45 0.13 28)      # 7.3:1, madder red, the one brand accent
-  thread-lift:    oklch(0.70 0.11 30)      # 6.1:1 on canvas only
-  laurel:         oklch(0.46 0.08 135)     # 6.3:1, confirmed
-  ochre:          oklch(0.52 0.105 78)     # 5.1:1, proposed text
-  ochre-mark:     oklch(0.63 0.13 78)      # 3.3:1, marker fill only
-  iron:           oklch(0.505 0.15 27)     # 5.8:1, contradicted, deletions, errors
-  stone:          oklch(0.50 0.01 80)      # 5.5:1, archived
-  canvas:         oklch(0.23 0.015 60)     # graph only
-  canvas-ink:     oklch(0.94 0.006 85)     # 14.2:1 on canvas
+  plaster:        "#222831"   # app background, the charcoal
+  plaster-raised: "#272e38"
+  plaster-sunk:   "#1c222a"   # title bar, nav column: the frame recedes
+  surface:        "#2e343e"   # cards rise by lightness
+  surface-2:      "#393e46"   # hover, the graphite itself
+  ink:            "#ede4d3"   # 11.8:1, lightened sand, never #fff
+  ink-2:          "#c9bda6"   # 8.0:1
+  ink-3:          "#a79d8c"   # 5.5:1 ground / 4.7:1 card, text floor
+  edge:           "#737981"   # 3.2:1, control borders
+  hairline:       "#393e46"   # the graphite, decoration only
+  thread:         "#dfd0b8"   # 9.8:1, the sand: a linen thread on dark cloth
+  laurel:         "#a9b388"   # 6.7:1, confirmed, dried laurel
+  ochre:          "#d4b483"   # 7.5:1, proposed, sanded gold
+  ochre-mark:     "#c0a46f"   # 6.2:1, markers
+  iron:           "#ce8f79"   # 5.4:1, contradicted, deletions, errors, fired clay
+  stone:          "#a79d8c"   # archived reads as faded text, which is what it is
+  canvas:         "#1a1f27"   # the command block sinks below the page
+  canvas-ink:     "#ede4d3"
 type:
   heading: Playfair Display, latin-ext, variable wght, headline steps only
   prose:   Geist, latin-ext, weights 100-900
   data:    Geist Mono, latin-ext, weights 400/500, machine output only
-  scale: 46/34/27/21/17/15/13/11, headline weights 700/600
+  scale: 64/34/27/21/17/15/13/11, headline weights 700/600
   measure: 68ch
 space: [2, 4, 8, 12, 16, 24, 32, 48, 72, 112]
 radius: [0, 3, 6, 8, 999]   # none, label, control, card, dot
@@ -41,11 +41,12 @@ a11y: WCAG 2.2 AA, status never colour-only, reduced-motion honoured
 
 # Overview
 
-Ariadne is a desktop window over a research archive, and it now looks like
-one: warm bone paper, an almost-black warm ink, a display serif for what is
-scanned, and a single madder-red thread that marks where you are and where the
-sequence leads. It shows what a coding agent decided, when, in which files,
-and whether a human has vouched for it.
+Ariadne is a desktop window over a research archive, kept in the dark: a
+charcoal ground built on four given stones (#222831, #393E46, #948979,
+#DFD0B8), sand-inked text, a display serif for what is scanned, and a single
+sand thread that marks where you are and where the sequence leads. It shows
+what a coding agent decided, when, in which files, and whether a human has
+vouched for it.
 
 **The Instrument Rule.** Nothing on screen celebrates a number; every number is
 a reading you can act on.
@@ -65,25 +66,27 @@ as an invalidation strategy is banned.
 
 # Colors
 
-The neutrals are warm limestone and bone (hue ~85, chroma 0.002-0.008), the ink
-is warm charcoal, and pure black and pure white are absent. Five roles carry
-meaning and nothing else is saturated:
+**The Four Stones Rule.** The whole palette descends from four given colours:
+#222831 is the ground, #393E46 draws the hairlines and hovers, #948979 is what
+has faded, #DFD0B8 is the thread. Every other value (raised and sunk grounds,
+the ink ladder, the status hues) is derived from them and stays warm-tuned to
+them. Pure black and pure white are absent.
 
-**The Thread Rule.** Madder red is the brand and it only guides: the active
+**Elevation Is Lightness.** On a dark ground nothing floats on a shadow alone:
+the closer a surface sits to the reader, the lighter it is (sunk 1C222A →
+ground 222831 → raised 272E38 → card 2E343E → hover 393E46). Shadows are
+black and only anchor what genuinely floats.
+
+**The Thread Rule.** The sand is the brand and it only guides: the active
 navigation marker's taut left edge, the focused composer's edge, focus rings,
-the drawn thread in the tour, the loose end in an empty state, links. It never
-fills a button. Primary buttons are ink - the thread points, it does not shout.
+the drawn thread in the tour, the loose end in an empty state, links, and the
+primary button - on this palette the strongest action and the thread share the
+same fibre.
 
-Statuses: laurel green is `confirmed`, ochre is `proposed`, iron is
-`contradicted` (deliberately the thread's family: a contradiction is the thread
-cutting across an old decision), stone is `archived`.
-
-**The Marker Floor Rule.** Saturated ochre lives only in markers at 3.3:1; any
-ochre carrying text uses the 5.1:1 cut.
-
-**The One Dark Surface Rule.** The command block is the only dark region in
-the product, and it earns it: it really is a terminal command. The entry map
-lives on light paper like everything else.
+Statuses: dried laurel is `confirmed`, sanded gold is `proposed`, fired clay is
+`contradicted`, and `archived` is the given taupe - faded text, which is what
+an archived entry is. The hues stay quiet because the shapes and words carry
+the meaning.
 
 # Typography
 
@@ -111,10 +114,9 @@ string: paths, hashes, tokens, the command block. A date is not machine output.
 
 # Elevation
 
-Two shadows, both tinted with the warm ink so lifted paper still belongs to the
-page: the card shadow (1px + a soft 8px diffusion at ~0.05 alpha) and the
-lifted shadow (8px/24px at 0.14) for things that genuinely float - a menu, a
-toast, the focused composer.
+Two black shadows anchor what lightness already lifted: the card shadow (1px +
+a soft 10px diffusion) and the lifted shadow (10px/28px at 0.5) for things
+that genuinely float - a menu, a toast, the composer.
 
 **The Card Is an Action Unit.** A card is for something you can do something
 to: an entry with approve and reject under it, a panel with a control in it.
@@ -122,9 +124,9 @@ Content you can only read is a section over a hairline. Settings keeps its
 cards because every one of them is a form.
 
 **The Composer Is the Hero.** The one typing surface is the most important
-object in the product and the only card allowed the lifted shadow while awake:
-focus pulls its left edge taut in thread red and lifts the paper. Suggestions
-under it are lines with a dot that takes up the thread on hover - never chips.
+object in the product and the one card that floats at rest: focus pulls its
+left edge taut in the sand thread. Suggestions under it are lines with a dot
+that takes up the thread on hover - never chips.
 
 **The Empty State Has a Loose End.** No dashed wireframe boxes. An empty state
 is a centred note under a short loose thread with its end-dot: the sequence has

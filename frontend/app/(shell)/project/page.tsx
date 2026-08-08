@@ -110,7 +110,7 @@ export default function ProjectScreen() {
               <ReadView project={project} />
             )}
 
-            <section className="pt-10">
+            <section className="pt-8">
               <SectionHeader title={t("graph")} />
               <p className="pb-4 text-small text-ink-2">{t("graphLead")}</p>
               {graphError ? (
