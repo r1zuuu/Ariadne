@@ -52,7 +52,7 @@ export function Button({
       {...rest}
       disabled={rest.disabled || loading}
       aria-busy={loading || undefined}
-      className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-control font-medium leading-none transition-[background-color,border-color,color,transform] duration-state ease-out-quint active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 ${BUTTON_SIZES[size]} ${BUTTON_VARIANTS[variant]} ${rest.className ?? ""}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-control font-medium leading-none transition-[background-color,border-color,color,scale] duration-state ease-out-quint active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 ${BUTTON_SIZES[size]} ${BUTTON_VARIANTS[variant]} ${rest.className ?? ""}`}
     >
       {children}
     </button>
