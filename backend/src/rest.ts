@@ -11,14 +11,18 @@ import {
   type NodeStatus,
   type NodeType,
   ServiceError,
+  acceptInvite,
   approvePending,
   archiveNode,
+  changePassword,
   confirmNode,
   contradictNode,
   appendToConversation,
   createApiToken,
   createConversation,
+  createInvite,
   createProject,
+  createWorkspace,
   deleteApiToken,
   deleteConversation,
   editNode,
@@ -28,11 +32,16 @@ import {
   getReviewFeed,
   listApiTokens,
   listConversations,
+  listInvites,
+  listMembers,
   listNodes,
   listProjects,
+  listWorkspaces,
   login,
   registerUser,
   rejectPending,
+  removeMember,
+  revokeInvite,
   searchNodes,
   setAllPermission,
   updateProfile,
@@ -82,9 +91,47 @@ const PROTECTED_PREFIXES = [
   "/chat/*",
   "/conversations",
   "/conversations/*",
+  "/workspaces",
+  "/workspaces/*",
+  "/invites/*",
 ];
 
 type Env = { Variables: { jwtPayload: { sub: string } } };
+
+// Argon2 alone slows guessing to a few tries a second, which is plenty of tries
+// over a night. Keyed by email rather than by address: behind a desktop app on
+// one machine every request carries the same IP, so an IP counter would either
+// lock out the only user or count nothing.
+//
+// ponytail: one Map in one process. A restart forgets the counters and a second
+// instance keeps its own; both stop being acceptable the day this runs more than
+// once, and that is the day it wants Redis or a column.
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const LOGIN_ATTEMPTS = 10;
+const ATTEMPTS_BEFORE_SWEEP = 1000;
+const attempts = new Map<string, { count: number; until: number }>();
+
+function assertNotRateLimited(key: string) {
+  const seen = attempts.get(key);
+  if (seen && seen.until > Date.now() && seen.count >= LOGIN_ATTEMPTS) {
+    throw new ServiceError("rate_limited", "too many attempts, wait a few minutes");
+  }
+}
+
+function countAttempt(key: string) {
+  const now = Date.now();
+  const seen = attempts.get(key);
+  if (seen && seen.until > now) {
+    seen.count += 1;
+    return;
+  }
+  // Expired entries are only ever overwritten, so the map needs one sweep to
+  // stop a stream of made-up addresses from growing it without end.
+  if (attempts.size > ATTEMPTS_BEFORE_SWEEP) {
+    for (const [key, entry] of attempts) if (entry.until <= now) attempts.delete(key);
+  }
+  attempts.set(key, { count: 1, until: now + LOGIN_WINDOW_MS });
+}
 
 const credentials = z.object({
   email: z.string(),
@@ -102,6 +149,10 @@ const cardSchema = z.object({
   ograniczenia: z.string().optional(),
   etap: z.string().optional(),
 });
+
+// Which workspace to file it under. Absent means the private one, which is what
+// onboarding sends and what a person with a single archive always means.
+const newProjectSchema = cardSchema.extend({ workspaceId: z.string().optional() });
 
 const anchorSchema = z.object({
   path: z.string(),
@@ -181,9 +232,10 @@ async function readBody<T>(c: Context, schema: z.ZodType<T>): Promise<T> {
   return schema.parse(raw);
 }
 
-const STATUS_BY_CODE: Record<ServiceError["code"], 400 | 401 | 404> = {
+const STATUS_BY_CODE: Record<ServiceError["code"], 400 | 401 | 404 | 429> = {
   validation: 400,
   unauthorized: 401,
+  rate_limited: 429,
   unknown_repo: 404,
   not_found: 404,
 };
@@ -259,8 +311,16 @@ export function createRestApp() {
 
   app.post("/auth/login", async (c) => {
     const { email, password } = await readBody(c, credentials);
-    const { userId } = await login({ email, password });
-    return c.json({ token: await issueToken(userId) });
+    const key = (email ?? "").trim().toLowerCase();
+    assertNotRateLimited(key);
+    try {
+      const { userId } = await login({ email, password });
+      attempts.delete(key); // a correct password clears the run of wrong ones
+      return c.json({ token: await issueToken(userId) });
+    } catch (error) {
+      if (error instanceof ServiceError && error.code === "unauthorized") countAttempt(key);
+      throw error;
+    }
   });
 
   // --- Account ---
@@ -272,6 +332,15 @@ export function createRestApp() {
     return c.json(await updateProfile({ userId: userId(c), profile }));
   });
 
+  app.put("/me/password", async (c) => {
+    const { currentPassword, newPassword } = await readBody(
+      c,
+      z.object({ currentPassword: z.string(), newPassword: z.string() }),
+    );
+    await changePassword({ userId: userId(c), currentPassword, newPassword });
+    return c.body(null, 204);
+  });
+
   app.put("/me/all-permission", async (c) => {
     const { allPermission } = await readBody(c, z.object({ allPermission: z.boolean() }));
     return c.json(await setAllPermission({ userId: userId(c), allPermission }));
@@ -280,9 +349,12 @@ export function createRestApp() {
   // --- MCP tokens ---
 
   app.post("/tokens", async (c) => {
-    const { label } = await readBody(c, z.object({ label: z.string().optional() }));
+    const { label, workspaceId } = await readBody(
+      c,
+      z.object({ label: z.string().optional(), workspaceId: z.string().optional() }),
+    );
     // The only response that ever carries the raw token.
-    return c.json(await createApiToken({ userId: userId(c), label }), 201);
+    return c.json(await createApiToken({ userId: userId(c), workspaceId, label }), 201);
   });
 
   app.get("/tokens", async (c) => c.json(await listApiTokens(userId(c))));
@@ -292,13 +364,60 @@ export function createRestApp() {
     return c.body(null, 204);
   });
 
+  // --- Workspaces and invitations ---
+
+  app.get("/workspaces", async (c) => c.json(await listWorkspaces(userId(c))));
+
+  app.post("/workspaces", async (c) => {
+    const { name } = await readBody(c, z.object({ name: z.string() }));
+    return c.json(await createWorkspace({ userId: userId(c), name }), 201);
+  });
+
+  app.get("/workspaces/:id/members", async (c) =>
+    c.json(await listMembers({ userId: userId(c), workspaceId: c.req.param("id") })),
+  );
+
+  // One route for being removed and for walking out: the service decides which
+  // of the two this is from who is asking.
+  app.delete("/workspaces/:id/members/:memberId", async (c) => {
+    await removeMember({
+      userId: userId(c),
+      workspaceId: c.req.param("id"),
+      memberId: c.req.param("memberId"),
+    });
+    return c.body(null, 204);
+  });
+
+  app.get("/workspaces/:id/invites", async (c) =>
+    c.json(await listInvites({ userId: userId(c), workspaceId: c.req.param("id") })),
+  );
+
+  app.post("/workspaces/:id/invites", async (c) => {
+    const { email } = await readBody(c, z.object({ email: z.string().nullable().optional() }));
+    return c.json(
+      await createInvite({ userId: userId(c), workspaceId: c.req.param("id"), email }),
+      201,
+    );
+  });
+
+  app.delete("/invites/:id", async (c) => {
+    await revokeInvite({ userId: userId(c), inviteId: c.req.param("id") });
+    return c.body(null, 204);
+  });
+
+  // The code travels in the path rather than a body: it is base64url, which is
+  // url-safe by construction, and the client has nothing else to send.
+  app.post("/invites/:code/accept", async (c) =>
+    c.json(await acceptInvite({ userId: userId(c), code: c.req.param("code") })),
+  );
+
   // --- Projects ---
 
   app.get("/projects", async (c) => c.json(await listProjects(userId(c))));
 
   app.post("/projects", async (c) => {
-    const card = await readBody(c, cardSchema);
-    return c.json(await createProject({ userId: userId(c), card }), 201);
+    const { workspaceId, ...card } = await readBody(c, newProjectSchema);
+    return c.json(await createProject({ userId: userId(c), workspaceId, card }), 201);
   });
 
   app.put("/projects/:id", async (c) => {

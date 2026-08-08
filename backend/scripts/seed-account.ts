@@ -33,7 +33,8 @@ const PROJECT = {
 };
 
 const { db } = await import("../src/db/client.js");
-const { projects, users } = await import("../src/db/schema.js");
+const { memberships, projects, users, workspaces } = await import("../src/db/schema.js");
+const { eq } = await import("drizzle-orm");
 const { normalizeRepoRef } = await import("../src/service.js");
 
 const passwordHash = PASSWORD ? await (await import("@node-rs/argon2")).hash(PASSWORD) : null;
@@ -49,17 +50,40 @@ const [user] = await db
   })
   .returning({ id: users.id });
 
-const card = { ...PROJECT, userId: user.id, repoRef: normalizeRepoRef(PROJECT.repoRef) };
+// The row goes straight into the table rather than through registerUser, so the
+// private workspace that registration would have made has to be made here too.
+const [existing] = await db
+  .select({ id: workspaces.id })
+  .from(workspaces)
+  .where(eq(workspaces.ownerId, user.id))
+  .orderBy(workspaces.createdAt)
+  .limit(1);
+
+let workspaceId = existing?.id;
+if (!workspaceId) {
+  const [created] = await db
+    .insert(workspaces)
+    .values({ name: EMAIL, ownerId: user.id })
+    .returning({ id: workspaces.id });
+  workspaceId = created.id;
+  await db
+    .insert(memberships)
+    .values({ workspaceId, userId: user.id, role: "owner" })
+    .onConflictDoNothing();
+}
+
+const card = { ...PROJECT, workspaceId, repoRef: normalizeRepoRef(PROJECT.repoRef) };
 const [project] = await db
   .insert(projects)
   .values(card)
   .onConflictDoUpdate({
-    target: [projects.userId, projects.repoRef],
+    target: [projects.workspaceId, projects.repoRef],
     set: { ...card, updatedAt: new Date() },
   })
   .returning({ id: projects.id });
 
 console.log(`user_id:    ${user.id}  (${EMAIL})`);
+console.log(`workspace:  ${workspaceId}`);
 console.log(`project_id: ${project.id}  (repo_ref: ${card.repoRef})`);
 console.log(`password:   ${passwordHash ? "set" : "not set, pass one as argv to enable login"}`);
 console.log(`next: npx tsx scripts/mint-token.ts ${EMAIL} "claude code"`);

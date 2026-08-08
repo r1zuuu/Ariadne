@@ -4,7 +4,7 @@
 process.loadEnvFile("../.env");
 
 const { db } = await import("../src/db/client.js");
-const { nodes, users, projects } = await import("../src/db/schema.js");
+const { memberships, nodes, users, projects, workspaces } = await import("../src/db/schema.js");
 const { eq } = await import("drizzle-orm");
 const service = await import("../src/service.js");
 
@@ -20,10 +20,17 @@ const [user] = await db
   })
   .returning({ id: users.id });
 
+// Inserted rather than registered, so the private workspace is made by hand.
+const [workspace] = await db
+  .insert(workspaces)
+  .values({ name: "verify@ariadne.local", ownerId: user.id })
+  .returning({ id: workspaces.id });
+await db.insert(memberships).values({ workspaceId: workspace.id, userId: user.id, role: "owner" });
+
 const [project] = await db
   .insert(projects)
   .values({
-    userId: user.id,
+    workspaceId: workspace.id,
     name: "Ariadne",
     repoRef: "github.com/r1zuuu/Ariadne",
     opis: "Warstwa pamieci dla LLM coderow",
@@ -66,7 +73,11 @@ for (const query of queries) {
 }
 
 console.log("\n=== boot context");
-const boot = await service.getBootContext({ userId: user.id, repoRef: "https://github.com/r1zuuu/Ariadne.git" });
+const boot = await service.getBootContext({
+  userId: user.id,
+  workspaceId: workspace.id,
+  repoRef: "https://github.com/r1zuuu/Ariadne.git",
+});
 console.log(`  profile: ${boot.profile.slice(0, 60)}`);
 console.log(`  project: ${boot.project.name} (${boot.project.stack.slice(0, 40)})`);
 console.log(`  last summary: ${boot.last_summary?.content.slice(0, 70)}`);

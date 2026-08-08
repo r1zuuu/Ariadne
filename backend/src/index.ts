@@ -4,7 +4,7 @@ import { RESPONSE_ALREADY_SENT } from "@hono/node-server/utils/response";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createMcpServer } from "./mcp.js";
 import { createRestApp } from "./rest.js";
-import { resolveUserByToken } from "./service.js";
+import { type Actor, resolveActorByToken } from "./service.js";
 
 // One process, one port: the REST API of plan section 10 plus the MCP endpoint
 // of section 9. Run with the env file loaded: npm run dev.
@@ -30,9 +30,9 @@ app.all("/mcp", async (c) => {
   const token = /^Bearer +(.+)$/i.exec(c.req.header("authorization") ?? "")?.[1].trim() ?? "";
   if (!token) return rpcError(401, "Missing header: Authorization: Bearer <token>");
 
-  let userId: string;
+  let actor: Actor;
   try {
-    userId = await resolveUserByToken(token);
+    actor = await resolveActorByToken(token);
   } catch {
     // Prefix only, never the whole token: enough to tell a wrong token from an
     // unexpanded "${ARIADNE_TOKEN}" placeholder in a client config.
@@ -41,8 +41,8 @@ app.all("/mcp", async (c) => {
   }
 
   // Stateless: a fresh server per request, its tools bound to this token's
-  // user. Scoping cannot leak between users because nothing is shared.
-  const server = createMcpServer(userId);
+  // workspace. Scoping cannot leak between archives because nothing is shared.
+  const server = createMcpServer(actor);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
