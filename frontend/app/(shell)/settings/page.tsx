@@ -150,15 +150,18 @@ function AccountSection({
       </div>
 
       <Card className="mt-5 p-6">
+        {/* Three rows tall, not five: the profile is a paragraph, and the
+            empty rows below one line of text read as a hole in the card.
+            The note and the button share a row for the same reason. */}
         <Textarea
           id="settings-profile"
           label={t("profile")}
-          note={t("profileNote")}
-          rows={5}
+          rows={3}
           value={profile}
           onChange={(event) => setProfile(event.target.value)}
         />
-        <div className="flex justify-end pt-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-4">
+          <p className="text-small text-ink-3">{t("profileNote")}</p>
           <Button onClick={save} loading={saving} disabled={profile === account.profile}>
             {saving ? t("saving") : t("save")}
           </Button>
@@ -169,15 +172,26 @@ function AccountSection({
 
       <div className="flex flex-wrap items-center gap-4 pt-6">
         <p className="text-small font-medium text-ink">{t("language")}</p>
-        {LOCALES.map((code) => (
-          <Button
-            key={code}
-            variant={code === locale ? "primary" : "secondary"}
-            onClick={() => setLocale(code)}
-          >
-            {t(`languages.${code}`)}
-          </Button>
-        ))}
+        {/* The active language is a selected state, not a call to action:
+            a terracotta fill here outshouted every real CTA on the page. */}
+        {LOCALES.map((code) => {
+          const selected = code === locale;
+          return (
+            <button
+              key={code}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setLocale(code)}
+              className={`h-[36px] rounded-control border px-5 text-small font-medium transition-colors duration-state ${
+                selected
+                  ? "border-thread/40 bg-thread-soft text-thread-lift"
+                  : "border-edge/60 bg-surface text-ink-2 hover:bg-plaster-sunk hover:text-ink"
+              }`}
+            >
+              {t(`languages.${code}`)}
+            </button>
+          );
+        })}
       </div>
     </section>
   );
@@ -400,11 +414,13 @@ function TokensSection({ toast }: { toast: Toast }) {
         ) : tokens.length === 0 ? (
           <EmptyState title={t("tokensEmpty")} note={t("tokensEmptyNote")} />
         ) : (
-          <ul>
+          // divide-y, not per-row borders: a border on the last row plus the
+          // next section's own top border drew a double line into the gap.
+          <ul className="divide-y divide-hairline">
             {tokens.map((token) => (
               <li
                 key={token.id}
-                className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline py-4"
+                className="flex flex-wrap items-center justify-between gap-4 py-4"
               >
                 <div className="min-w-0">
                   <p className="truncate text-body text-ink">{token.label || t("noLabel")}</p>
@@ -494,39 +510,53 @@ function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
         <p className="text-body text-ink-3">{t("loading")}</p>
       ) : (
         <>
-          {/* One row per archive. Switching only changes what the two lists
-              below are about, so it is a row of choices and not navigation. */}
-          <ul className="flex flex-wrap gap-2 pb-5">
-            {workspaces.map((workspace) => (
-              <li key={workspace.id}>
-                <Button
-                  variant={workspace.id === openId ? "primary" : "secondary"}
-                  onClick={() => setOpenId(workspace.id)}
-                >
-                  {workspace.name}
-                </Button>
-              </li>
-            ))}
-          </ul>
+          {/* One chip per archive, and only when there is a choice: a single
+              workspace rendered as a big filled button was the loudest thing
+              in the section and clicking it did nothing. Selected is a quiet
+              thread fill, not a CTA - choosing is not acting. */}
+          {workspaces.length > 1 ? (
+            <ul className="flex flex-wrap gap-2 pb-5">
+              {workspaces.map((workspace) => {
+                const selected = workspace.id === openId;
+                return (
+                  <li key={workspace.id}>
+                    <button
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setOpenId(workspace.id)}
+                      className={`h-[36px] rounded-control border px-5 text-small font-medium transition-colors duration-state ${
+                        selected
+                          ? "border-thread/40 bg-thread-soft text-thread-lift"
+                          : "border-edge/60 bg-surface text-ink-2 hover:bg-plaster-sunk hover:text-ink"
+                      }`}
+                    >
+                      {workspace.name}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
 
           {open ? (
             <>
-              <div className="border-b border-hairline pb-5">
+              <div className="pb-2">
                 <Meta
                   items={[
+                    open.name,
                     open.isOwner ? t("roles.owner") : t("roles.member"),
                     t("memberCount", { count: open.memberCount }),
                   ]}
                 />
               </div>
 
-              <ul className="pb-6">
+              <ul className="divide-y divide-hairline pb-6">
                 {members.map((member) => {
                   const self = member.userId === account.id;
                   return (
                     <li
                       key={member.userId}
-                      className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline py-4"
+                      className="flex flex-wrap items-center justify-between gap-4 py-4"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-body text-ink">
