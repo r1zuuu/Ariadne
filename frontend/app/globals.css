@@ -61,8 +61,8 @@
   /* Display serifs want weight, not tightness: tracking stays at zero so the
      serifs never collide. 700/600, not the elegant 400-500 print would take -
      on a screen the thin cuts read as grey fog, not as ink. */
-  --text-display: 46px;
-  --text-display--line-height: 54px;
+  --text-display: 54px;
+  --text-display--line-height: 62px;
   --text-display--font-weight: 700;
 
   --text-title: 34px;

@@ -145,14 +145,6 @@
     "loading": "Ładuję"
   },
   "home": {
-    "since": "Od {at}",
-    "firstVisit": "Od ostatniego wejścia",
-    "nothing": "Nic się nie zmieniło. Agent nie prowadził sesji w tym projekcie.",
-    "cut": "Widocznych {shown} z {total, plural, one {# wpisu} few {# wpisów} many {# wpisów} other {# wpisu}}.",
-    "projects": "Projekty",
-    "entries": "{count, plural, =0 {bez wpisów} one {# wpis} few {# wpisy} many {# wpisów} other {# wpisu}}",
-    "waiting": "{count, plural, one {# oczekuje} other {# oczekuje}}",
-    "waitingNone": "nic nie czeka",
     "retry": "Sprawdź jeszcze raz",
     "stale": "Dane z {at}. Serwer nie odpowiada, więc mogą być nieaktualne.",
     "staleUnknown": "ostatniego wejścia",
@@ -167,12 +159,7 @@
       "contradicted": "Odwołany",
       "archived": "Zarchiwizowany"
     },
-    "channel": {
-      "agent": "agent",
-      "you": "ty"
-    },
     "askTitle": "Czego chcesz się dowiedzieć?",
-    "askLead": "Ariadne odpowiada na podstawie zapisanych decyzji, ustaleń i kontekstu tego projektu.",
     "askPlaceholder": "Zapytaj o decyzje, ustalenia albo ograniczenia tego projektu...",
     "askHint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
     "ask": "Zapytaj",
@@ -181,28 +168,16 @@
     "suggest2": "Dlaczego wybraliśmy ten stack?",
     "suggest3": "Jakie ograniczenia ma ten projekt?",
     "suggest4": "Co zmieniło się ostatnio?",
-    "memoryLine": "Ariadne odpowiada na podstawie {decisions} decyzji i {entries, plural, one {# wpisu} few {# wpisów} many {# wpisów} other {# wpisu}} zapisanych w tym projekcie.",
+    "memoryLine": "Ariadne odpowiada na podstawie {entries, plural, one {# wpisu} few {# wpisów} many {# wpisów} other {# wpisu}} zapisanych w tym projekcie.",
     "memoryLink": "Zobacz pamięć projektu",
     "decisions": "Ostatnie ustalenia",
+    "decisionsAll": "Zobacz wszystkie",
     "decisionsEmpty": "Nie masz jeszcze zapisanych decyzji.",
     "decisionsEmptyNote": "Pierwsze pojawią się same, kiedy agent skończy sesję. Możesz też opisać ustalenie sam w zakładce Dodaj do pamięci.",
-    "activity": "Ostatnia aktywność",
-    "activityEmpty": "Nic się jeszcze nie działo.",
-    "activityEmptyNote": "Tu zobaczysz, co zostało dodane, zmienione i zatwierdzone.",
-    "activityAdded": "dodano",
-    "activityChanged": "zmieniono",
     "waitingTitle": "Do zatwierdzenia",
     "waitingEmpty": "Nic nie czeka.",
     "waitingEmptyNote": "Kiedy agent albo rozmowa zaproponują zmianę, pojawi się tutaj.",
     "waitingAll": "Zobacz wszystkie",
-    "about": "O projekcie",
-    "aboutStage": "Etap",
-    "aboutRepo": "Repozytorium",
-    "aboutStack": "Stack",
-    "aboutLimits": "Ograniczenia",
-    "aboutEmpty": "Karta projektu jest pusta.",
-    "aboutEdit": "Uzupełnij kartę",
-    "openProject": "Otwórz projekt",
     "seen": "Ostatnio tu byłeś {at}",
     "seenFirst": "Pierwsze wejście",
     "loading": "Wczytuję...",
@@ -243,33 +218,6 @@
       "label": "DECYDUJESZ",
       "title": "Ty decydujesz",
       "body": "Nic nie trafia do pamięci projektu bez Twojej zgody. Każda propozycja czeka na ekranie Do zatwierdzenia, dopóki jej nie przyjmiesz albo nie odrzucisz."
-    }
-  },
-  "hint": {
-    "dismiss": "Rozumiem",
-    "home": {
-      "title": "Przegląd projektu",
-      "note": "Najważniejszy kontekst projektu i miejsce, z którego możesz od razu o niego zapytać."
-    },
-    "project": {
-      "title": "Karta projektu",
-      "note": "Podstawowe informacje, technologie i zasady. Agent czyta to przed każdą sesją."
-    },
-    "assistant": {
-      "title": "Pytasz pamięć projektu",
-      "note": "Ariadne odpowiada tylko z zapisanych wpisów i pokazuje, z których skorzystała."
-    },
-    "database": {
-      "title": "Uczysz Ariadne czegoś nowego",
-      "note": "Napisz o decyzji, zmianie albo ustaleniu. Powstanie propozycja wpisu, nic nie zapisze się samo."
-    },
-    "settings": {
-      "title": "Konto, tokeny i zespół",
-      "note": "Tu zmieniasz profil, wydajesz tokeny dla agentów i zapraszasz ludzi do wspólnego archiwum."
-    },
-    "pending": {
-      "title": "Ty decydujesz, co zostanie zapisane",
-      "note": "Nic nie trafia do pamięci projektu, dopóki tego nie zatwierdzisz."
     }
   },
   "assistant": {

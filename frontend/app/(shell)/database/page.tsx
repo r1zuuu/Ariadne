@@ -7,7 +7,6 @@ import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
 import { FadeIn } from "@/components/motion";
-import { ScreenHint } from "@/components/screen-hint";
 import { useToast } from "@/components/toast";
 import { Card, EmptyState, Meta, PageHeader, Status } from "@/components/ui";
 import {
@@ -59,7 +58,6 @@ function toTurns(messages: ConversationMessage[]): Turn[] {
 
 export default function DatabaseScreen() {
   const t = useTranslations("database");
-  const tHint = useTranslations("hint.database");
   const toast = useToast();
 
   const { activeProject, pendingFeed, refreshPending } = useApp();
@@ -173,7 +171,6 @@ export default function DatabaseScreen() {
   return (
     <div className="mx-auto max-w-[760px]">
         <PageHeader title={t("title")} lead={t("lead")} />
-        <ScreenHint screen="database" title={tHint("title")} note={tHint("note")} />
 
         <Composer
           value={message}

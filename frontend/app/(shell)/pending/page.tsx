@@ -8,7 +8,6 @@ import { useApp, type PendingFeed } from "@/components/app-provider";
 import { enterTransition } from "@/components/motion";
 import { EntryCard, headline } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
-import { ScreenHint } from "@/components/screen-hint";
 import { Button, Card, EmptyState, Meta, PageHeader, SectionHeader, Status } from "@/components/ui";
 import {
   approvePending,
@@ -31,7 +30,6 @@ import {
 
 export default function PendingScreen() {
   const t = useTranslations("pending");
-  const tHint = useTranslations("hint.pending");
   const toast = useToast();
 
   const { pendingFeed: feed, refreshPending } = useApp();
@@ -63,7 +61,6 @@ export default function PendingScreen() {
   return (
     <div className="mx-auto max-w-[860px]">
         <PageHeader title={t("title")} lead={t("lead")} />
-        <ScreenHint screen="pending" title={tHint("title")} note={tHint("note")} />
 
         {feed === null ? (
           <p className="text-body text-ink-3">{t("loading")}</p>

@@ -145,14 +145,6 @@
     "loading": "Loading"
   },
   "home": {
-    "since": "Since {at}",
-    "firstVisit": "Since your last visit",
-    "nothing": "Nothing has changed. The agent has not run a session in this project.",
-    "cut": "Showing {shown} of {total, plural, one {# entry} other {# entries}}.",
-    "projects": "Projects",
-    "entries": "{count, plural, =0 {no entries} one {# entry} other {# entries}}",
-    "waiting": "{count, plural, one {# waiting} other {# waiting}}",
-    "waitingNone": "nothing waiting",
     "retry": "Check again",
     "stale": "Data from {at}. The server is not responding, so it may be out of date.",
     "staleUnknown": "your last visit",
@@ -167,12 +159,7 @@
       "contradicted": "Contradicted",
       "archived": "Archived"
     },
-    "channel": {
-      "agent": "agent",
-      "you": "you"
-    },
     "askTitle": "What do you want to know?",
-    "askLead": "Ariadne answers from the decisions, agreements and context recorded for this project.",
     "askPlaceholder": "Ask about decisions, agreements or constraints in this project...",
     "askHint": "Enter sends, Shift + Enter starts a new line",
     "ask": "Ask",
@@ -181,35 +168,23 @@
     "suggest2": "Why did we choose this stack?",
     "suggest3": "What constraints does this project have?",
     "suggest4": "What changed recently?",
-    "memoryLine": "Ariadne answers from {decisions, plural, one {# decision} other {# decisions}} and {entries, plural, one {# entry} other {# entries}} recorded in this project.",
+    "memoryLine": "Ariadne answers from {entries, plural, one {# entry} other {# entries}} recorded in this project.",
     "memoryLink": "See project memory",
     "decisions": "Recent decisions",
     "decisionsEmpty": "No decisions recorded yet.",
     "decisionsEmptyNote": "The first ones arrive on their own once an agent finishes a session. You can also write one yourself under Add to memory.",
-    "activity": "Recent activity",
-    "activityEmpty": "Nothing has happened yet.",
-    "activityEmptyNote": "This is where you will see what was added, changed and approved.",
-    "activityAdded": "added",
-    "activityChanged": "changed",
     "waitingTitle": "To approve",
     "waitingEmpty": "Nothing is waiting.",
     "waitingEmptyNote": "When an agent or a conversation proposes a change, it shows up here.",
     "waitingAll": "See all",
-    "about": "About the project",
-    "aboutStage": "Stage",
-    "aboutRepo": "Repository",
-    "aboutStack": "Stack",
-    "aboutLimits": "Constraints",
-    "aboutEmpty": "The project card is empty.",
-    "aboutEdit": "Fill in the card",
-    "openProject": "Open project",
     "seen": "You were last here {at}",
     "seenFirst": "First visit",
     "loading": "Loading...",
     "pendingAction": {
       "update": "Correction",
       "delete": "Deletion"
-    }
+    },
+    "decisionsAll": "See all"
   },
   "nav": {
     "project": "Project",
@@ -243,33 +218,6 @@
       "label": "YOU DECIDE",
       "title": "You decide",
       "body": "Nothing enters the project's memory without your say-so. Every proposal waits on the To approve screen until you accept it or reject it."
-    }
-  },
-  "hint": {
-    "dismiss": "Got it",
-    "home": {
-      "title": "Project overview",
-      "note": "The context that matters most, and the place to ask about it straight away."
-    },
-    "project": {
-      "title": "The project card",
-      "note": "Basic information, technologies and rules. The agent reads this before every session."
-    },
-    "assistant": {
-      "title": "You are asking the project's memory",
-      "note": "Ariadne answers only from recorded entries and shows you which ones it used."
-    },
-    "database": {
-      "title": "You are teaching Ariadne something new",
-      "note": "Write about a decision, a change or an agreement. It becomes a proposed entry, nothing saves itself."
-    },
-    "settings": {
-      "title": "Account, tokens and team",
-      "note": "Change your profile, issue tokens for agents, and invite people into a shared archive."
-    },
-    "pending": {
-      "title": "You decide what gets recorded",
-      "note": "Nothing enters the project's memory until you approve it."
     }
   },
   "assistant": {

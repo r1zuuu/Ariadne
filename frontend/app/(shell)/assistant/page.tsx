@@ -6,7 +6,6 @@ import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
 import { Collapse } from "@/components/motion";
-import { ScreenHint } from "@/components/screen-hint";
 import { Card, EmptyState, Meta } from "@/components/ui";
 import { takePendingQuestion } from "@/lib/handoff";
 import {
@@ -65,7 +64,6 @@ function toTurns(messages: ConversationMessage[]): Turn[] {
 
 export default function AssistantScreen() {
   const t = useTranslations("assistant");
-  const tHint = useTranslations("hint.assistant");
   const { activeProject } = useApp();
 
   const projectId = activeProject?.id ?? null;
@@ -200,9 +198,6 @@ export default function AssistantScreen() {
           <div className="pt-2">
             <h1 className="text-title text-ink">{t("title")}</h1>
             <p className="max-w-[62ch] pt-2 text-body text-ink-2">{t("lead")}</p>
-            <div className="pt-6">
-              <ScreenHint screen="assistant" title={tHint("title")} note={tHint("note")} />
-            </div>
           </div>
         ) : null}
 

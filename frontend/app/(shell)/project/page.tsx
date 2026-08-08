@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { MemoryGraph } from "@/components/memory-graph";
 import { useToast } from "@/components/toast";
-import { ScreenHint } from "@/components/screen-hint";
 import {
   Button,
   Card,
@@ -32,7 +31,6 @@ import {
 
 export default function ProjectScreen() {
   const t = useTranslations("project");
-  const tHint = useTranslations("hint.project");
   const toast = useToast();
   const { projects, activeProject, refreshProjects, server } = useApp();
 
@@ -95,7 +93,6 @@ export default function ProjectScreen() {
               ) : null}
             </div>
 
-            <ScreenHint screen="project" title={tHint("title")} note={tHint("note")} />
 
             {editing ? (
               <EditCard

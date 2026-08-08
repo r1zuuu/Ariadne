@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import { LOCALES, useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { CommandBlock } from "@/components/command-block";
-import { ScreenHint } from "@/components/screen-hint";
 import { useToast } from "@/components/toast";
 import {
   Button,
@@ -51,7 +50,6 @@ import {
 
 export default function SettingsScreen() {
   const t = useTranslations("settings");
-  const tHint = useTranslations("hint.settings");
   const toast = useToast();
 
   const [account, setAccount] = useState<Account | null>(null);
@@ -71,7 +69,6 @@ export default function SettingsScreen() {
   return (
     <div className="mx-auto max-w-[860px]">
       <PageHeader title={t("title")} lead={t("lead")} />
-      <ScreenHint screen="settings" title={tHint("title")} note={tHint("note")} />
 
       {account === null ? (
         accountError ? (
