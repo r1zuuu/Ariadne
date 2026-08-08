@@ -147,13 +147,20 @@ export default function AssistantScreen() {
     [turns, refreshHistory],
   );
 
-  // Keyed on the project, not on mount: without the reload that used to wipe
-  // this screen, switching projects must clear the transcript itself. An
-  // in-flight answer is safe - ask() closes over the id it started with.
-  // The handed-over question from the dashboard still runs itself here, so
-  // the handover reads as one action rather than as "now ask it again".
+  // Which project the transcript on screen belongs to. Clearing happens only
+  // when this actually changes - not on every effect run, because StrictMode
+  // double-invokes effects in dev and an unconditional clear wiped the
+  // question the dashboard had just handed over.
+  const shownFor = useRef<string | null>(null);
+
+  // Without the reload that used to wipe this screen, switching projects must
+  // clear the transcript itself. An in-flight answer is safe - ask() closes
+  // over the id it started with. The handed-over question from the dashboard
+  // still runs itself here, so the handover reads as one action rather than
+  // as "now ask it again".
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || shownFor.current === projectId) return;
+    shownFor.current = projectId;
     setTurns([]);
     openId.current = null;
     setConversationId(null);

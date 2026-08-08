@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
@@ -89,10 +89,16 @@ export default function DatabaseScreen() {
       .catch(() => {});
   }, []);
 
-  // Keyed on the project: without the reload that used to wipe this screen,
-  // switching projects must clear the transcript itself.
+  // Which project the transcript on screen belongs to. Clearing happens only
+  // when this actually changes - not on every effect run, because StrictMode
+  // double-invokes effects in dev and would wipe a transcript mid-exchange.
+  const shownFor = useRef<string | null>(null);
+
+  // Without the reload that used to wipe this screen, switching projects must
+  // clear the transcript itself.
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || shownFor.current === projectId) return;
+    shownFor.current = projectId;
     setTurns([]);
     setConversationId(null);
     setMessage("");
