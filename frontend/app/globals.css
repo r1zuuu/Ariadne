@@ -202,12 +202,13 @@
   }
 
   /* React Flow ships a white attribution chip; on the dark map it becomes a
-     quiet line instead of a sticker. The credit stays. */
+     quiet line instead of a sticker. The credit stays. !important because the
+     library's stylesheet is unlayered and would win over @layer base. */
   .react-flow__attribution {
-    background: transparent;
+    background: transparent !important;
   }
   .react-flow__attribution a {
-    color: var(--color-ink-3);
+    color: var(--color-ink-3) !important;
   }
 
   ::selection {
