@@ -56,30 +56,82 @@ okaże się za mało.
       limit logowania, brakujący blok cross-user na `conversations`.
       155 sprawdzeń, było 105
 
+### 1b. Propozycje z sesji równoległej, czekają na decyzję
+
+Ta sekcja została dopisana do pliku przez drugą sesję, z adnotacją "za zgodą
+Stasia". Nie mam tej zgody potwierdzonej w rozmowie ze mną, więc zrobiłem
+wyłącznie te dwie pozycje, które są zwykłym porządkiem w plikach i tak
+przepisywanych, a reszta czeka na twoje słowo.
+
+- [x] `GET /conversations/:id` przestał zwracać `user_id` w ciele odpowiedzi.
+      Projekcja zamiast `select()`, przy okazji `POST` i `PUT` też
+- [x] `POST /conversations` odpowiada 201 jak `/projects` i `/tokens`. Był
+      jedynym tworzącym endpointem z 200, bez zapisanego powodu
+- [ ] `scripts/seed-account.ts` jako seed demo z dwoma kontami. Nie zrobione:
+      to nowa funkcja, nie porządek, a obieg zaproszenia da się przejść ręcznie
+      w dwie minuty
+- [ ] `scripts/verify-mcp.ts`. Nie zrobione: CLAUDE.md zabrania pisania nowych
+      testów bez twojej zgody. Argument za jest mocny (token workspace A
+      sięgający po projekt B to błąd, którego nikt nie zgłosi, bo coder po
+      prostu dostanie cudzy kontekst), więc powiedz słowo i piszę
+- [x] Komentarz `ponytail:` o suficie spisu treści w `getBootContext` już tam
+      był, od kroku 4. Nic do zrobienia
+- [x] `ui-plan.md` skasowany z dysku poza gitem, zostawiony nietknięty. Do
+      decyzji: przywrócić albo domknąć usunięcie osobnym commitem
+
 ### 2. Front, branch `feature/screen-8-settings`
 
-- [ ] Opakowania w `lib/api.ts`, których dziś nie ma: `listTokens`,
-      `deleteToken`, `setAllPermission`, `changePassword`, workspace'y,
-      zaproszenia
-- [ ] Ekran `/settings`: konto, tokeny, automatyczne zatwierdzanie, zespół
-- [ ] Rejestracja ekranu: `Section`, `LINKS`, ikona, klucze w obu plikach i18n
-- [ ] Nazwa workspace w metadanych projektu i autor przy wpisie
+- [x] Opakowania w `lib/api.ts`: `listTokens`, `deleteToken`,
+      `setAllPermission`, `changePassword`, workspace'y, zaproszenia
+- [x] Ekran `/settings`: konto, tokeny, automatyczne zatwierdzanie, zespół
+- [x] Rejestracja ekranu: `Section`, `LINKS`, ikona, klucze w obu plikach i18n
+      (378 kluczy po obu stronach, bez rozjazdu)
+- [x] Nazwa workspace przy projekcie i autor przy wpisie, oba pokazywane tylko
+      wtedy, gdy niosą informację
+
+Martwego kodu (`status-mark.tsx`, trzy nieużywane importy) nie ruszałem. To
+osobna sprawa od tego zakresu i osobny commit.
 
 ### 3. Weryfikacja
 
-- [ ] `npx tsx scripts/verify-rest.ts` przechodzi w całości
-- [ ] `npm run build` we froncie przechodzi
-- [ ] W oknie: konto A zaprasza, konto B widzi projekt A
-- [ ] W oknie: B pyta asystenta o decyzję zapisaną przez A i dostaje odpowiedź
+Automaty, wszystkie przeszły w jednym przebiegu:
+
+- [x] `npx tsx scripts/verify-rest.ts`: 156 sprawdzeń (było 105)
+- [x] `npx tsc --noEmit` w `backend/` i we `frontend/`
+- [x] `npm run build` we froncie, `/settings` prerenderuje się jak reszta
+- [x] Migracja na prawdziwej bazie, zero wierszy bez właściciela
+
+Przeklikane przeze mnie w przeglądarce na `localhost:3001`, na dwóch kontach
+testowych założonych i skasowanych po teście:
+
+- [x] Ekran 8 renderuje się w całości: konto, hasło, język, automatyczne
+      zatwierdzanie, tokeny, zespół
+- [x] Konto A tworzy zaproszenie związane z adresem B, kod pojawia się na liście
+- [x] Konto B wkleja kod, dołącza, widzi obie przestrzenie i skład drugiej
+- [x] Konto B widzi na przeglądzie projekt należący do konta A
+
+Czego przeglądarka nie sprawdzi, bo to nie jest okno Tauri, i co zostaje dla
+ciebie:
+
+- [ ] Ten sam przebieg w oknie aplikacji, z paskiem tytułu i przyciskami okna
+- [ ] Przez MCP: token B dla wspólnego workspace zwraca kartę projektu A,
+      a token prywatnego workspace B tego samego projektu nie widzi
+- [ ] B pyta asystenta o decyzję zapisaną przez A i dostaje odpowiedź
       z cytowaniem oraz autorem
-- [ ] Przez MCP: token B dla wspólnego workspace zwraca kartę projektu A
-- [ ] W oknie: B zatwierdza wpis, A widzi przy nim podpis B
+- [ ] B zatwierdza wpis, A widzi przy nim podpis B
+- [ ] Zmiana hasła i odwołanie tokenu na twoim koncie
+
+Nie pushuję i nie merguję. Dwa branche czekają na twoją decyzję.
 
 ### 4. Dokumentacja
 
-- [ ] `plan-ariadne.md`: sekcja 0 (dziś kłamie), sekcje 3, 10, 11, 13, 14
-- [ ] `PRODUCT.md`: druga osoba w zespole jako czytelnik archiwum
-- [ ] Ten plik zamknięty jako zapis tego, co powstało
+- [x] `plan-ariadne.md`: sekcja 0, schemat w sekcji 3, endpointy w 10, ekran 8
+      w 11, nowy krok 5e w 13, odłożone w 14, przełącznik języka w 15
+- [x] `plan-ariadne.md` sekcja 13: dopisana odpowiedź na pytanie "kto
+      zatwierdza", które plan zostawił jako warunek sensowności trybu zespołowego
+- [x] `PRODUCT.md`: czwarty czytelnik archiwum i zasada "jedno archiwum, wielu
+      czytelników"
+- [x] Ten plik zamknięty jako zapis tego, co powstało
 
 ## Świadome ograniczenia
 
@@ -101,6 +153,9 @@ Spisywane w trakcie, nie na końcu.
 - Zatwierdzić może każdy członek. Wpis zapamiętuje kto i kiedy, więc "confirmed"
   w zespole nie znaczy "ktoś kiedyś się zgodził".
 
+- Przestrzeni nie da się skasować ani przekazać. Można ją założyć i zostać z nią
+  na zawsze. Do zrobienia, gdy ktoś założy drugą przez pomyłkę.
+
 ## Znalezione po drodze
 
 - `verify-rest.ts` miał asercję zależną od kolejności (`body[0].name === "Check"`
@@ -108,3 +163,14 @@ Spisywane w trakcie, nie na końcu.
   w kroku 5a.1, jest nowszy, więc ten check był złamany na `main` i nikt tego nie
   zobaczył, bo skrypt nie dochodził tak daleko. Teraz porównuje posortowaną listę
   nazw.
+- `CommandBlock` miał w komentarzu napisane, że zdania należą do wywołującego,
+  a ostrzeżenie "ten token widzisz raz" trzymał zaszyte w namespace onboardingu.
+  Wyszło dopiero pod kodem zaproszenia, gdzie były to dwa kłamstwa w jednej linii.
+- Przyjęcie zaproszenia nie odświeżało kolumny nawigacji. Lista przestrzeni się
+  aktualizowała, lista projektów w powłoce nie, bo każdy ekran czyta ją raz przy
+  montowaniu.
+- Osoba zaproszona do cudzej przestrzeni nie miała jak dojść do pola na kod:
+  konto bez projektu ekran wejścia wysyła do onboardingu, a onboarding nie ma
+  menu. Zaproszenie kończyło się na formularzu zakładania projektu, którego ta
+  osoba nie zamierzała zakładać. To była dziura, przez którą cała funkcja była
+  bezużyteczna, i nie widać jej z kodu ani z testów API.

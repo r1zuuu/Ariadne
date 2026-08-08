@@ -502,7 +502,9 @@ export function createRestApp() {
 
   app.post("/conversations", async (c) => {
     const { projectId, kind, messages } = await readBody(c, conversationSchema);
-    return c.json(await createConversation({ userId: userId(c), projectId, kind, messages }));
+    // 201 like /projects and /tokens. It was the one create in the API that
+    // answered 200, for no reason anybody wrote down.
+    return c.json(await createConversation({ userId: userId(c), projectId, kind, messages }), 201);
   });
 
   // PUT, not PATCH: the body is the whole transcript, not a delta.

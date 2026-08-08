@@ -1487,6 +1487,16 @@ function titleFrom(text: string): string {
   return `${lastSpace > TITLE_LENGTH / 2 ? cut.slice(0, lastSpace) : cut}…`;
 }
 
+const CONVERSATION_COLUMNS = {
+  id: conversations.id,
+  projectId: conversations.projectId,
+  kind: conversations.kind,
+  title: conversations.title,
+  messages: conversations.messages,
+  createdAt: conversations.createdAt,
+  updatedAt: conversations.updatedAt,
+};
+
 function assertMessages(messages: unknown): asserts messages is ConversationMessage[] {
   if (!Array.isArray(messages)) {
     throw new ServiceError("validation", "messages must be an array");
@@ -1542,8 +1552,10 @@ export async function getConversation(input: { userId: string; conversationId: s
   assertUuid(input.userId, "userId");
   assertUuid(input.conversationId, "conversationId");
 
+  // Projected, not select(): the whole row carries user_id, and an id the client
+  // has no use for is an id it should not be handed.
   const [found] = await db
-    .select()
+    .select(CONVERSATION_COLUMNS)
     .from(conversations)
     .where(
       and(eq(conversations.id, input.conversationId), eq(conversations.userId, input.userId)),
@@ -1578,7 +1590,7 @@ export async function createConversation(input: {
       title: titleFrom(opening.text),
       messages: input.messages,
     })
-    .returning();
+    .returning(CONVERSATION_COLUMNS);
   return created;
 }
 
@@ -1602,7 +1614,7 @@ export async function appendToConversation(input: {
     .where(
       and(eq(conversations.id, input.conversationId), eq(conversations.userId, input.userId)),
     )
-    .returning();
+    .returning(CONVERSATION_COLUMNS);
   return updated;
 }
 
