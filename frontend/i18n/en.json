@@ -403,6 +403,12 @@
       "session_summary": "Session summary",
       "note": "Note"
     },
+    "status": {
+      "confirmed": "Confirmed",
+      "proposed": "Proposed",
+      "contradicted": "Contradicted",
+      "archived": "Archived"
+    },
     "confirmedBy": "confirmed by {at}",
     "showMore": "Show more",
     "showLess": "Show less",

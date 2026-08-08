@@ -403,6 +403,12 @@
       "session_summary": "Podsumowanie sesji",
       "note": "Notatka"
     },
+    "status": {
+      "confirmed": "Potwierdzony",
+      "proposed": "Proponowany",
+      "contradicted": "Odwołany",
+      "archived": "Zarchiwizowany"
+    },
     "confirmedBy": "potwierdził {at}",
     "showMore": "Pokaż więcej",
     "showLess": "Zwiń",

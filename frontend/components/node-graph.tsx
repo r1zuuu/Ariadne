@@ -1,58 +1,135 @@
 "use client";
 
+import {
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceCenter,
+  forceSimulation,
+  forceX,
+  forceY,
+  type SimulationLinkDatum,
+  type SimulationNodeDatum,
+} from "d3-force";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { GraphEdge, Node, NodeStatus } from "@/lib/api";
 
-// Nodes on a circle, edges as chords. Not a force layout: that needs a physics
-// loop and a dependency, and this draws the same information deterministically,
-// which also means it does not rearrange itself every time you open it.
+// A force layout run to rest before the first paint: d3-force settles the
+// positions synchronously, so connected entries actually sit together and the
+// picture never rearranges itself while someone is looking at it. No physics
+// loop at runtime, which also keeps reduced motion trivially honest.
 //
 // The two edge kinds differ by line, not only by colour, per the spec: a shared
 // file is solid because it is a fact, a similarity is dashed because it is a
-// guess.
-//
-// ponytail: a circle stops reading past roughly forty nodes, when the chords
-// fill the middle. Swap in a force layout then, not before.
+// guess. Statuses keep their four marker shapes on the canvas, so the graph
+// survives greyscale like everything else.
 
-// Sized so the detail panel still fits beside it inside the content column at
-// the window's minimum width, rather than wrapping under the canvas.
-const SIZE = 440;
-const RADIUS = SIZE / 2 - 40;
-const DOT = 7;
+const WIDTH = 640;
+const HEIGHT = 400;
+const DOT = 8;
 
 const STATUS_FILL: Record<NodeStatus, string> = {
-  confirmed: "var(--color-thread)",
+  confirmed: "var(--color-laurel)",
   proposed: "var(--color-ochre-mark)",
   contradicted: "var(--color-iron)",
   archived: "var(--color-stone)",
 };
 
+type LaidOut = SimulationNodeDatum & { node: Node };
+
+function settle(nodes: Node[], edges: GraphEdge[]) {
+  const laid: LaidOut[] = nodes.map((node, i) => ({
+    node,
+    // Seeded on a circle rather than at random, so the same graph always
+    // settles into the same picture.
+    x: WIDTH / 2 + 120 * Math.cos((i / nodes.length) * 2 * Math.PI),
+    y: HEIGHT / 2 + 120 * Math.sin((i / nodes.length) * 2 * Math.PI),
+  }));
+  const byId = new Map(laid.map((d) => [d.node.id, d]));
+  const links: (SimulationLinkDatum<LaidOut> & { kind: GraphEdge["kind"] })[] = edges
+    .filter((e) => byId.has(e.from) && byId.has(e.to))
+    .map((e) => ({ source: e.from, target: e.to, kind: e.kind }));
+
+  const simulation = forceSimulation(laid)
+    .force("link", forceLink<LaidOut, SimulationLinkDatum<LaidOut>>(links)
+      .id((d) => (d as LaidOut).node.id)
+      .distance(120)
+      .strength(0.4))
+    .force("charge", forceManyBody().strength(-300))
+    .force("center", forceCenter(WIDTH / 2, HEIGHT / 2))
+    .force("x", forceX(WIDTH / 2).strength(0.06))
+    .force("y", forceY(HEIGHT / 2).strength(0.08))
+    .force("collide", forceCollide(DOT * 2.4))
+    .stop();
+
+  // 300 ticks is d3's own default cooling span; past it the layout is at rest.
+  for (let i = 0; i < 300; i += 1) simulation.tick();
+
+  // Pull the settled cloud back inside the frame.
+  for (const d of laid) {
+    d.x = Math.max(DOT + 14, Math.min(WIDTH - DOT - 14, d.x ?? WIDTH / 2));
+    d.y = Math.max(DOT + 14, Math.min(HEIGHT - DOT - 14, d.y ?? HEIGHT / 2));
+  }
+  return { laid, links, byId };
+}
+
+function Mark({ status, x, y }: { status: NodeStatus; x: number; y: number }) {
+  const fill = STATUS_FILL[status];
+  switch (status) {
+    case "proposed":
+      return <circle cx={x} cy={y} r={DOT - 1.5} fill="none" stroke={fill} strokeWidth="2.5" />;
+    case "confirmed":
+      return <rect x={x - DOT + 1} y={y - DOT + 1} width={2 * DOT - 2} height={2 * DOT - 2} fill={fill} />;
+    case "contradicted":
+      return (
+        <path
+          d={`M${x - DOT + 2} ${y - DOT + 2}L${x + DOT - 2} ${y + DOT - 2}M${x + DOT - 2} ${y - DOT + 2}L${x - DOT + 2} ${y + DOT - 2}`}
+          stroke={fill}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+      );
+    case "archived":
+      return <path d={`M${x - DOT + 2} ${y}H${x + DOT - 2}`} stroke={fill} strokeWidth="3.5" strokeLinecap="round" />;
+  }
+}
+
 export function NodeGraph({ nodes, edges }: { nodes: Node[]; edges: GraphEdge[] }) {
   const t = useTranslations("project");
+  const tEntry = useTranslations("entry");
   const [selected, setSelected] = useState<Node | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
 
-  const at = new Map(
-    nodes.map((node, i) => {
-      // Start at the top and go clockwise, so the newest entry (the list is
-      // sorted newest first) is always at twelve o'clock.
-      const angle = (i / nodes.length) * 2 * Math.PI - Math.PI / 2;
-      return [node.id, { x: SIZE / 2 + RADIUS * Math.cos(angle), y: SIZE / 2 + RADIUS * Math.sin(angle) }];
+  const { laid, links } = useMemo(() => settle(nodes, edges), [nodes, edges]);
+
+  const headline = (node: Node) => {
+    const line = node.content.split("\n")[0];
+    return line.length > 46 ? `${line.slice(0, 46)}…` : line;
+  };
+
+  const focused = selected?.id ?? hovered;
+  const neighbours = new Set(
+    links.flatMap((l) => {
+      const from = (l.source as LaidOut).node.id;
+      const to = (l.target as LaidOut).node.id;
+      return from === focused || to === focused ? [from, to] : [];
     }),
   );
 
   return (
-    <div className="flex flex-wrap items-start gap-8">
+    <div>
       <svg
-        viewBox={`0 0 ${SIZE} ${SIZE}`}
-        className="h-[440px] w-[440px] max-w-full shrink-0 bg-canvas"
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="w-full rounded-card bg-canvas"
         role="img"
         aria-label={t("graphLabel", { nodes: nodes.length, edges: edges.length })}
       >
-        {edges.map((edge, i) => {
-          const from = at.get(edge.from);
-          const to = at.get(edge.to);
-          if (!from || !to) return null;
+        {links.map((link, i) => {
+          const from = link.source as LaidOut;
+          const to = link.target as LaidOut;
+          const near =
+            !focused || from.node.id === focused || to.node.id === focused;
           return (
             <line
               key={i}
@@ -61,43 +138,95 @@ export function NodeGraph({ nodes, edges }: { nodes: Node[]; edges: GraphEdge[] 
               x2={to.x}
               y2={to.y}
               stroke="var(--color-thread-lift)"
-              strokeWidth="1"
-              strokeDasharray={edge.kind === "similarity" ? "4 4" : undefined}
-              opacity={edge.kind === "similarity" ? 0.5 : 0.8}
+              strokeWidth={near && focused ? 1.6 : 1}
+              strokeDasharray={link.kind === "similarity" ? "4 4" : undefined}
+              opacity={near ? (link.kind === "similarity" ? 0.55 : 0.85) : 0.18}
             />
           );
         })}
 
-        {nodes.map((node) => {
-          const point = at.get(node.id);
-          if (!point) return null;
+        {laid.map((d) => {
+          const { node } = d;
+          const x = d.x ?? 0;
+          const y = d.y ?? 0;
           const current = selected?.id === node.id;
+          const dimmed = focused && node.id !== focused && !neighbours.has(node.id);
+          const named = current || hovered === node.id || nodes.length <= 8;
           return (
-            <circle
+            <g
               key={node.id}
-              cx={point.x}
-              cy={point.y}
-              r={current ? DOT + 3 : DOT}
-              fill={STATUS_FILL[node.status]}
-              stroke="var(--color-canvas-ink)"
-              strokeWidth={current ? 2 : 0}
-              className="cursor-pointer"
-              onClick={() => setSelected(node)}
+              role="button"
+              tabIndex={0}
+              aria-label={headline(node)}
+              className="cursor-pointer outline-none"
+              opacity={dimmed ? 0.35 : 1}
+              onClick={() => setSelected(current ? null : node)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelected(current ? null : node);
+                }
+              }}
+              onMouseEnter={() => setHovered(node.id)}
+              onMouseLeave={() => setHovered(null)}
+              onFocus={() => setHovered(node.id)}
+              onBlur={() => setHovered(null)}
             >
-              <title>{node.content.slice(0, 120)}</title>
-            </circle>
+              {/* A wider invisible target than the mark itself. */}
+              <circle cx={x} cy={y} r={DOT * 2} fill="transparent" />
+              {current ? (
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={DOT + 5}
+                  fill="none"
+                  stroke="var(--color-canvas-ink)"
+                  strokeWidth="1.5"
+                  opacity="0.8"
+                />
+              ) : null}
+              <Mark status={node.status} x={x} y={y} />
+              {named ? (
+                <text
+                  x={x}
+                  y={y - DOT - 8}
+                  textAnchor="middle"
+                  fill="var(--color-canvas-ink)"
+                  fontSize="12"
+                  opacity={current || hovered === node.id ? 1 : 0.75}
+                >
+                  {headline(node)}
+                </text>
+              ) : null}
+            </g>
           );
         })}
       </svg>
 
-      <div className="min-w-[260px] flex-1">
+      {/* Legend in words and shapes, because on the canvas the shapes carry the
+          statuses and a first-time reader should not have to guess. */}
+      <div className="flex flex-wrap gap-x-6 gap-y-2 pt-4">
+        {(Object.keys(STATUS_FILL) as NodeStatus[]).map((status) => (
+          <span key={status} className="inline-flex items-center gap-2 text-data text-ink-3">
+            <svg width="10" height="10" viewBox="-8 -8 16 16" aria-hidden="true">
+              <Mark status={status} x={0} y={0} />
+            </svg>
+            {tEntry(`status.${status}`)}
+          </span>
+        ))}
+      </div>
+
+      <div className="pt-4">
         {selected ? (
-          <>
-            <p className="text-label uppercase tracking-[0.12em] text-ink-3">
-              {selected.type} · {new Date(selected.createdAt).toISOString().slice(0, 10)}
+          <div className="border-l-2 border-thread/60 pl-5">
+            <p className="text-data text-ink-3">
+              {tEntry(`type.${selected.type}`)} ·{" "}
+              {new Date(selected.createdAt).toLocaleDateString()}
             </p>
-            <p className="whitespace-pre-wrap pt-3 text-small text-ink">{selected.content}</p>
-          </>
+            <p className="max-w-[68ch] whitespace-pre-wrap pt-2 text-small leading-6 text-ink">
+              {selected.content}
+            </p>
+          </div>
         ) : (
           <p className="text-small text-ink-3">{t("graphHint")}</p>
         )}

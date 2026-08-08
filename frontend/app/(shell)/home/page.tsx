@@ -116,14 +116,17 @@ export default function HomeScreen() {
         <>
           <ScreenHint screen="home" title={tHint("title")} note={tHint("note")} />
 
-          <section className="pb-10">
-            <p className="pb-2 text-data text-ink-3">
+          <section className="pb-8 pt-5">
+            <p className="pb-3 text-data text-ink-3">
               {since ? t("seen", { at: stamp(since, true) }) : t("seenFirst")}
             </p>
-            <h1 className="text-title text-ink">{t("askTitle")}</h1>
-            <p className="max-w-[62ch] pt-2 text-body text-ink-2">{t("askLead")}</p>
+            {/* The one display-size line in the app: the question the whole
+                product exists to answer. Left-aligned, with the right side
+                left open on purpose. */}
+            <h1 className="max-w-[16ch] text-display text-ink">{t("askTitle")}</h1>
+            <p className="max-w-[58ch] pt-3 text-lead font-normal text-ink-2">{t("askLead")}</p>
 
-            <div className="pt-6">
+            <div className="max-w-[820px] pt-7">
               <Composer
                 value={question}
                 onChange={setQuestion}
@@ -148,6 +151,25 @@ export default function HomeScreen() {
               </p>
             ) : null}
           </section>
+
+          {/* The thread picks up where the question ends: a short taut lead-in
+              on the hairline that carries the eye down to what was decided. */}
+          <div className="relative mb-8 border-t border-hairline" aria-hidden="true">
+            <svg
+              width="64"
+              height="9"
+              viewBox="0 0 64 9"
+              className="absolute -top-[4px] left-0 text-thread/60"
+            >
+              <path
+                d="M0 4.5h46c6 0 8-3 12-3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <circle cx="61" cy="1.5" r="2" fill="currentColor" />
+            </svg>
+          </div>
 
           {/* minmax(0, …) at both widths, and grid-cols-1 is not redundant:
               a grid with no explicit columns sizes its single column to
