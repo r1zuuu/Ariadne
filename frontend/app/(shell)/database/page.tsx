@@ -2,19 +2,17 @@
 
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import { AppShell, queueChanged, readActiveProject } from "@/components/app-shell";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
 import { FadeIn } from "@/components/motion";
-import { ScreenHint } from "@/components/screen-hint";
 import { useToast } from "@/components/toast";
 import { Card, EmptyState, Meta, PageHeader, Status } from "@/components/ui";
 import {
   chatEdit,
   createConversation,
   getConversation,
-  getPending,
   listConversations,
   saveConversation,
   type ConversationMessage,
@@ -60,19 +58,28 @@ function toTurns(messages: ConversationMessage[]): Turn[] {
 
 export default function DatabaseScreen() {
   const t = useTranslations("database");
-  const tHint = useTranslations("hint.database");
   const toast = useToast();
 
-  const [projectId, setProjectId] = useState<string | null>(null);
+  const { activeProject, pendingFeed, refreshPending } = useApp();
+
+  const projectId = activeProject?.id ?? null;
   const [sessionId, setSessionId] = useState("");
   const [message, setMessage] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState<ConversationSummary[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  // Ids still waiting in the review queue. Anything a past proposal points at
-  // that is not in here has been settled one way or the other.
-  const [stillWaiting, setStillWaiting] = useState<Set<string> | null>(null);
+
+  // Ids still waiting in the review queue, derived from the shared feed.
+  // Anything a past proposal points at that is not in here has been settled
+  // one way or the other.
+  const stillWaiting =
+    pendingFeed === null
+      ? null
+      : new Set([
+          ...pendingFeed.pendingActions.map((a) => a.id),
+          ...pendingFeed.nodesToReview.map((n) => n.id),
+        ]);
 
   const refreshHistory = useCallback((project: string) => {
     void listConversations(project, "memory")
@@ -80,30 +87,24 @@ export default function DatabaseScreen() {
       .catch(() => {});
   }, []);
 
-  const refreshWaiting = useCallback(
-    () =>
-      getPending()
-        .then((feed) =>
-          setStillWaiting(
-            new Set([
-              ...feed.pendingActions.map((a) => a.id),
-              ...feed.nodesToReview.map((n) => n.id),
-            ]),
-          ),
-        )
-        .catch(() => setStillWaiting(new Set())),
-    [],
-  );
+  // Which project the transcript on screen belongs to. Clearing happens only
+  // when this actually changes - not on every effect run, because StrictMode
+  // double-invokes effects in dev and would wipe a transcript mid-exchange.
+  const shownFor = useRef<string | null>(null);
 
+  // Without the reload that used to wipe this screen, switching projects must
+  // clear the transcript itself.
   useEffect(() => {
-    const project = readActiveProject();
-    setProjectId(project);
+    if (!projectId || shownFor.current === projectId) return;
+    shownFor.current = projectId;
+    setTurns([]);
+    setConversationId(null);
+    setMessage("");
     // One conversation is one session, so entries created from it group the way
     // a coder's session does.
     setSessionId(crypto.randomUUID());
-    if (project) refreshHistory(project);
-    void refreshWaiting();
-  }, [refreshHistory, refreshWaiting]);
+    refreshHistory(projectId);
+  }, [projectId, refreshHistory]);
 
   const send = async (said: string) => {
     if (!projectId) return;
@@ -122,11 +123,10 @@ export default function DatabaseScreen() {
       patch({ reply: answer.reply, queued: answer.queued });
       if (answer.queued.length) {
         toast(t("toast"));
-        // The set was read on mount and knows nothing about what was queued a
-        // second ago, so without this the new card claims "saved" about
-        // something still waiting. The column's counter is equally stale.
-        await refreshWaiting();
-        queueChanged();
+        // The shared feed knows nothing about what was queued a second ago,
+        // so without this the new card claims "saved" about something still
+        // waiting, and the column's counter is equally stale.
+        await refreshPending();
       }
     } catch (caught) {
       const error = caught instanceof Error ? caught.message : String(caught);
@@ -169,10 +169,8 @@ export default function DatabaseScreen() {
   const empty = turns.length === 0;
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-[760px]">
+    <div className="mx-auto max-w-[760px]">
         <PageHeader title={t("title")} lead={t("lead")} />
-        <ScreenHint screen="database" title={tHint("title")} note={tHint("note")} />
 
         <Composer
           value={message}
@@ -189,10 +187,10 @@ export default function DatabaseScreen() {
           suggestions={empty ? [t("suggest1"), t("suggest2"), t("suggest3")] : []}
         />
 
-        <ul className="flex flex-col gap-9 pt-9">
+        <ul className="flex flex-col gap-8 pt-8">
           {turns.map((turn, i) => (
             <li key={i}>
-              <p className="font-data text-label uppercase tracking-[0.12em] text-ink-3">
+              <p className="text-label uppercase tracking-[0.12em] text-ink-3">
                 {t("youWrote")}
               </p>
               <p className="pt-2 text-body text-ink">{turn.message}</p>
@@ -201,7 +199,7 @@ export default function DatabaseScreen() {
                 <p className="pt-5 text-body text-iron">{turn.error}</p>
               ) : turn.reply ? (
                 <FadeIn>
-                  <p className="pt-5 font-data text-label uppercase tracking-[0.12em] text-ink-3">
+                  <p className="pt-5 text-label uppercase tracking-[0.12em] text-ink-3">
                     {t("ariadneProposed")}
                   </p>
                   <p className="pt-2 text-body leading-8 text-ink">{turn.reply}</p>
@@ -220,7 +218,7 @@ export default function DatabaseScreen() {
           ))}
         </ul>
 
-        <div className="pt-9">
+        <div className="pt-8">
           <ConversationList
             conversations={history}
             activeId={conversationId}
@@ -235,8 +233,7 @@ export default function DatabaseScreen() {
             }}
           />
         </div>
-      </div>
-    </AppShell>
+    </div>
   );
 }
 
@@ -254,7 +251,7 @@ function Queued({
 
   return (
     <div className="pt-5">
-      <p className="pb-3 font-data text-label uppercase tracking-[0.12em] text-ink-3">
+      <p className="pb-3 text-label uppercase tracking-[0.12em] text-ink-3">
         {t("willSave")}
       </p>
       <ul className="flex flex-col gap-3">
@@ -284,7 +281,7 @@ function Queued({
       </ul>
       <Link
         href="/pending"
-        className="mt-4 inline-block text-small text-blue underline underline-offset-2"
+        className="mt-4 inline-block text-small text-thread underline underline-offset-2"
       >
         {t("queuedLink")}
       </Link>

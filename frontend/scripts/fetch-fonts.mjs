@@ -11,13 +11,14 @@ const UA =
 // name, which no screen ever rendered, so it went with Literata.
 const SUBSETS = new Set(["latin", "latin-ext"]);
 
-// Marcellus is one static weight by design, so the headline steps ask for 400
-// and never for bold: there is no 600 cut to load, only a synthesised one.
-// Geist and Martian Mono are variable, one file per subset covering every weight.
+// All three are variable, one file per subset covering every weight. Playfair
+// Display replaced Bodoni Moda: the same editorial genre, but its thin strokes
+// are genuinely drawn rather than hairline, so headings stay legible at
+// interface sizes instead of dissolving into grey.
 const FAMILIES = [
-  ["marcellus", "Marcellus"],
+  ["playfair-display", "Playfair+Display:wght@400..900"],
   ["geist", "Geist:wght@100..900"],
-  ["martian-mono", "Martian+Mono:wght@400..500"],
+  ["geist-mono", "Geist+Mono:wght@400..500"],
 ];
 
 // The generated CSS is the only index of what belongs here, so a family that

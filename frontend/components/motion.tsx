@@ -46,14 +46,25 @@ export function MotionProvider({ children }: { children: ReactNode }) {
  * Something arriving on screen: a message, a proposal, a step of the tour. The
  * 4px rise says it came from below rather than being swapped in place. Under
  * reduced motion it only fades, so nothing that matters depends on the move.
+ *
+ * `delay` staggers list items into a cascade; keep it a few steps of 0.05s,
+ * capped by the caller, so a long list never keeps the reader waiting.
  */
-export function FadeIn({ children, className }: { children: ReactNode; className?: string }) {
+export function FadeIn({
+  children,
+  className,
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
   const still = useReducedMotion();
   return (
     <m.div
       initial={{ opacity: 0, y: still ? 0 : 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: ENTER, ease: EASE_OUT_QUINT }}
+      transition={{ duration: ENTER, ease: EASE_OUT_QUINT, delay: still ? 0 : delay }}
       className={className}
     >
       {children}

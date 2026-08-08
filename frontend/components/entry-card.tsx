@@ -32,9 +32,9 @@ function body(content: string): string {
 }
 
 /**
- * The part of an address before the @. A metadata line runs in uppercase mono
- * and a full address would take most of it, while the local part is what tells
- * two people on a team apart.
+ * The part of an address before the @. A full address would take most of the
+ * metadata line, while the local part is what tells two people on a team
+ * apart.
  */
 function who(email: string): string {
   return email.split("@")[0];
@@ -96,7 +96,7 @@ export function EntryCard({
           <button
             type="button"
             onClick={() => setOpen(!open)}
-            className="pt-2 text-small text-blue underline underline-offset-2"
+            className="pt-2 text-small text-thread underline underline-offset-2"
           >
             {open ? t("showLess") : t("showMore")}
           </button>

@@ -45,7 +45,7 @@ export function ProfileStep({
           value={answers[key]}
           onChange={(e) => onAnswer(key, e.target.value)}
           placeholder={t(`${key}.hint`)}
-          className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3/55 focus:border-blue"
+          className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread"
         />
         <p className="pt-4 text-small text-ink-3">{t("optionalAnswer")}</p>
       </div>
@@ -67,7 +67,7 @@ export function ProfileStep({
           maxLength={4000}
           value={profile}
           onChange={(e) => onProfile(e.target.value)}
-          className="w-full resize-y rounded-control border border-edge bg-plaster-raised px-5 py-4 text-body text-ink outline-none transition-colors duration-state focus:border-blue"
+          className="w-full resize-y rounded-control border border-edge bg-plaster-raised px-5 py-4 text-body text-ink outline-none transition-colors duration-state focus:border-thread"
           style={{ maxWidth: "68ch" }}
         />
       </div>
@@ -139,7 +139,7 @@ export function ProjectStep({
                 value={etap}
                 checked={card.etap === etap}
                 onChange={() => onChange({ etap })}
-                className="accent-blue"
+                className="accent-thread"
               />
               {t(`etap.${etap}`)}
             </label>
@@ -191,7 +191,7 @@ export function AgentStep({
                   value={option}
                   checked={agent === option}
                   onChange={() => onAgent(option)}
-                  className="accent-blue"
+                  className="accent-thread"
                 />
                 {t(`option.${option}`)}
               </label>

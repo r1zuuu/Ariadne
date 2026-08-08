@@ -1,68 +1,82 @@
 @import "tailwindcss";
 @import "./fonts.css";
 
-/* Design tokens, transcribed from DESIGN.md at the repo root. That file is the
-   source of truth; this one exists so Tailwind can see the values.
+/* Design tokens. DESIGN.md at the repo root is the source of truth; this file
+   exists so Tailwind can see the values.
    Contrast ratios in comments are measured against --color-plaster, except the
-   two canvas tokens which are measured against --color-canvas. */
+   canvas tokens, which are measured against --color-canvas. All checked with
+   a WCAG script against these exact numbers. */
 
 @theme {
-  /* Colour. Every neutral carries 0.008 to 0.020 chroma toward the accent, so
-     nothing on screen is a pure grey and nothing is #000 or #fff. */
-  --color-plaster: oklch(0.968 0.008 240);
-  --color-plaster-raised: oklch(0.985 0.005 240);
-  --color-plaster-sunk: oklch(0.941 0.01 240);
+  /* Colour. Ariadne is a dark-first application: contrast and hierarchy are
+     solved through controlled luminance steps between canvas, surfaces,
+     borders and type - never by lightening the theme. Text is parchment
+     (#F0E7D9), not white. Two accents with meaning, not decoration:
+     terracotta is the thread - the user's path, action, guidance - and
+     aegean is intelligence - context, information, what Ariadne knows. */
+  --color-plaster: #181d24; /* canvas, the darkest ground */
+  --color-plaster-raised: #222831;
+  --color-plaster-sunk: #222831; /* sidebar, title bar, large structural surfaces */
 
-  /* Cards sit on the plaster as white paper. The app background carries the
-     tint and the card does not, which is what separates a group of related
-     things from the page without needing a border on every side. */
-  --color-surface: oklch(1 0 0);
-  --color-surface-2: oklch(0.988 0.004 240); /* hover on a card that is clickable */
+  --color-surface: #2c323b; /* cards, inputs */
+  --color-surface-2: #393e46; /* hover, elevated cards */
+  --color-elevated: #393e46; /* the composer, a menu, a toast */
 
-  --color-ink: oklch(0.26 0.02 250); /* 14.2:1 */
-  --color-ink-2: oklch(0.45 0.02 250); /* 6.8:1 */
-  --color-ink-3: oklch(0.53 0.015 250); /* 4.8:1, floor for text */
-  --color-edge: oklch(0.62 0.015 250); /* 3.3:1, borders of controls */
-  --color-hairline: oklch(0.86 0.01 250); /* 1.4:1, decoration only */
+  --color-ink: #f0e7d9; /* text primary, parchment, never #fff */
+  --color-ink-2: #c7bba9; /* text secondary */
+  --color-ink-3: #948979; /* text muted: metadata, dates */
+  --color-edge: #4b515a; /* border default, controls */
+  --color-edge-strong: #666a6d; /* border strong, secondary focus */
+  --color-hairline: #353b44; /* border subtle, separators */
 
-  /* The four roles. A colour that names neither a status nor the thread has no
-     business being saturated. */
-  --color-blue: oklch(0.47 0.12 253); /* 6.0:1, thread, confirmed, focus */
-  --color-blue-lift: oklch(0.72 0.12 250); /* graph canvas only, 2.2:1 on plaster */
-  --color-ochre: oklch(0.52 0.105 78); /* 4.9:1, proposed, text-safe */
-  --color-ochre-mark: oklch(0.63 0.13 78); /* 3.2:1, markers only, never text */
-  --color-iron: oklch(0.505 0.15 27); /* 5.9:1, contradicted, deletions, errors */
-  --color-slate: oklch(0.5 0.012 250); /* 5.5:1, archived, the one status with no chroma */
+  /* The thread. Terracotta, the brand: the nav marker, the focused input,
+     the drawn line, the primary CTA, the active node. Never a red sidebar,
+     never a large surface. */
+  --color-thread: #c76f4f;
+  --color-thread-deep: #d78260; /* hover rises on a dark ground */
+  --color-thread-press: #724536; /* pressed */
+  --color-thread-soft: #3e2d29; /* selected/active dark fill */
+  --color-thread-lift: #e69a78; /* bright cut: decor lines, map edges */
 
-  --color-canvas: oklch(0.22 0.02 250); /* graph only, not a second theme */
-  --color-canvas-ink: oklch(0.93 0.01 240); /* 15.8:1 on canvas */
+  /* Aegean: intelligence, context, information. Citations, info states,
+     knowledge accents - single percents of the interface. */
+  --color-aegean: #67a6a1;
+  --color-aegean-deep: #487b78;
 
-  /* Type. Three families, seven steps, ratio 1.26. Geist carries the interface,
-     headings included: a heading is read as fast as a label, and the serif on
-     every screen title was making ordinary UI look like a book. Data stays in
-     the mono. Marcellus is brand voice only and is applied through the
-     `display-serif` utility below, never by size. */
-  --font-heading: Marcellus, Georgia, serif;
+  /* Statuses, dusty on purpose; badge fills are their own dark tints. */
+  --color-laurel: #899a6d; /* success olive, confirmed */
+  --color-ochre: #c3a15a; /* warning antique gold, proposed */
+  --color-ochre-mark: #c3a15a;
+  --color-iron: #c66b62; /* error oxide, contradicted, deletions */
+  --color-stone: #948979; /* archived reads as faded text, which is what it is */
+
+  --color-canvas: #14181e; /* the command block sinks below the canvas */
+  --color-canvas-ink: #f0e7d9;
+
+  /* Type. Three voices split by what the reader does with the text. Playfair
+     Display sets what is scanned: the headline steps, applied through the
+     h1/h2 base rule and the display-serif utility, and it never goes below
+     the section step. Geist sets everything read sentence by sentence. Geist
+     Mono sets only what a machine produced: paths, hashes, code - not dates,
+     not labels. */
+  --font-heading: "Playfair Display", Georgia, serif;
   --font-prose: Geist, ui-sans-serif, system-ui, sans-serif;
-  --font-data: "Martian Mono", ui-monospace, monospace;
+  --font-data: "Geist Mono", ui-monospace, monospace;
 
-  /* Back to 600 now that the steps are set in Geist, which is variable and has
-     the weight to load. Tighter tracking on the two largest, because Geist at
-     34px and up opens up more than a serif does. */
-  --text-display: 43px;
-  --text-display--line-height: 49px;
-  --text-display--font-weight: 600;
-  --text-display--letter-spacing: -0.02em;
+  /* Display serifs want weight, not tightness: tracking stays at zero so the
+     serifs never collide. 700/600, not the elegant 400-500 print would take -
+     on a screen the thin cuts read as grey fog, not as ink. */
+  --text-display: 64px;
+  --text-display--line-height: 72px;
+  --text-display--font-weight: 700;
 
   --text-title: 34px;
-  --text-title--line-height: 41px;
+  --text-title--line-height: 42px;
   --text-title--font-weight: 600;
-  --text-title--letter-spacing: -0.015em;
 
   --text-section: 27px;
   --text-section--line-height: 34px;
   --text-section--font-weight: 600;
-  --text-section--letter-spacing: -0.01em;
 
   --text-lead: 21px;
   --text-lead--line-height: 32px;
@@ -95,10 +109,7 @@
   --spacing-9: 72px; /* air above a screen heading */
   --spacing-10: 112px; /* entry plate and empty base, nowhere else */
 
-  /* Radius. Four steps, all small. 10px on cards made every screen read as a
-     stack of soft rectangles, which is the look this redesign is getting rid
-     of, so the card drops to 8px and metadata gets a step of its own at 3px.
-     The pill is no longer a badge shape: it survives only for things that are
+  /* Radius. Four steps, all small; the pill survives only for things that are
      actually circles, which in this app means two 6px dots. */
   --radius-none: 0px;
   --radius-label: 3px; /* status labels, counters, anything metadata-sized */
@@ -110,26 +121,40 @@
      in a component is how a system stops being one. State is a colour swap,
      enter is something arriving on screen, thread is the one long move where
      the point is watching the connection get made. Nothing animates a layout
-     property in CSS; the two JS layout animations are in components/motion.tsx
+     property in CSS; the JS layout animations are in components/motion.tsx
      and read these same three numbers. */
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-thread: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-state: 120ms;
   --duration-enter: 200ms;
   --duration-thread: 420ms;
+
+  /* The one perpetual movement in the product: a 6px dot breathing to say the
+     server is alive. Anything else that loops forever is decoration. */
+  --animate-breathe: breathe 2.6s ease-in-out infinite;
+
+  @keyframes breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
 }
 
-/* Two shadows. The card one is barely there on purpose: it lifts white paper
-   off the tinted background just enough to read as a group, and any more turns
-   a calm page into a pile of floating rectangles. */
+/* Two black shadows anchor what luminance already lifted: the card one is a
+   quiet seam, the lifted one is for what genuinely floats - a menu, a toast,
+   the composer. */
 @utility shadow-card {
-  box-shadow: 0 1px 2px oklch(0.26 0.02 250 / 0.05), 0 1px 1px oklch(0.26 0.02 250 / 0.04);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.35),
+    0 2px 10px -2px rgb(0 0 0 / 0.3);
 }
 
-/* The lifted one is for things that genuinely float above the page: the command
-   palette, a menu, a toast. */
 @utility shadow-lifted {
-  box-shadow: 0 8px 24px oklch(0.26 0.02 250 / 0.14);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.5);
 }
 
 /* Counters change while the reader is looking at them, so mono digits never
@@ -138,13 +163,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Brand voice: the wordmark, the login screen, one hero per screen at most.
-   Family and weight together in one utility, because Marcellus ships a single
-   cut and asking for bold would smear the regular one. Applying this by hand is
-   the point; nothing gets the serif by being large. */
+/* Brand voice by hand, for the places that are not headings: the wordmark, the
+   login tagline. Headings get the same face from the base rule below. */
 @utility display-serif {
   font-family: var(--font-heading);
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -160,15 +183,36 @@
     overflow: hidden;
   }
 
-  /* Visible on every surface it can land on, which includes the dark graph
-     canvas, so the ring is the accent and never a browser default. */
+  /* What is scanned wears the serif; what is read stays in Geist. Putting it on
+     the elements rather than a class is what stopped the drift where half the
+     screens forgot to ask for it. A heading that must be sans opts out with
+     font-prose. */
+  h1,
+  h2 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  /* Visible on every surface it can land on, so the ring is the thread and
+     never a browser default. */
   :focus-visible {
-    outline: 2px solid var(--color-blue);
+    outline: 2px solid var(--color-thread);
     outline-offset: 2px;
   }
 
+  /* React Flow ships a white attribution chip; on the dark map it becomes a
+     quiet line instead of a sticker. The credit stays. !important because the
+     library's stylesheet is unlayered and would win over @layer base. */
+  .react-flow__attribution {
+    background: transparent !important;
+  }
+  .react-flow__attribution a {
+    color: var(--color-ink-3) !important;
+  }
+
   ::selection {
-    background: oklch(0.47 0.12 253 / 0.18);
+    background: color-mix(in oklab, var(--color-thread) 16%, transparent);
   }
 
   /* All three motion tokens go to zero. Nothing disappears, it arrives at full

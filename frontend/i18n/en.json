@@ -145,14 +145,6 @@
     "loading": "Loading"
   },
   "home": {
-    "since": "Since {at}",
-    "firstVisit": "Since your last visit",
-    "nothing": "Nothing has changed. The agent has not run a session in this project.",
-    "cut": "Showing {shown} of {total, plural, one {# entry} other {# entries}}.",
-    "projects": "Projects",
-    "entries": "{count, plural, =0 {no entries} one {# entry} other {# entries}}",
-    "waiting": "{count, plural, one {# waiting} other {# waiting}}",
-    "waitingNone": "nothing waiting",
     "retry": "Check again",
     "stale": "Data from {at}. The server is not responding, so it may be out of date.",
     "staleUnknown": "your last visit",
@@ -167,12 +159,7 @@
       "contradicted": "Contradicted",
       "archived": "Archived"
     },
-    "channel": {
-      "agent": "agent",
-      "you": "you"
-    },
     "askTitle": "What do you want to know?",
-    "askLead": "Ariadne answers from the decisions, agreements and context recorded for this project.",
     "askPlaceholder": "Ask about decisions, agreements or constraints in this project...",
     "askHint": "Enter sends, Shift + Enter starts a new line",
     "ask": "Ask",
@@ -181,35 +168,23 @@
     "suggest2": "Why did we choose this stack?",
     "suggest3": "What constraints does this project have?",
     "suggest4": "What changed recently?",
-    "memoryLine": "Ariadne answers from {decisions, plural, one {# decision} other {# decisions}} and {entries, plural, one {# entry} other {# entries}} recorded in this project.",
+    "memoryLine": "Ariadne answers from {entries, plural, one {# entry} other {# entries}} recorded in this project.",
     "memoryLink": "See project memory",
     "decisions": "Recent decisions",
     "decisionsEmpty": "No decisions recorded yet.",
     "decisionsEmptyNote": "The first ones arrive on their own once an agent finishes a session. You can also write one yourself under Add to memory.",
-    "activity": "Recent activity",
-    "activityEmpty": "Nothing has happened yet.",
-    "activityEmptyNote": "This is where you will see what was added, changed and approved.",
-    "activityAdded": "added",
-    "activityChanged": "changed",
     "waitingTitle": "To approve",
     "waitingEmpty": "Nothing is waiting.",
     "waitingEmptyNote": "When an agent or a conversation proposes a change, it shows up here.",
     "waitingAll": "See all",
-    "about": "About the project",
-    "aboutStage": "Stage",
-    "aboutRepo": "Repository",
-    "aboutStack": "Stack",
-    "aboutLimits": "Constraints",
-    "aboutEmpty": "The project card is empty.",
-    "aboutEdit": "Fill in the card",
-    "openProject": "Open project",
     "seen": "You were last here {at}",
     "seenFirst": "First visit",
     "loading": "Loading...",
     "pendingAction": {
       "update": "Correction",
       "delete": "Deletion"
-    }
+    },
+    "decisionsAll": "See all"
   },
   "nav": {
     "project": "Project",
@@ -245,35 +220,8 @@
       "body": "Nothing enters the project's memory without your say-so. Every proposal waits on the To approve screen until you accept it or reject it."
     }
   },
-  "hint": {
-    "dismiss": "Dismiss",
-    "home": {
-      "title": "Project overview",
-      "note": "The context that matters most, and the place to ask about it straight away."
-    },
-    "project": {
-      "title": "The project card",
-      "note": "Basic information, technologies and rules. The agent reads this before every session."
-    },
-    "assistant": {
-      "title": "You are asking the project's memory",
-      "note": "Ariadne answers only from recorded entries and shows you which ones it used."
-    },
-    "database": {
-      "title": "You are teaching Ariadne something new",
-      "note": "Write about a decision, a change or an agreement. It becomes a proposed entry, nothing saves itself."
-    },
-    "settings": {
-      "title": "Account, tokens and team",
-      "note": "Change your profile, issue tokens for agents, and invite people into a shared archive."
-    },
-    "pending": {
-      "title": "You decide what gets recorded",
-      "note": "Nothing enters the project's memory until you approve it."
-    }
-  },
   "assistant": {
-    "title": "Ask Ariadne about your project",
+    "title": "Ask Ariadne",
     "empty": "Ask about the project's past. The answer is built only from recorded entries, and you will see which ones underneath it.",
     "placeholder": "What would you like to ask?",
     "ask": "Ask",
@@ -294,7 +242,7 @@
     "historyEmptyNote": "Ask your first question and the conversation stays here, so you can come back to it."
   },
   "database": {
-    "title": "Add information to the context",
+    "title": "Add to memory",
     "note": "Write what changed. Nothing is saved straight away: you get proposals to approve.",
     "placeholder": "E.g. We switched the form library from X to Y, because...",
     "send": "Prepare entry",
@@ -308,7 +256,7 @@
       "delete": "To delete",
       "create": "New entry"
     },
-    "lead": "Describe a decision, a change or an agreement. Ariadne prepares a proposed entry for approval; nothing is saved automatically.",
+    "lead": "Describe a decision or an agreement. Ariadne prepares an entry for approval.",
     "hint": "Enter sends, Shift + Enter starts a new line",
     "suggest1": "We switched the form library from X to Y.",
     "suggest2": "We are not using a backend; the app stays static.",
@@ -331,8 +279,6 @@
     "title": "To approve",
     "loading": "Loading...",
     "empty": "Nothing is waiting for a decision.",
-    "queued": "Proposed changes",
-    "entries": "Entries to review",
     "action": {
       "update": "Entry correction",
       "delete": "Entry deletion"
@@ -341,7 +287,6 @@
     "reject": "Reject",
     "confirm": "Confirm",
     "archive": "Archive",
-    "lead": "Nothing enters the project's memory without your say-so. You can leave this screen for later.",
     "emptyNote": "When an agent or a conversation proposes a change, it shows up here.",
     "count": "{count, plural, one {# waiting} other {# waiting}}",
     "before": "Now",
@@ -350,7 +295,9 @@
     "toastRejected": "The proposal was rejected.",
     "toastConfirmed": "Entry added to the project context.",
     "toastArchived": "The entry was archived.",
-    "toastFailed": "That did not work. Try again."
+    "toastFailed": "That did not work. Try again.",
+    "showChange": "Show the change",
+    "hideChange": "Hide the change"
   },
   "project": {
     "title": "Project",
@@ -372,10 +319,10 @@
     "save": "Save changes",
     "saving": "Saving",
     "saved": "Saved",
-    "graph": "Entry graph",
-    "graphEmpty": "The graph appears once there are entries.",
-    "graphHint": "Click a node to read its entry.",
-    "graphLabel": "Graph: {nodes} entries, {edges} links",
+    "graph": "Map of entries",
+    "graphEmpty": "The map appears once there are entries.",
+    "graphHint": "Click a card to read the full entry.",
+    "graphLabel": "Map: {nodes} entries, {edges} links",
     "edit": "Edit project",
     "cancel": "Cancel",
     "about": "About the project",
@@ -387,14 +334,27 @@
     "limitsNote": "The agent reads this before every session.",
     "limitsEmpty": "No constraints. Put the rules the agent should follow here.",
     "toastSaved": "Project changes saved.",
-    "graphLead": "Solid line: a shared file. Dashed line: similar content.",
-    "graphEmptyNote": "Every recorded entry is a point, and the links compute themselves."
+    "graphLead": "Oldest to newest. Solid line: a shared file. Dashed: similar content. Drag and zoom.",
+    "graphEmptyNote": "Every recorded entry is a card on the map, and the links compute themselves.",
+    "unreachable": "The server is not answering",
+    "unreachableNote": "The project could not be loaded. Check that the Ariadne server is running and try again.",
+    "retry": "Try again",
+    "noProject": "You have no project yet",
+    "noProjectNote": "Create a project on the overview screen and its card will appear here.",
+    "graphError": "The map did not load",
+    "graphErrorNote": "The server did not answer the map request. Your entries are safe; try again."
   },
   "entry": {
     "type": {
       "decision": "Decision",
       "session_summary": "Session summary",
       "note": "Note"
+    },
+    "status": {
+      "confirmed": "Confirmed",
+      "proposed": "Proposed",
+      "contradicted": "Contradicted",
+      "archived": "Archived"
     },
     "confirmedBy": "confirmed by {at}",
     "showMore": "Show more",
@@ -410,6 +370,9 @@
     "lead": "Account, what agents may do, tokens and team.",
     "loading": "Loading...",
     "failed": "That did not work. Try again.",
+    "accountError": "The server is not answering",
+    "accountErrorNote": "Account settings could not be loaded. Check that the Ariadne server is running and try again.",
+    "retry": "Try again",
     "account": "Account",
     "memberSince": "account since {at}",
     "profile": "Who you are at work",

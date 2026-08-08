@@ -31,6 +31,17 @@ Czego brakuje w 5b: nic. Krok domkniety.
 
 Zostaje z MVP: nic. Osiem ekranow z sekcji 11 stoi.
 
+- Redesign 2 (branch feature/ui-redesign-2, po merge'u #11 i #12): nowy jezyk
+  wizualny - ciepla kosc zamiast chlodnej szarosci, Bodoni Moda na naglowkach
+  (Marcellus wypadl), Geist Mono tylko dla outputu maszyny (Martian Mono
+  wypadl), jeden akcent marki: madderowa nic (przyciski primary sa atramentowe).
+  Powloka przeniesiona do route group (shell) z trwalym layoutem i AppProviderem:
+  zero window.location.reload, zmiana projektu dzieje sie w miejscu, marker
+  nawigacji plynie. Graf przepisany na d3-force (jedyna nowa zaleznosc) z
+  ksztaltami statusow i legenda. Naprawione wieczne "Wczytuje..." na /project
+  (konto z jednym projektem nie zapisywalo activeProject) i na /settings przy
+  padnietym fetchu - oba maja stany bledu z retry. DESIGN.md przepisany.
+
 Jedna decyzja czeka na usera:
 1. Logowanie przez Google: zaprojektowane na ekranie 01, ale nie ma go ani w sekcji 10, ani w backendzie, ani w kodzie frontu (grep po "google" trafia tylko w skrypt do fontow). Rekomendacja: zapisac w sekcji 14 jako swiadomie odlozone, bo OAuth w Tauri to loopback albo deep link plus endpoint providera, a konto na haslo dziala.
 

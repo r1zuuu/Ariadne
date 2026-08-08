@@ -1,11 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
-import { AppShell, readActiveProject } from "@/components/app-shell";
-import { NodeGraph } from "@/components/node-graph";
+import { useCallback, useEffect, useState } from "react";
+import { useApp } from "@/components/app-provider";
+import { MemoryGraph } from "@/components/memory-graph";
 import { useToast } from "@/components/toast";
-import { ScreenHint } from "@/components/screen-hint";
 import {
   Button,
   Card,
@@ -18,7 +17,6 @@ import {
 } from "@/components/ui";
 import {
   getGraph,
-  listProjects,
   updateProject,
   type GraphEdge,
   type Node,
@@ -33,56 +31,77 @@ import {
 
 export default function ProjectScreen() {
   const t = useTranslations("project");
-  const tHint = useTranslations("hint.project");
   const toast = useToast();
+  const { projects, activeProject, refreshProjects, server } = useApp();
 
-  const [project, setProject] = useState<Project | null>(null);
   const [graph, setGraph] = useState<{ nodes: Node[]; edges: GraphEdge[] } | null>(null);
+  const [graphError, setGraphError] = useState(false);
   const [editing, setEditing] = useState(false);
 
-  useEffect(() => {
-    const id = readActiveProject();
-    if (!id) return;
-    void listProjects()
-      .then((rows) => setProject(rows.find((p) => p.id === id) ?? null))
-      .catch(() => {});
+  const project = activeProject;
+
+  const loadGraph = useCallback((id: string) => {
+    setGraph(null);
+    setGraphError(false);
     void getGraph(id)
       .then(setGraph)
-      .catch(() => setGraph({ nodes: [], edges: [] }));
+      // An unreachable map is an error with a retry, not an empty archive:
+      // "no entries yet" and "the server did not answer" mean opposite things.
+      .catch(() => setGraphError(true));
   }, []);
 
+  useEffect(() => {
+    if (project?.id) loadGraph(project.id);
+  }, [project?.id, loadGraph]);
+
   return (
-    <AppShell>
-      <div className="mx-auto max-w-[900px]">
+    <div className="mx-auto max-w-[900px]">
         {project === null ? (
-          <p className="text-body text-ink-3">{t("loading")}</p>
+          server === "down" ? (
+            // A dead backend used to park this screen on "loading" forever.
+            // Say what happened and offer the one thing that can fix it.
+            <EmptyState
+              title={t("unreachable")}
+              note={t("unreachableNote")}
+              action={
+                <Button variant="secondary" onClick={() => void refreshProjects()}>
+                  {t("retry")}
+                </Button>
+              }
+            />
+          ) : projects !== null && projects.length === 0 ? (
+            <EmptyState title={t("noProject")} note={t("noProjectNote")} />
+          ) : (
+            <p className="text-body text-ink-3">{t("loading")}</p>
+          )
         ) : (
           <>
-            <div className="flex flex-wrap items-start justify-between gap-5 pb-8">
+            <div className="flex flex-wrap items-end justify-between gap-5 pb-8 pt-6">
               <div className="min-w-0">
-                <h1 className="text-section text-ink">{project.name}</h1>
+                <h1 className="max-w-[14ch] text-display text-ink">{project.name}</h1>
                 {/* Stage and repository are both facts about the project, so
                     they are one metadata line rather than a tinted label beside
                     the name competing with it. */}
-                <div className="pt-2">
+                <div className="pt-3">
                   <Meta items={[t(`etap.${project.etap}`), project.repoRef]} />
                 </div>
               </div>
               {!editing ? (
-                <Button variant="secondary" onClick={() => setEditing(true)}>
+                <Button variant="secondary" onClick={() => setEditing(true)} className="mb-2">
                   {t("edit")}
                 </Button>
               ) : null}
             </div>
 
-            <ScreenHint screen="project" title={tHint("title")} note={tHint("note")} />
 
             {editing ? (
               <EditCard
                 project={project}
                 onCancel={() => setEditing(false)}
-                onSaved={(updated) => {
-                  setProject(updated);
+                onSaved={() => {
+                  // The context owns the project row now; refreshing it keeps
+                  // the title bar, the switcher and this header in one truth.
+                  void refreshProjects();
                   setEditing(false);
                   toast(t("toastSaved"));
                 }}
@@ -91,23 +110,30 @@ export default function ProjectScreen() {
               <ReadView project={project} />
             )}
 
-            <section className="pt-10">
+            <section className="pt-8">
               <SectionHeader title={t("graph")} />
               <p className="pb-4 text-small text-ink-2">{t("graphLead")}</p>
-              {graph === null ? (
+              {graphError ? (
+                <EmptyState
+                  title={t("graphError")}
+                  note={t("graphErrorNote")}
+                  action={
+                    <Button variant="secondary" onClick={() => loadGraph(project.id)}>
+                      {t("retry")}
+                    </Button>
+                  }
+                />
+              ) : graph === null ? (
                 <p className="text-body text-ink-3">{t("loading")}</p>
               ) : graph.nodes.length === 0 ? (
                 <EmptyState title={t("graphEmpty")} note={t("graphEmptyNote")} />
               ) : (
-                <Card className="p-5">
-                  <NodeGraph nodes={graph.nodes} edges={graph.edges} />
-                </Card>
+                <MemoryGraph nodes={graph.nodes} edges={graph.edges} />
               )}
             </section>
           </>
-        )}
-      </div>
-    </AppShell>
+      )}
+    </div>
   );
 }
 
@@ -123,14 +149,14 @@ function ReadView({ project }: { project: Project }) {
   return (
     <div className="flex flex-col gap-5">
       <Card className="p-6">
-        <h2 className="pb-2 text-lead text-ink">{t("about")}</h2>
+        <h2 className="pb-2 text-lead font-semibold text-ink">{t("about")}</h2>
         <p className={`text-body leading-8 ${project.opis ? "text-ink-2" : "text-ink-3"}`}>
           {project.opis || t("aboutEmpty")}
         </p>
       </Card>
 
       <Card className="p-6">
-        <h2 className="pb-3 text-lead text-ink">{t("tech")}</h2>
+        <h2 className="pb-3 text-lead font-semibold text-ink">{t("tech")}</h2>
         {stack.length ? (
           // One metadata line, not a row of chips: a stack is a list of names,
           // and eight lozenges made it look like eight things you can click.
@@ -143,8 +169,8 @@ function ReadView({ project }: { project: Project }) {
       {/* Set apart with the thread colour, because this is the section that
           steers the agent: everything else describes the project, this one
           constrains what may be done to it. */}
-      <Card className="border-blue/25 p-6">
-        <h2 className="text-lead text-ink">{t("limits")}</h2>
+      <Card className="border-thread/25 p-6">
+        <h2 className="text-lead font-semibold text-ink">{t("limits")}</h2>
         <p className="pb-3 pt-1 text-small text-ink-3">{t("limitsNote")}</p>
         <p
           className={`whitespace-pre-wrap text-body leading-8 ${
@@ -222,7 +248,7 @@ function EditCard({
           id="etap"
           value={draft.etap}
           onChange={set("etap")}
-          className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/15"
+          className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-thread focus:ring-2 focus:ring-thread/15"
         >
           {["prototyp", "produkcja", "utrzymanie"].map((stage) => (
             <option key={stage} value={stage}>

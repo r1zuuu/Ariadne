@@ -89,7 +89,7 @@ export default function EntryScreen() {
         <ArtPanel tagline={t("tagline")} />
 
         {/* Scrolls on its own so a short window never clips the submit button. */}
-        <div className="flex min-h-0 items-center justify-center overflow-y-auto px-6 py-10 sm:px-10">
+        <div className="flex min-h-0 items-center justify-center overflow-y-auto px-6 py-8 sm:px-10">
           <div className="w-full max-w-[400px]">
             <p className="display-serif text-lead uppercase tracking-[0.2em] text-ink-2">Ariadne</p>
 
@@ -149,7 +149,7 @@ export default function EntryScreen() {
                   setMode(mode === "login" ? "register" : "login");
                   setError(null);
                 }}
-                className="rounded-control font-medium text-blue underline underline-offset-2"
+                className="rounded-control font-medium text-thread underline underline-offset-2"
               >
                 {mode === "login" ? t("switchToRegister") : t("switchToLogin")}
               </button>
@@ -157,18 +157,18 @@ export default function EntryScreen() {
 
             {/* System status, not a headline. A dot plus one quiet line, and it
                 only asks for attention in the one case where it has to. */}
-            <p className="flex items-center gap-2 pt-10 text-data text-ink-3">
+            <p className="flex items-center gap-2 pt-8 text-data text-ink-3">
               <span
                 aria-hidden="true"
                 className={`h-[6px] w-[6px] rounded-pill ${
-                  down ? "bg-iron" : server === "up" ? "bg-blue" : "bg-ink-3/40"
+                  down ? "bg-iron" : server === "up" ? "animate-breathe bg-thread" : "bg-ink-3/40"
                 }`}
               />
               <span className={down ? "text-iron" : undefined}>
                 {t(`server.${server}`, { url: HOST })}
               </span>
               {down ? (
-                <button type="button" onClick={probe} className="text-blue underline underline-offset-2">
+                <button type="button" onClick={probe} className="text-thread underline underline-offset-2">
                   {t("server.retry")}
                 </button>
               ) : null}
@@ -198,7 +198,7 @@ function ArtPanel({ tagline }: { tagline: string }) {
       />
       {/* Barely there, and in the brand navy: enough to tie the panel to the
           rest of the product without turning the painting into a gradient. */}
-      <div className="absolute inset-0 bg-blue/10 mix-blend-multiply" />
+      <div className="absolute inset-0 bg-thread/10 mix-blend-multiply" />
       <p className="absolute bottom-10 left-10 right-10 display-serif text-lead text-canvas-ink/85">
         {tagline}
       </p>

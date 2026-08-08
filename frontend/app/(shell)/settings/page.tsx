@@ -3,9 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { LOCALES, useLocale } from "@/app/locale-provider";
-import { AppShell } from "@/components/app-shell";
+import { useApp } from "@/components/app-provider";
 import { CommandBlock } from "@/components/command-block";
-import { ScreenHint } from "@/components/screen-hint";
 import { useToast } from "@/components/toast";
 import {
   Button,
@@ -51,33 +50,49 @@ import {
 
 export default function SettingsScreen() {
   const t = useTranslations("settings");
-  const tHint = useTranslations("hint.settings");
   const toast = useToast();
 
   const [account, setAccount] = useState<Account | null>(null);
+  const [accountError, setAccountError] = useState(false);
 
-  useEffect(() => {
-    void getAccount().then(setAccount).catch(() => {});
+  const loadAccount = useCallback(() => {
+    setAccountError(false);
+    // A failed fetch used to park this screen on "loading" forever; the error
+    // state with a retry is the difference between stuck and delayed.
+    void getAccount()
+      .then(setAccount)
+      .catch(() => setAccountError(true));
   }, []);
 
-  return (
-    <AppShell>
-      <div className="mx-auto max-w-[860px]">
-        <PageHeader title={t("title")} lead={t("lead")} />
-        <ScreenHint screen="settings" title={tHint("title")} note={tHint("note")} />
+  useEffect(loadAccount, [loadAccount]);
 
-        {account === null ? (
-          <p className="text-body text-ink-3">{t("loading")}</p>
+  return (
+    <div className="mx-auto max-w-[860px]">
+      <PageHeader title={t("title")} lead={t("lead")} />
+
+      {account === null ? (
+        accountError ? (
+          <EmptyState
+            title={t("accountError")}
+            note={t("accountErrorNote")}
+            action={
+              <Button variant="secondary" onClick={loadAccount}>
+                {t("retry")}
+              </Button>
+            }
+          />
         ) : (
-          <>
-            <AccountSection account={account} onSaved={setAccount} toast={toast} />
-            <PermissionSection account={account} onSaved={setAccount} toast={toast} />
-            <TokensSection toast={toast} />
-            <TeamSection account={account} toast={toast} />
-          </>
-        )}
-      </div>
-    </AppShell>
+          <p className="text-body text-ink-3">{t("loading")}</p>
+        )
+      ) : (
+        <>
+          <AccountSection account={account} onSaved={setAccount} toast={toast} />
+          <PermissionSection account={account} onSaved={setAccount} toast={toast} />
+          <TokensSection toast={toast} />
+          <TeamSection account={account} toast={toast} />
+        </>
+      )}
+    </div>
   );
 }
 
@@ -135,15 +150,18 @@ function AccountSection({
       </div>
 
       <Card className="mt-5 p-6">
+        {/* Three rows tall, not five: the profile is a paragraph, and the
+            empty rows below one line of text read as a hole in the card.
+            The note and the button share a row for the same reason. */}
         <Textarea
           id="settings-profile"
           label={t("profile")}
-          note={t("profileNote")}
-          rows={5}
+          rows={3}
           value={profile}
           onChange={(event) => setProfile(event.target.value)}
         />
-        <div className="flex justify-end pt-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-4">
+          <p className="text-small text-ink-3">{t("profileNote")}</p>
           <Button onClick={save} loading={saving} disabled={profile === account.profile}>
             {saving ? t("saving") : t("save")}
           </Button>
@@ -154,15 +172,26 @@ function AccountSection({
 
       <div className="flex flex-wrap items-center gap-4 pt-6">
         <p className="text-small font-medium text-ink">{t("language")}</p>
-        {LOCALES.map((code) => (
-          <Button
-            key={code}
-            variant={code === locale ? "primary" : "secondary"}
-            onClick={() => setLocale(code)}
-          >
-            {t(`languages.${code}`)}
-          </Button>
-        ))}
+        {/* The active language is a selected state, not a call to action:
+            a terracotta fill here outshouted every real CTA on the page. */}
+        {LOCALES.map((code) => {
+          const selected = code === locale;
+          return (
+            <button
+              key={code}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setLocale(code)}
+              className={`h-[36px] rounded-control border px-5 text-small font-medium transition-colors duration-state ${
+                selected
+                  ? "border-thread/40 bg-thread-soft text-thread-lift"
+                  : "border-edge/60 bg-surface text-ink-2 hover:bg-plaster-sunk hover:text-ink"
+              }`}
+            >
+              {t(`languages.${code}`)}
+            </button>
+          );
+        })}
       </div>
     </section>
   );
@@ -254,7 +283,7 @@ function PermissionSection({
   };
 
   return (
-    <section className="pt-10">
+    <section className="mt-8 border-t border-hairline pt-7">
       <SectionHeader title={t("autoApprove")} />
       <Card className="flex flex-wrap items-center justify-between gap-5 p-6">
         <p className="max-w-[54ch] text-small text-ink-2">
@@ -323,7 +352,7 @@ function TokensSection({ toast }: { toast: Toast }) {
   };
 
   return (
-    <section className="pt-10">
+    <section className="mt-8 border-t border-hairline pt-7">
       <SectionHeader title={t("tokens")} count={tokens?.length} />
       <p className="pb-5 text-small text-ink-2">{t("tokensLead")}</p>
 
@@ -364,7 +393,7 @@ function TokensSection({ toast }: { toast: Toast }) {
               id="settings-token-workspace"
               value={workspaceId}
               onChange={(event) => setWorkspaceId(event.target.value)}
-              className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none transition-colors duration-state focus:border-blue focus:ring-2 focus:ring-blue/15"
+              className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none transition-colors duration-state focus:border-thread focus:ring-2 focus:ring-thread/15"
             >
               {workspaces.map((workspace) => (
                 <option key={workspace.id} value={workspace.id}>
@@ -385,11 +414,13 @@ function TokensSection({ toast }: { toast: Toast }) {
         ) : tokens.length === 0 ? (
           <EmptyState title={t("tokensEmpty")} note={t("tokensEmptyNote")} />
         ) : (
-          <ul>
+          // divide-y, not per-row borders: a border on the last row plus the
+          // next section's own top border drew a double line into the gap.
+          <ul className="divide-y divide-hairline">
             {tokens.map((token) => (
               <li
                 key={token.id}
-                className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline py-4"
+                className="flex flex-wrap items-center justify-between gap-4 py-4"
               >
                 <div className="min-w-0">
                   <p className="truncate text-body text-ink">{token.label || t("noLabel")}</p>
@@ -426,6 +457,7 @@ function TokensSection({ toast }: { toast: Toast }) {
 function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
   const t = useTranslations("settings");
   const failure = useFailure();
+  const { refreshProjects, refreshPending } = useApp();
 
   const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -470,7 +502,7 @@ function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
   const open = workspaces?.find((w) => w.id === openId) ?? null;
 
   return (
-    <section className="pt-10">
+    <section className="mt-8 border-t border-hairline pt-7">
       <SectionHeader title={t("team")} />
       <p className="pb-5 text-small text-ink-2">{t("teamLead")}</p>
 
@@ -478,39 +510,53 @@ function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
         <p className="text-body text-ink-3">{t("loading")}</p>
       ) : (
         <>
-          {/* One row per archive. Switching only changes what the two lists
-              below are about, so it is a row of choices and not navigation. */}
-          <ul className="flex flex-wrap gap-2 pb-5">
-            {workspaces.map((workspace) => (
-              <li key={workspace.id}>
-                <Button
-                  variant={workspace.id === openId ? "primary" : "secondary"}
-                  onClick={() => setOpenId(workspace.id)}
-                >
-                  {workspace.name}
-                </Button>
-              </li>
-            ))}
-          </ul>
+          {/* One chip per archive, and only when there is a choice: a single
+              workspace rendered as a big filled button was the loudest thing
+              in the section and clicking it did nothing. Selected is a quiet
+              thread fill, not a CTA - choosing is not acting. */}
+          {workspaces.length > 1 ? (
+            <ul className="flex flex-wrap gap-2 pb-5">
+              {workspaces.map((workspace) => {
+                const selected = workspace.id === openId;
+                return (
+                  <li key={workspace.id}>
+                    <button
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => setOpenId(workspace.id)}
+                      className={`h-[36px] rounded-control border px-5 text-small font-medium transition-colors duration-state ${
+                        selected
+                          ? "border-thread/40 bg-thread-soft text-thread-lift"
+                          : "border-edge/60 bg-surface text-ink-2 hover:bg-plaster-sunk hover:text-ink"
+                      }`}
+                    >
+                      {workspace.name}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
 
           {open ? (
             <>
-              <div className="border-b border-hairline pb-5">
+              <div className="pb-2">
                 <Meta
                   items={[
+                    open.name,
                     open.isOwner ? t("roles.owner") : t("roles.member"),
                     t("memberCount", { count: open.memberCount }),
                   ]}
                 />
               </div>
 
-              <ul className="pb-6">
+              <ul className="divide-y divide-hairline pb-6">
                 {members.map((member) => {
                   const self = member.userId === account.id;
                   return (
                     <li
                       key={member.userId}
-                      className="flex flex-wrap items-center justify-between gap-4 border-b border-hairline py-4"
+                      className="flex flex-wrap items-center justify-between gap-4 py-4"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-body text-ink">
@@ -619,7 +665,7 @@ function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
             </>
           ) : null}
 
-          <div className="grid gap-5 pt-8 lg:grid-cols-2">
+          <div className="grid gap-5 pt-8 sm:grid-cols-2">
             <Card className="p-6">
               <Input
                 id="settings-workspace-name"
@@ -670,10 +716,10 @@ function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
                       async () => {
                         await acceptInvite(code.trim());
                         setCode("");
-                        // A full reload for the same reason switching project
-                        // does one: every screen and the column itself read the
-                        // project list once on mount, and joining changed it.
-                        window.location.reload();
+                        // Joining changed what the account can see; the shared
+                        // context re-reads it in place, no reload needed.
+                        load();
+                        await Promise.all([refreshProjects(), refreshPending()]);
                       },
                       t("joined"),
                     )

@@ -145,14 +145,6 @@
     "loading": "Ładuję"
   },
   "home": {
-    "since": "Od {at}",
-    "firstVisit": "Od ostatniego wejścia",
-    "nothing": "Nic się nie zmieniło. Agent nie prowadził sesji w tym projekcie.",
-    "cut": "Widocznych {shown} z {total, plural, one {# wpisu} few {# wpisów} many {# wpisów} other {# wpisu}}.",
-    "projects": "Projekty",
-    "entries": "{count, plural, =0 {bez wpisów} one {# wpis} few {# wpisy} many {# wpisów} other {# wpisu}}",
-    "waiting": "{count, plural, one {# oczekuje} other {# oczekuje}}",
-    "waitingNone": "nic nie czeka",
     "retry": "Sprawdź jeszcze raz",
     "stale": "Dane z {at}. Serwer nie odpowiada, więc mogą być nieaktualne.",
     "staleUnknown": "ostatniego wejścia",
@@ -167,12 +159,7 @@
       "contradicted": "Odwołany",
       "archived": "Zarchiwizowany"
     },
-    "channel": {
-      "agent": "agent",
-      "you": "ty"
-    },
     "askTitle": "Czego chcesz się dowiedzieć?",
-    "askLead": "Ariadne odpowiada na podstawie zapisanych decyzji, ustaleń i kontekstu tego projektu.",
     "askPlaceholder": "Zapytaj o decyzje, ustalenia albo ograniczenia tego projektu...",
     "askHint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
     "ask": "Zapytaj",
@@ -181,28 +168,16 @@
     "suggest2": "Dlaczego wybraliśmy ten stack?",
     "suggest3": "Jakie ograniczenia ma ten projekt?",
     "suggest4": "Co zmieniło się ostatnio?",
-    "memoryLine": "Ariadne odpowiada na podstawie {decisions} decyzji i {entries, plural, one {# wpisu} few {# wpisów} many {# wpisów} other {# wpisu}} zapisanych w tym projekcie.",
+    "memoryLine": "Ariadne odpowiada na podstawie {entries, plural, one {# wpisu} few {# wpisów} many {# wpisów} other {# wpisu}} zapisanych w tym projekcie.",
     "memoryLink": "Zobacz pamięć projektu",
     "decisions": "Ostatnie ustalenia",
+    "decisionsAll": "Zobacz wszystkie",
     "decisionsEmpty": "Nie masz jeszcze zapisanych decyzji.",
     "decisionsEmptyNote": "Pierwsze pojawią się same, kiedy agent skończy sesję. Możesz też opisać ustalenie sam w zakładce Dodaj do pamięci.",
-    "activity": "Ostatnia aktywność",
-    "activityEmpty": "Nic się jeszcze nie działo.",
-    "activityEmptyNote": "Tu zobaczysz, co zostało dodane, zmienione i zatwierdzone.",
-    "activityAdded": "dodano",
-    "activityChanged": "zmieniono",
     "waitingTitle": "Do zatwierdzenia",
     "waitingEmpty": "Nic nie czeka.",
     "waitingEmptyNote": "Kiedy agent albo rozmowa zaproponują zmianę, pojawi się tutaj.",
     "waitingAll": "Zobacz wszystkie",
-    "about": "O projekcie",
-    "aboutStage": "Etap",
-    "aboutRepo": "Repozytorium",
-    "aboutStack": "Stack",
-    "aboutLimits": "Ograniczenia",
-    "aboutEmpty": "Karta projektu jest pusta.",
-    "aboutEdit": "Uzupełnij kartę",
-    "openProject": "Otwórz projekt",
     "seen": "Ostatnio tu byłeś {at}",
     "seenFirst": "Pierwsze wejście",
     "loading": "Wczytuję...",
@@ -245,35 +220,8 @@
       "body": "Nic nie trafia do pamięci projektu bez Twojej zgody. Każda propozycja czeka na ekranie Do zatwierdzenia, dopóki jej nie przyjmiesz albo nie odrzucisz."
     }
   },
-  "hint": {
-    "dismiss": "Zamknij",
-    "home": {
-      "title": "Przegląd projektu",
-      "note": "Najważniejszy kontekst projektu i miejsce, z którego możesz od razu o niego zapytać."
-    },
-    "project": {
-      "title": "Karta projektu",
-      "note": "Podstawowe informacje, technologie i zasady. Agent czyta to przed każdą sesją."
-    },
-    "assistant": {
-      "title": "Pytasz pamięć projektu",
-      "note": "Ariadne odpowiada tylko z zapisanych wpisów i pokazuje, z których skorzystała."
-    },
-    "database": {
-      "title": "Uczysz Ariadne czegoś nowego",
-      "note": "Napisz o decyzji, zmianie albo ustaleniu. Powstanie propozycja wpisu, nic nie zapisze się samo."
-    },
-    "settings": {
-      "title": "Konto, tokeny i zespół",
-      "note": "Tu zmieniasz profil, wydajesz tokeny dla agentów i zapraszasz ludzi do wspólnego archiwum."
-    },
-    "pending": {
-      "title": "Ty decydujesz, co zostanie zapisane",
-      "note": "Nic nie trafia do pamięci projektu, dopóki tego nie zatwierdzisz."
-    }
-  },
   "assistant": {
-    "title": "Zapytaj Ariadne o swój projekt",
+    "title": "Zapytaj Ariadne",
     "empty": "Zapytaj o przeszłość projektu. Odpowiedź powstaje wyłącznie z zapisanych wpisów, a pod nią zobaczysz, z których.",
     "placeholder": "O co chcesz zapytać?",
     "ask": "Zapytaj",
@@ -294,7 +242,7 @@
     "historyEmptyNote": "Zadaj pierwsze pytanie, a rozmowa zostanie tutaj i będziesz mógł do niej wrócić."
   },
   "database": {
-    "title": "Dodaj informację do kontekstu",
+    "title": "Dodaj do pamięci",
     "note": "Napisz, co się zmieniło. Nic nie zostanie zapisane od razu: dostaniesz propozycje do zatwierdzenia.",
     "placeholder": "Np. Zmieniliśmy bibliotekę formularzy z X na Y, bo...",
     "send": "Przygotuj wpis",
@@ -308,7 +256,7 @@
       "delete": "Do usunięcia",
       "create": "Nowy wpis"
     },
-    "lead": "Opisz decyzję, zmianę lub ustalenie. Ariadne przygotuje propozycję wpisu do zatwierdzenia, nic nie zostanie zapisane automatycznie.",
+    "lead": "Opisz decyzję albo ustalenie. Ariadne przygotuje wpis do zatwierdzenia.",
     "hint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
     "suggest1": "Zmieniliśmy bibliotekę formularzy z X na Y.",
     "suggest2": "Nie używamy backendu, aplikacja zostaje statyczna.",
@@ -331,8 +279,6 @@
     "title": "Do zatwierdzenia",
     "loading": "Wczytuję...",
     "empty": "Nic nie czeka na decyzję.",
-    "queued": "Proponowane zmiany",
-    "entries": "Wpisy do przejrzenia",
     "action": {
       "update": "Poprawka wpisu",
       "delete": "Usunięcie wpisu"
@@ -341,7 +287,6 @@
     "reject": "Odrzuć",
     "confirm": "Potwierdź",
     "archive": "Do archiwum",
-    "lead": "Nic nie trafia do pamięci projektu bez Twojej zgody. Ten ekran możesz zostawić na później.",
     "emptyNote": "Kiedy agent albo rozmowa zaproponują zmianę, pojawi się tutaj.",
     "count": "{count, plural, one {# oczekuje} few {# oczekują} many {# oczekuje} other {# oczekuje}}",
     "before": "Teraz",
@@ -350,7 +295,9 @@
     "toastRejected": "Propozycja została odrzucona.",
     "toastConfirmed": "Wpis dodano do kontekstu projektu.",
     "toastArchived": "Wpis trafił do archiwum.",
-    "toastFailed": "Nie udało się. Spróbuj jeszcze raz."
+    "toastFailed": "Nie udało się. Spróbuj jeszcze raz.",
+    "showChange": "Pokaż zmianę",
+    "hideChange": "Zwiń zmianę"
   },
   "project": {
     "title": "Projekt",
@@ -372,10 +319,10 @@
     "save": "Zapisz zmiany",
     "saving": "Zapisuję",
     "saved": "Zapisane",
-    "graph": "Graf wpisów",
-    "graphEmpty": "Graf pojawi się, gdy będą wpisy.",
-    "graphHint": "Kliknij węzeł, żeby zobaczyć treść wpisu.",
-    "graphLabel": "Graf: {nodes} wpisów, {edges} połączeń",
+    "graph": "Mapa wpisów",
+    "graphEmpty": "Mapa pojawi się, gdy będą wpisy.",
+    "graphHint": "Kliknij kartę, żeby przeczytać pełną treść wpisu.",
+    "graphLabel": "Mapa: {nodes} wpisów, {edges} połączeń",
     "edit": "Edytuj projekt",
     "cancel": "Anuluj",
     "about": "O projekcie",
@@ -387,14 +334,27 @@
     "limitsNote": "To czyta agent przed każdą sesją.",
     "limitsEmpty": "Brak ograniczeń. Tu wpisz zasady, których agent ma się trzymać.",
     "toastSaved": "Zmiany w projekcie zostały zapisane.",
-    "graphLead": "Linia ciągła: wspólny plik. Linia przerywana: podobna treść.",
-    "graphEmptyNote": "Każdy zapisany wpis to punkt, a połączenia liczą się same."
+    "graphLead": "Od najstarszego do najnowszego. Linia ciągła: wspólny plik. Przerywana: podobna treść. Przesuwaj i przybliżaj.",
+    "graphEmptyNote": "Każdy zapisany wpis to karta na mapie, a połączenia liczą się same.",
+    "unreachable": "Serwer nie odpowiada",
+    "unreachableNote": "Nie udało się pobrać projektu. Sprawdź, czy serwer Ariadne działa, i spróbuj ponownie.",
+    "retry": "Spróbuj ponownie",
+    "noProject": "Nie masz jeszcze projektu",
+    "noProjectNote": "Załóż projekt na ekranie przeglądu, a jego karta pojawi się tutaj.",
+    "graphError": "Mapa się nie wczytała",
+    "graphErrorNote": "Serwer nie odpowiedział na zapytanie o mapę. Wpisy są bezpieczne, spróbuj ponownie."
   },
   "entry": {
     "type": {
       "decision": "Decyzja",
       "session_summary": "Podsumowanie sesji",
       "note": "Notatka"
+    },
+    "status": {
+      "confirmed": "Potwierdzony",
+      "proposed": "Proponowany",
+      "contradicted": "Odwołany",
+      "archived": "Zarchiwizowany"
     },
     "confirmedBy": "potwierdził {at}",
     "showMore": "Pokaż więcej",
@@ -410,6 +370,9 @@
     "lead": "Konto, uprawnienia agentów, tokeny i zespół.",
     "loading": "Wczytuję...",
     "failed": "Nie udało się. Spróbuj jeszcze raz.",
+    "accountError": "Serwer nie odpowiada",
+    "accountErrorNote": "Nie udało się pobrać ustawień konta. Sprawdź, czy serwer Ariadne działa, i spróbuj ponownie.",
+    "retry": "Spróbuj ponownie",
     "account": "Konto",
     "memberSince": "konto od {at}",
     "profile": "Kim jesteś przy pracy",

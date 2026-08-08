@@ -69,7 +69,7 @@ function ToastRow({ toast, onDone }: { toast: Toast; onDone: () => void }) {
           only says which of the two kinds this is. */}
       <span
         aria-hidden="true"
-        className={`h-[6px] w-[6px] shrink-0 rounded-pill ${toast.tone === "error" ? "bg-iron" : "bg-blue"}`}
+        className={`h-[6px] w-[6px] shrink-0 rounded-pill ${toast.tone === "error" ? "bg-iron" : "bg-thread"}`}
       />
       {toast.message}
     </div>

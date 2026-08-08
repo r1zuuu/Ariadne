@@ -20,11 +20,14 @@ import type { ReactNode } from "react";
 type ButtonVariant = "primary" | "secondary" | "quiet" | "destructive";
 type ButtonSize = "md" | "lg";
 
+// Primary is the thread: the terracotta belongs to the strongest action on
+// the screen and to nothing decorative, which is what keeps it precious.
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-blue text-white border border-blue hover:bg-blue/90 active:bg-blue",
+  primary:
+    "bg-thread text-plaster border border-thread hover:bg-thread-deep hover:border-thread-deep active:bg-thread-press",
   secondary: "border border-edge/60 bg-surface text-ink hover:bg-plaster-sunk hover:border-edge",
   quiet: "border border-transparent text-ink-2 hover:bg-plaster-sunk hover:text-ink",
-  destructive: "border border-iron/40 bg-surface text-iron hover:bg-iron/8 hover:border-iron",
+  destructive: "border border-iron/40 bg-surface text-iron hover:bg-iron/10 hover:border-iron",
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
@@ -49,7 +52,7 @@ export function Button({
       {...rest}
       disabled={rest.disabled || loading}
       aria-busy={loading || undefined}
-      className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-control font-medium leading-none transition-colors duration-state ease-out-quint disabled:cursor-not-allowed disabled:opacity-40 ${BUTTON_SIZES[size]} ${BUTTON_VARIANTS[variant]} ${rest.className ?? ""}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-control font-medium leading-none transition-[background-color,border-color,color,scale] duration-state ease-out-quint active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 ${BUTTON_SIZES[size]} ${BUTTON_VARIANTS[variant]} ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -97,7 +100,7 @@ export function Input({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3/60 focus:border-blue focus:ring-2 focus:ring-blue/15 ${
+        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/15 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -127,7 +130,7 @@ export function Textarea({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3/60 focus:border-blue focus:ring-2 focus:ring-blue/15 ${
+        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/15 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -187,12 +190,12 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-5 pb-7">
+    <div className="flex flex-wrap items-end justify-between gap-5 pb-7 pt-6">
       <div className="min-w-0">
-        <h1 className="text-section text-ink">{title}</h1>
-        {lead ? <p className="max-w-[62ch] pt-2 text-body text-ink-2">{lead}</p> : null}
+        <h1 className="max-w-[14ch] text-display text-ink">{title}</h1>
+        {lead ? <p className="max-w-[62ch] pt-3 text-body text-ink-2">{lead}</p> : null}
       </div>
-      {actions ? <div className="flex shrink-0 gap-3">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 gap-3 pb-2">{actions}</div> : null}
     </div>
   );
 }
@@ -208,10 +211,10 @@ export function SectionHeader({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4 pb-4">
-      <h2 className="flex items-baseline gap-3 text-lead text-ink">
+      <h2 className="flex items-baseline gap-3 text-lead font-semibold text-ink">
         {title}
         {count !== undefined ? (
-          <span className="font-data text-data tabular text-ink-3">{count}</span>
+          <span className="font-prose text-data tabular text-ink-3">{count}</span>
         ) : null}
       </h2>
       {action}
@@ -220,10 +223,9 @@ export function SectionHeader({
 }
 
 // Metadata is a voice, not a shape. Type, date, channel, project, technology:
-// all of it is the machine's own note about the thing on screen, so it is set in
-// uppercase mono and strung together with middle dots. The pills these replaced
-// gave four coloured lozenges equal weight to the sentence they described, which
-// is the generic AI-tool look and also a lie about the hierarchy.
+// one quiet line in Geist, strung together with middle dots. Neither the pills
+// this replaced two redesigns ago nor the uppercase mono it replaced now: the
+// mono read as debug output, and a date is something a person reads.
 //
 // Falsy items are dropped so a caller can pass a value that may not exist
 // without also having to build the separators.
@@ -231,7 +233,7 @@ export function Meta({ items }: { items: ReactNode[] }) {
   const shown = items.filter(Boolean);
   if (shown.length === 0) return null;
   return (
-    <span className="inline-flex flex-wrap items-center gap-2 font-data text-label uppercase tracking-[0.12em] text-ink-3">
+    <span className="inline-flex flex-wrap items-center gap-2 text-data text-ink-3">
       {shown.map((item, i) => (
         // Index keys: this is a positional list of already-rendered nodes with
         // no identity of their own, and it re-renders whole or not at all.
@@ -250,15 +252,49 @@ export function Meta({ items }: { items: ReactNode[] }) {
 
 const STATUS_TONES = {
   proposed: "bg-ochre/12 text-ochre",
-  confirmed: "bg-blue/10 text-blue",
+  confirmed: "bg-laurel/10 text-laurel",
   contradicted: "bg-iron/10 text-iron",
-  archived: "bg-slate/12 text-slate",
+  archived: "bg-stone/12 text-stone",
 } as const;
+
+// One shape per status, so the four survive greyscale and every colour
+// blindness: an open circle is still being decided, a filled square is settled,
+// a cross is overruled, a dash is put away. Exported for the thread of
+// entries, which hangs the same four shapes on the project's timeline.
+export function StatusMark({ tone }: { tone: keyof typeof STATUS_TONES }) {
+  const shared = { width: 7, height: 7, viewBox: "0 0 8 8", "aria-hidden": true as const };
+  switch (tone) {
+    case "proposed":
+      return (
+        <svg {...shared}>
+          <circle cx="4" cy="4" r="2.9" fill="none" stroke="currentColor" strokeWidth="1.4" />
+        </svg>
+      );
+    case "confirmed":
+      return (
+        <svg {...shared}>
+          <rect x="1" y="1" width="6" height="6" fill="currentColor" />
+        </svg>
+      );
+    case "contradicted":
+      return (
+        <svg {...shared}>
+          <path d="M1.2 1.2 6.8 6.8M6.8 1.2 1.2 6.8" stroke="currentColor" strokeWidth="1.4" />
+        </svg>
+      );
+    case "archived":
+      return (
+        <svg {...shared}>
+          <path d="M1 4h6" stroke="currentColor" strokeWidth="1.6" />
+        </svg>
+      );
+  }
+}
 
 // The one place a tinted background survives, because a status is the thing the
 // reader has to act on and it earns the extra weight the metadata line gives up.
-// A small rectangle at 3px, not a pill: the shape says label, not tag.
-// Still never colour alone, the word is inside it.
+// A small rectangle at 3px, not a pill; marker shape plus the word, so neither
+// colour nor shape ever carries it alone.
 export function Status({
   tone,
   children,
@@ -268,8 +304,9 @@ export function Status({
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded-label px-[6px] py-[2px] font-data text-label uppercase tracking-[0.12em] ${STATUS_TONES[tone]}`}
+      className={`inline-flex items-center gap-[7px] rounded-label px-[7px] py-[2px] text-label uppercase tracking-[0.12em] ${STATUS_TONES[tone]}`}
     >
+      <StatusMark tone={tone} />
       {children}
     </span>
   );
@@ -277,6 +314,8 @@ export function Status({
 
 // Says what the emptiness means and what to do about it. An empty state that
 // only says "nothing here" leaves the reader wondering whether it is broken.
+// No dashed box: a frame around nothing reads as a wireframe. A loose end of
+// the thread marks the spot instead - the sequence has not started yet.
 export function EmptyState({
   title,
   note,
@@ -287,8 +326,24 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-card border border-dashed border-edge/40 bg-plaster-sunk/40 px-7 py-9 text-center">
-      <p className="text-body font-medium text-ink">{title}</p>
+    <div className="px-7 py-8 text-center">
+      <svg
+        width="56"
+        height="12"
+        viewBox="0 0 56 12"
+        aria-hidden="true"
+        className="mx-auto text-thread-lift/70"
+      >
+        <path
+          d="M2 8c8-6 14 4 22-2s16-4 24 0"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <circle cx="52" cy="7" r="2.2" fill="currentColor" />
+      </svg>
+      <p className="pt-4 text-body font-medium text-ink">{title}</p>
       <p className="mx-auto max-w-[52ch] pt-2 text-small text-ink-2">{note}</p>
       {action ? <div className="flex justify-center pt-5">{action}</div> : null}
     </div>
@@ -299,8 +354,8 @@ type BannerVariant = "error" | "notice" | "done";
 
 const BANNER_VARIANTS: Record<BannerVariant, string> = {
   error: "border-iron/40 bg-iron/5",
-  notice: "border-ochre/40 bg-ochre/5",
-  done: "border-blue/40 bg-blue/5",
+  notice: "border-ochre-mark/40 bg-ochre-mark/5",
+  done: "border-aegean/40 bg-aegean/5",
 };
 
 // Always the same three parts in the same order: what happened, what it means
@@ -334,14 +389,14 @@ export function Banner({
   );
 }
 
-// The old accession-record field: monospace label in a fixed column beside the
-// value. Kept for onboarding, which is a record being filled in and reads
-// correctly that way. New screens use Input and Textarea.
+// The old accession-record field: a small tracked label in a fixed column
+// beside the value. Kept for onboarding, which is a record being filled in and
+// reads correctly that way. New screens use Input and Textarea.
 export function Label({ children, htmlFor }: { children: string; htmlFor?: string }) {
   return (
     <label
       htmlFor={htmlFor}
-      className="block font-data text-label uppercase tracking-[0.12em] text-ink-3"
+      className="block text-label uppercase tracking-[0.12em] text-ink-3"
     >
       {children.length > 24 ? children.slice(0, 24) : children}
     </label>
