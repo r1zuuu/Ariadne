@@ -113,6 +113,9 @@ export default function HomeScreen() {
   }, [activeId]);
 
   const active = projects?.find((p) => p.id === activeId) ?? null;
+  // True once projects arrive from more than one archive, which is the only
+  // case where naming the archive tells the reader anything.
+  const shared = new Set((projects ?? []).map((p) => p.workspaceId)).size > 1;
   const stamp = useStamp(locale);
 
   const ask = (text: string) => {
@@ -310,7 +313,17 @@ export default function HomeScreen() {
                             project.id === activeId ? "text-ink" : "text-ink-2"
                           }`}
                         >
-                          <span className="min-w-0 truncate text-small">{project.name}</span>
+                          <span className="min-w-0 truncate text-small">
+                            {project.name}
+                            {/* Only once there is more than one archive in play.
+                                With a single workspace this line would repeat
+                                the same name under every project. */}
+                            {shared && project.workspaceName ? (
+                              <span className="pl-3 font-data text-data uppercase tracking-[0.08em] text-ink-3">
+                                {project.workspaceName}
+                              </span>
+                            ) : null}
+                          </span>
                           <span className="shrink-0 font-data text-data tabular text-ink-3">
                             {t("entries", { count: project.nodeCount ?? 0 })}
                           </span>

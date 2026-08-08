@@ -740,7 +740,12 @@ const conversation = await call("/conversations", {
   token,
   body: { projectId, kind: "ask", messages: [{ role: "user", text: "Dlaczego Drizzle?" }] },
 });
-check("a conversation is created", conversation.status, 200);
+check("a conversation is created", conversation.status, 201);
+check(
+  "and the row it hands back carries no user id",
+  "userId" in conversation.body,
+  false,
+);
 check(
   "another account cannot read it",
   (await call(`/conversations/${conversation.body.id}`, { token: theirToken })).status,

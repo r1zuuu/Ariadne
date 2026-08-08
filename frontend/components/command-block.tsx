@@ -18,16 +18,24 @@ const RETURN_AFTER = 4000;
 type CopyState = "idle" | "copied" | "unavailable";
 
 // The sentences are the caller's, not this component's: the same block carries a
-// full command for Claude Code and a bare token for everything else, and those
-// need different words above and below.
+// full command for Claude Code, a bare token, and an invitation code, and those
+// need different words above and below. The warning was the exception until it
+// appeared under an invitation code telling the reader it was a token they would
+// never see again, which was two lies in one line.
 export function CommandBlock({
   command,
   what,
   where,
+  warn,
+  copyLabel,
 }: {
   command: string;
   what: string;
   where: string;
+  /** Shown under the block in ochre. Only for something genuinely shown once. */
+  warn?: string;
+  /** Defaults to "copy the command", which is wrong for anything that is not one. */
+  copyLabel?: string;
 }) {
   const t = useTranslations("onboarding.agent");
   const [state, setState] = useState<CopyState>("idle");
@@ -79,7 +87,7 @@ export function CommandBlock({
 
       <div className="flex items-center gap-6 pt-5">
         <Button variant="secondary" onClick={copy} disabled={state === "unavailable"}>
-          {state === "copied" ? t("copied") : t("copy")}
+          {state === "copied" ? t("copied") : (copyLabel ?? t("copy"))}
         </Button>
         {state === "unavailable" ? (
           <span className="text-small text-ink-2">{t("copyUnavailable")}</span>
@@ -87,7 +95,7 @@ export function CommandBlock({
       </div>
 
       <p className="max-w-[68ch] pt-6 text-small text-ink-2">{where}</p>
-      <p className="max-w-[68ch] pt-3 text-small text-ochre">{t("tokenOnce")}</p>
+      {warn ? <p className="max-w-[68ch] pt-3 text-small text-ochre">{warn}</p> : null}
     </div>
   );
 }

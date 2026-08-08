@@ -6,11 +6,13 @@ product
 
 ## Users
 
-Two audiences read the same archive, and neither is optional.
+Four audiences read the same archive, and none is optional.
 
 **The coder.** Claude Code, Codex or any other LLM agent, reaching Ariadne over MCP. It arrives with no memory of the last session, has a budget of tokens and attention, and will answer from the code if the archive looks empty. It never sees a screen. What it needs is a boot payload that admits how much more is behind it, proven in step 4: the graph stayed invisible until the boot context started advertising what it held.
 
 **The owner.** Stanislaw, junior frontend developer, learning by building. Works in Polish, writes code in English, distrusts over-engineering. Uses the app between coding sessions: checks what the coder recorded, confirms or rejects it, asks the archive questions. Wants to understand why a thing was built a certain way, not just that it was.
+
+**The teammate.** Someone invited into the same workspace. They did not make the decision they are reading, were not in the room, and their own agent has never seen this project. What the archive owes them is attribution: every entry says who recorded it and, once settled, whose judgement settled it. Anyone in a workspace may confirm, so a status without a name on it would mean only that somebody, once, agreed.
 
 **The non-technical person.** The reason the product exists rather than a config file. Sees only the output of an LLM and has no way to tell it what was already decided. Lives on three screens: the project list, the assistant chat, and talking to the archive. Never touches the graph, never types a uuid, and will abandon setup the moment it asks for an environment variable. Step 4 proved how real that risk is: connecting a coder cost the owner half a day, with a terminal and help at hand.
 
@@ -46,7 +48,7 @@ The Greek reference is structural, never a prop. Ariadne's thread is what got Th
 
 **Every record carries its provenance.** Source, date, project and status travel with the content wherever it is shown. A claim the user cannot trace is a claim they will not act on.
 
-**One archive, two readers.** Nothing is stored for the agent only or for the human only. If the coder can record it, the app can show it, edit it and archive it, and the reverse holds too.
+**One archive, many readers.** Nothing is stored for the agent only or for the human only. If the coder can record it, the app can show it, edit it and archive it, and the reverse holds too. The archive belongs to a workspace rather than to a person, so the same rule now spans people: what one member records, every member reads, through the app and through their own coder.
 
 **Status is the product.** proposed, confirmed, contradicted and archived is the state machine the whole thing turns on. It has to be legible on every surface, and never by colour alone.
 

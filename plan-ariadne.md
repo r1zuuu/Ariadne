@@ -2,9 +2,9 @@
 
 Warstwa pamieci dla LLM coderow. Nic ariadny: wychodzisz z sesji i wracasz dokladnie tam, gdzie skonczyles. Baza Postgres + pgvector na VPS jako jedyne zrodlo prawdy, aplikacja desktopowa Tauri 2 + Next.js jako klient, komunikacja coderow przez MCP, wyszukiwanie przez RAG z cytowaniem.
 
-## 0. Gdzie jestesmy, stan na 07.08.2026
+## 0. Gdzie jestesmy, stan na 08.08.2026
 
-Branch: feature/screen-3-home. Na main sa zmergowane kroki 1 do 5b (PR #1 do #7). Do scalenia zostaje ekran glowny.
+Na main sa zmergowane kroki 1 do 5d razem z redesignem UI (PR #1 do #10). Do scalenia zostaja dwa branche: feature/workspaces-backend (wlasnosc przeniesiona z usera na workspace) i wychodzacy z niego feature/screen-8-settings (ekran 8 i zespol w interfejsie). MVP z sekcji 11 jest kompletne: osiem ekranow na osiem.
 
 Zrobione i sprawdzone:
 - Kroki 1 do 4 zamkniete. Krok 4 potwierdzony na prawdziwym repo portfolio: coder laduje boot context, zapisuje decyzje, podsumowuje sesje, a nastepna sesja odpowiada z tego podsumowania i siega po search_context dzieki indexowi.
@@ -25,10 +25,14 @@ Czego brakuje w 5b: nic. Krok domkniety.
 
 - Redesign UI (planUI.md): karty zamiast ciaglych hairline'ow, prawdziwy project switcher, czytelny active state, composer na dashboardzie oddajacy pytanie asystentowi, zwijane zrodla, kolejka grupowana po projekcie, projekt jako profil do czytania, split screen na logowaniu z obrazem z public/. Doszly toasty po kazdym zapisie i empty states mowiace co dalej. DESIGN.md przepisany: Paper Rule (zero radius powyzej 2px, zadnych kart) zastapiona Card Rule.
 
-Zostaje z MVP: ekran 8 (ustawienia: profil, tokeny, all-permission).
+- Tryb zespolowy (dawny krok 7, wyciagniety przed MVP na prosbe usera): wlascicielem archiwum jest workspace, nie osoba. Dochodza tabele workspaces, memberships i invites, a projects, nodes, pending_actions i api_tokens przechodza z user_id na workspace_id. Kazde konto dostaje przy rejestracji prywatny workspace, wiec praca w pojedynke to workspace z jednym czlonkiem i w kodzie nie ma dwoch sciezek. Zaproszenie to kod do skopiowania, opcjonalnie zwiazany z adresem. Token MCP nalezy do workspace, wiec coder kolegi czyta ten sam kontekst i widzi, kto co zapisal. verify-rest.ts urosl ze 105 do 155 sprawdzen.
+- Ekran 8 (ustawienia): konto z profilem, zmiana hasla, przelacznik jezyka, automatyczne zatwierdzanie, tokeny z lista i odwolywaniem, zespol z czlonkami i zaproszeniami. GET /tokens i DELETE /tokens/:id istnialy od 5a i do teraz nie mialy w aplikacji zadnego wywolania.
+- Doszly tez: limit prob logowania (licznik w pamieci procesu, 10 na 15 minut na adres) i PUT /me/password.
+
+Zostaje z MVP: nic. Osiem ekranow z sekcji 11 stoi.
 
 Jedna decyzja czeka na usera:
-1. Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie. Rekomendacja: wyciac z ekranu 01 i przeniesc do sekcji 14, bo OAuth w Tauri to loopback albo deep link plus endpoint providera, a konto na haslo juz dziala.
+1. Logowanie przez Google: zaprojektowane na ekranie 01, ale nie ma go ani w sekcji 10, ani w backendzie, ani w kodzie frontu (grep po "google" trafia tylko w skrypt do fontow). Rekomendacja: zapisac w sekcji 14 jako swiadomie odlozone, bo OAuth w Tauri to loopback albo deep link plus endpoint providera, a konto na haslo dziala.
 
 Czego swiadomie nie ma po redesignie: przycisku "Zatwierdz wszystkie" (brak endpointu wsadowego, a hurtowe zatwierdzanie nieprzeczytanej wiedzy kloci sie z zasada, ze nic nie trafia do pamieci bez swiadomej zgody). Sekcja "ostatnia aktywnosc" zlozona z updatedAt i createdAt, bez tabeli zdarzen.
 
@@ -81,10 +85,43 @@ CREATE TABLE users (
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE api_tokens (
+-- Wlasciciel archiwum. Kazde konto dostaje swoj prywatny przy rejestracji,
+-- wiec praca w pojedynke to workspace z jednym czlonkiem.
+CREATE TABLE workspaces (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  token_hash text NOT NULL,                 -- sha256 tokenu; token pokazany raz przy generacji
+  name       text NOT NULL,
+  owner_id   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Cala regula dostepu. Kazda bramka w warstwie serwisowej to join przez ta tabele.
+CREATE TABLE memberships (
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role         text NOT NULL DEFAULT 'member' CHECK (role IN ('owner','member')),
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (workspace_id, user_id)
+);
+
+-- Kod do skopiowania, nie mail: nie ma nadawcy ani publicznego adresu, w ktory
+-- odbiorca mialby kliknac. email jest opcjonalny i wiaze kod z jednym adresem.
+CREATE TABLE invites (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  code         text UNIQUE NOT NULL,
+  email        text,
+  created_by   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at   timestamptz NOT NULL,
+  accepted_by  uuid REFERENCES users(id) ON DELETE SET NULL,
+  accepted_at  timestamptz,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE api_tokens (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,      -- kto wygenerowal
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE, -- do czego siega
+  token_hash text UNIQUE NOT NULL,           -- sha256 tokenu; token pokazany raz przy generacji
   label      text NOT NULL DEFAULT '',      -- np. "laptop praca"
   created_at timestamptz NOT NULL DEFAULT now(),
   last_used_at timestamptz
@@ -92,7 +129,7 @@ CREATE TABLE api_tokens (
 
 CREATE TABLE projects (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id         uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  workspace_id    uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   name            text NOT NULL,
   repo_ref        text NOT NULL,            -- URL git remote origin, znormalizowany (bez .git, lowercase host)
   opis            text NOT NULL DEFAULT '', -- jedno zdanie: co to i po co
@@ -105,13 +142,18 @@ CREATE TABLE projects (
                     CHECK (etap IN ('prototyp','produkcja','utrzymanie')),
   created_at      timestamptz NOT NULL DEFAULT now(),
   updated_at      timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id, repo_ref)
+  UNIQUE (workspace_id, repo_ref)
 );
 
 CREATE TABLE nodes (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+  project_id   uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  -- Kto zapisal i kto zatwierdzil. SET NULL, nie CASCADE: wspolne archiwum
+  -- przezywa osobe, ktora je wypelniala.
+  author_id    uuid REFERENCES users(id) ON DELETE SET NULL,
+  confirmed_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  confirmed_at timestamptz,
   type       text NOT NULL CHECK (type IN ('session_summary','decision','note')),
   content    text NOT NULL,                 -- jedna mysl po ludzku; to idzie do embeddingu
   status     text NOT NULL DEFAULT 'proposed'
@@ -138,11 +180,13 @@ CREATE INDEX code_anchors_by_node ON code_anchors (node_id);
 
 CREATE TABLE pending_actions (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
   node_id      uuid NOT NULL REFERENCES nodes(id) ON DELETE CASCADE,
   action       text NOT NULL CHECK (action IN ('update','delete')),
   payload      jsonb NOT NULL DEFAULT '{}', -- dla update: { "content": "...", "anchors": [...] }
-  requested_by text NOT NULL CHECK (requested_by IN ('coder','app_agent')),
+  requested_by text NOT NULL CHECK (requested_by IN ('coder','app_agent')), -- kanal
+  requested_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,        -- osoba
+  resolved_by  uuid REFERENCES users(id) ON DELETE SET NULL,
   status       text NOT NULL DEFAULT 'pending'
                  CHECK (status IN ('pending','approved','rejected')),
   created_at   timestamptz NOT NULL DEFAULT now(),
@@ -159,6 +203,8 @@ CREATE TABLE edges (
   UNIQUE (from_node_id, to_node_id, type)
 );
 ```
+
+Kto co widzi: conversations zostaje przy user_id, bo rozmowa jest wlasnoscia osoby, nie zespolu. Wszystko inne nalezy do workspace. Migracje 0003 do 0005 przeniosly istniejace dane: kazdy user dostal prywatny workspace nazwany swoim adresem, a jego projekty, wezly, kolejka i tokeny trafily do niego. Sprawdzone na prawdziwej bazie: 2 konta, 4 projekty, 18 wezlow, zero wierszy bez wlasciciela.
 
 Format kolumny source (jsonb):
 ```json
@@ -349,8 +395,17 @@ Auth: POST /auth/register (email, haslo), POST /auth/login -> JWT, haslo hashowa
 - POST /nodes/:id/archive     odrzucenie / archiwizacja
 - POST /chat/query            pytanie do asystenta RAG (streaming odpowiedzi)
 - POST /chat/edit             konwersacyjny edytor bazy (tani LLM z narzedziami)
+- PUT  /me/password           zmiana hasla (obecne + nowe)
+- GET  /workspaces            przestrzenie, do ktorych naleze, z rola i liczba osob
+- POST /workspaces            zalozenie kolejnej
+- GET  /workspaces/:id/members
+- DELETE /workspaces/:id/members/:userId   usuniecie przez wlasciciela albo wyjscie wlasne
+- GET  /workspaces/:id/invites             otwarte zaproszenia
+- POST /workspaces/:id/invites             nowy kod, opcjonalnie zwiazany z adresem
+- DELETE /invites/:id                      uniewaznienie
+- POST /invites/:code/accept               dolaczenie zalogowanego konta
 
-Wszystkie endpointy poza /auth/* wymagaja JWT i scopuja po user_id.
+Wszystkie endpointy poza /auth/* wymagaja JWT. Scope idzie po workspace przez join do memberships, nie po user_id: projekt widzi kazdy czlonek przestrzeni, do ktorej projekt nalezy. Wyjatkiem sa /me/*, /tokens i /conversations, ktore sa osobiste.
 
 Ustalenia z realizacji (krok 5a):
 - Odpowiedzi REST sa camelCase, w przeciwienstwie do snake_case w kontrakcie MCP. Jedynym klientem jest aplikacja w TypeScript, wiec warstwa konwersji byla by kodem bez odbiorcy.
@@ -369,9 +424,11 @@ Ustalenia z realizacji (krok 5a):
 5. Chat RAG: pytanie, odpowiedz z cytowaniami (zrodlo + data + anchors jako linki do plikow).
 6. Rozmawiaj z baza: chat z tanim LLM, ktory dodaje / proponuje edycje / proponuje usuniecia; propozycje destrukcyjne widoczne od razu jako karty do zatwierdzenia.
 7. Do potwierdzenia: feed pending_actions oraz wezlow proposed i contradicted; przyciski potwierdz / odrzuc; nieblokujacy, mozna ignorowac.
-8. Ustawienia: profil, tokeny, all-permission, klucz Gemini (jesli user daje wlasny).
+8. Ustawienia: konto (profil, zmiana hasla, jezyk), automatyczne zatwierdzanie, tokeny MCP z lista i odwolywaniem, zespol (przestrzenie, czlonkowie, zaproszenia, wyjscie, wpisanie kodu). Klucz Gemini per user nie wszedl, MVP stoi na wspolnym kluczu aplikacji (sekcja 14).
 
 Nietechniczny user zyje w ekranach 3, 5, 6. Techniczny dodatkowo w 4 i 7. Nic wiecej w wersji pierwszej.
+
+Zespol nie dostal osobnego ekranu. Jest sekcja ekranu 8, bo to ustawienie zmieniane dwa razy i zapominane, a osobna pozycja w kolumnie mowilaby, ze to miejsce, w ktorym sie pracuje. Osoba zaproszona do cudzej przestrzeni nie ma wlasnego projektu, wiec ekran wejscia wysyla ja do onboardingu; krok z karta projektu ma odnosnik do ustawien, inaczej zaproszenie konczy sie na formularzu zakladania projektu, ktorego ta osoba nie zamierzala zakladac.
 
 ## 11a. First-run onboarding (product education)
 
@@ -562,9 +619,13 @@ Krok 5d. Graf i rozmawiaj z baza.
 - GET /projects/:id/graph (sekcja 8), POST /chat/edit, ekrany 4, 6 i 7.
 - Gotowe gdy: widzisz wezly projektu jako graf i poprawiasz wpis rozmowa.
 
-Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezycie, Row-Level Security, hook konca sesji dla Claude Code, obsluga coderow bez MCP (cienkie CLI).
+Krok 5e. Ekran 8 i tryb zespolowy. ZROBIONE 2026-08-08, branche feature/workspaces-backend i feature/screen-8-settings.
+- Gotowe gdy: druga osoba dostaje kod, dolacza i czyta ten sam projekt, a jej coder siega po ten sam kontekst przez MCP.
+- Spelnione: verify-rest.ts, 155 sprawdzen (bylo 105), w tym pelny obieg zaproszenia, 404 dla osoby spoza przestrzeni na projekt, wezly, kolejke i graf, podpis przy zatwierdzonym wpisie, zmiana hasla i limit logowania. Do tego przeklikane w przegladarce na dwoch kontach: A tworzy zaproszenie, B je przyjmuje i widzi projekt A.
+- Znalezione przez klikanie, nie przez czytanie kodu: kod zaproszenia wyswietlal sie pod ostrzezeniem "ten token widzisz raz" (CommandBlock mial to zdanie zaszyte, wbrew wlasnemu komentarzowi), przyjecie zaproszenia nie odswiezalo kolumny, a osoba zaproszona nie miala jak dojsc do pola na kod, bo onboarding nie ma menu.
+- Odstepstwo od sekcji 13 w wersji sprzed tej zmiany: tryb zespolowy byl krokiem 7 "kierunek, nie zadanie". User zdecydowal inaczej i wszedl przed MVP. Wycena z tamtego akapitu okazala sie trafna co do zakresu: przepisany scope w warstwie serwisowej i przepisany blok cross-user w verify-rest.ts.
 
-Krok 7 (kierunek, nie zadanie). Tryb zespolowy: jeden projekt, kilka osob, wspolna baza kontekstu.
+Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezycie, Row-Level Security, hook konca sesji dla Claude Code, obsluga coderow bez MCP (cienkie CLI).
 
 Dlaczego to jest prawdopodobnie wlasciwy produkt, a wersja jednoosobowa prototypem: solo Ariadne konkuruje z wlasna pamiecia usera, ktory polowe decyzji z zeszlego tygodnia i tak pamieta. W zespole ta konkurencja znika, bo decyzja kolegi z wtorku nie jest w polowie zapamietana, ona jest calkowicie niewidzialna. CLAUDE.md w repo trzyma reguly, nie powody, i nikt go nie aktualizuje po rozmowie na Slacku. Do tego kazda osoba ma wlasnego agenta, a kazdy agent startuje od zera: piec osob to piec agentow codziennie odgadujacych ten sam kontekst. Oszczednosc mnozy sie przez liczbe ludzi.
 
@@ -575,6 +636,8 @@ Czego to kosztuje, zeby nie wygladalo na dolozenie tabelki:
 - Hosting przestaje byc lokalnym Dockerem: prawdziwy serwer, zaproszenia, mail, reset hasla, w koncu rozliczenia.
 
 Najtrudniejszy problem nie jest techniczny, jest znaczeniowy. Statusy zakladaja jedna osobe decydujaca: proposed to "nikt tego nie ocenil", confirmed to "ja potwierdzilem". W zespole natychmiast pada pytanie, kto potwierdza. Jesli kazdy, to confirmed nic nie znaczy, bo junior potwierdzi decyzje architektoniczna, ktorej nie rozumie. Jesli tylko wlasciciel, to jest waskim gardlem i kolejka rosnie do stu pozycji. Do tego dwie osoby zapisza tego samego dnia dwie sprzeczne decyzje, obie proposed, obie szczere, i nie ma automatu, ktory to rozstrzygnie. Bez odpowiedzi na to pytanie tryb zespolowy nie ma sensu, choćby cala schema byla gotowa.
+
+Odpowiedz z 08.08.2026, decyzja usera: zatwierdza kazdy czlonek, a wpis zapamietuje kto i kiedy (nodes.confirmed_by, confirmed_at). Podpis jest tym, co ratuje status przed znaczeniem "ktos kiedys sie zgodzil": czytelnik widzi, czyja to byla ocena, i moze ja zakwestionowac przez contradicted. Waskie gardlo u wlasciciela bylo drozsze niz ryzyko, ze junior potwierdzi cos, czego nie rozumie. Dwie sprzeczne decyzje tego samego dnia dalej rozstrzyga czlowiek, przez supersededBy; automatu na to nadal nie ma i nie planujemy.
 
 Czego w trybie zespolowym NIE robimy na start: uprawnien per rola. Wartosc siedzi we wspolnym czytaniu i w przypisanym zapisie, nie w macierzy uprawnien. Role to osobna warstwa i typowo pierwsza rzecz, ktora niepotrzebnie zabija projekt na tym etapie.
 
@@ -587,11 +650,14 @@ Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym
 - Mapowanie codebase (AST, call graph): nigdy, to inny projekt (Graphify).
 - Graph RAG, typy krawedzi, tabela edges: krok 6.
 - Ocena wagi decyzji (blaha vs nosna) i auto-awans statusow: krok 6.
-- Row-Level Security: krok 6 (na start scope po user_id w warstwie serwisowej).
+- Row-Level Security: krok 6. Scope stoi na warstwie serwisowej i na bloku cross-workspace w verify-rest.ts. Przy zespolach to przestaje byc "miloby bylo", wiec jest to pierwsza pozycja kroku 6, nie dowolna.
 - Historia wersji tresci wezla: gdy okaze sie potrzebna.
 - Coderzy bez MCP: gdy zajdzie potrzeba.
 - Wlasny klucz Gemini per user vs wspolny klucz aplikacji: MVP na wspolnym, przelacznik w ustawieniach pozniej.
-- Tryb zespolowy: krok 7, z wycena. Budujemy dla jednego usera i dopiero on ma dzialac. Jedyny wyjatek to autor wpisu w warstwie wizualnej, bo retrofit tego jest drogi, a dopisanie darmowe.
+- Wysylka zaproszen mailem: dopiero z VPS-em. Zaproszenie to dzis kod do skopiowania, kolumna invites.email juz jest i wiaze kod z adresem, wiec dolozenie nadawcy to jeden endpoint na gotowej kolumnie. Bez publicznego adresu link z maila nie ma dokad prowadzic.
+- Usuniecie przestrzeni i przekazanie wlasnosci: nie ma. Wlasciciel nie moze wyjsc z wlasnej przestrzeni, a zalozonej nie da sie skasowac z aplikacji. Do zrobienia, gdy ktos zalozy druga przez pomylke.
+- Nazwa wyswietlana usera: autora pokazujemy mailem, a scislej czescia przed malpa. Kolumna dojdzie, gdy adresy przestana wystarczac.
+- Uniewaznienie JWT po zmianie hasla: nie ma denylisty, token wygasa po 30 dniach.
 
 ## 15. Frontend, pozniej
 
@@ -601,4 +667,4 @@ Inne pozycje frontendu, ktore czekaja na decyzje albo na dane:
 - Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie. OAuth w Tauri wymaga loopbacku albo deep linku plus endpointu providera.
 - Przelacznik motywu: spec go zabrania, ale aplikacja desktopowa na systemie ustawionym na ciemny bedzie razic. Do przegadania, gdy beda wszystkie ekrany, nie na sucho.
 - Zachowanie na bardzo szerokim oknie: tekst jest ograniczony do 68 znakow, wiec przy 3440 px zostaje duzo pustego tynku. Spec nie mowi, co ma sie tam dziac.
-- Przelacznik jezyka: dzis tylko przez localStorage, docelowo w ustawieniach, czyli ekran 8.
+- Przelacznik jezyka: zrobiony, siedzi w ekranie 8 nad sekcja automatycznego zatwierdzania. Dalej trzyma wybor w localStorage, bo to preferencja tego okna, nie konta.

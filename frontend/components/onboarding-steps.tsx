@@ -215,11 +215,17 @@ export function AgentStep({
             command={`claude mcp add --scope user --transport http ariadne ${host}/mcp --header "Authorization: Bearer ${token}"`}
             what={t("what")}
             where={t("where")}
+            warn={t("tokenOnce")}
           />
         ) : (
           <div>
             <p className="max-w-[68ch] text-small text-ink-2">{t("other.note", { url: `${host}/mcp` })}</p>
-            <CommandBlock command={token} what={t("tokenWhat")} where={t("tokenWhere")} />
+            <CommandBlock
+              command={token}
+              what={t("tokenWhat")}
+              where={t("tokenWhere")}
+              warn={t("tokenOnce")}
+            />
           </div>
         )}
       </div>
