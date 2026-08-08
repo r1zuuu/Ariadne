@@ -278,7 +278,7 @@ function Queued({
       </ul>
       <Link
         href="/pending"
-        className="mt-4 inline-block text-small text-blue underline underline-offset-2"
+        className="mt-4 inline-block text-small text-thread underline underline-offset-2"
       >
         {t("queuedLink")}
       </Link>

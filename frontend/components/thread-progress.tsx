@@ -33,7 +33,7 @@ export function ThreadProgress({ step }: { step: 1 | 2 | 3 }) {
                     {/* The drawn part of the thread, growing from the left so it
                         reads as being pulled forward. */}
                     <span
-                      className="absolute inset-0 origin-left bg-blue transition-transform ease-thread"
+                      className="absolute inset-0 origin-left bg-thread transition-transform ease-thread"
                       style={{
                         transform: index + 1 <= step ? "scaleX(1)" : "scaleX(0)",
                         transitionDuration: "var(--duration-thread)",
@@ -51,7 +51,7 @@ export function ThreadProgress({ step }: { step: 1 | 2 | 3 }) {
                         index + 1 === step && step > 1 ? "var(--duration-thread)" : "0ms",
                     }}
                     className={`block shrink-0 transition-colors duration-state ease-out-quint ${
-                      reached ? "bg-blue" : "border border-edge bg-transparent"
+                      reached ? "bg-thread" : "border border-edge bg-transparent"
                     }`}
                   />
                   <span

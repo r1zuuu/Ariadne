@@ -142,7 +142,7 @@ export default function HomeScreen() {
             {active?.nodeCount ? (
               <p className="pt-5 text-small text-ink-3">
                 {t("memoryLine", { decisions: decisions?.length ?? 0, entries: active.nodeCount })}{" "}
-                <Link href="/project" className="text-blue underline underline-offset-2">
+                <Link href="/project" className="text-thread underline underline-offset-2">
                   {t("memoryLink")}
                 </Link>
               </p>
@@ -218,7 +218,7 @@ export default function HomeScreen() {
                     waitingCount ? (
                       <Link
                         href="/pending"
-                        className="text-small text-blue underline underline-offset-2"
+                        className="text-small text-thread underline underline-offset-2"
                       >
                         {t("waitingAll")}
                       </Link>
@@ -251,7 +251,7 @@ export default function HomeScreen() {
                       ))}
                     <Link
                       href="/pending"
-                      className="block px-5 py-3 text-small text-blue transition-colors hover:bg-surface-2"
+                      className="block px-5 py-3 text-small text-thread transition-colors hover:bg-surface-2"
                     >
                       {t("waitingAll")} ({waitingCount})
                     </Link>
@@ -316,7 +316,7 @@ function AboutProject({ project, onOpen }: { project: Project; onOpen: () => voi
       <SectionHeader
         title={t("about")}
         action={
-          <button onClick={onOpen} className="text-small text-blue underline underline-offset-2">
+          <button onClick={onOpen} className="text-small text-thread underline underline-offset-2">
             {t("openProject")}
           </button>
         }

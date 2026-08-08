@@ -11,13 +11,14 @@ const UA =
 // name, which no screen ever rendered, so it went with Literata.
 const SUBSETS = new Set(["latin", "latin-ext"]);
 
-// Marcellus is one static weight by design, so the headline steps ask for 400
-// and never for bold: there is no 600 cut to load, only a synthesised one.
-// Geist and Martian Mono are variable, one file per subset covering every weight.
+// All three are variable, one file per subset covering every weight. Bodoni
+// Moda carries an optical-size axis (6..96): browsers pick the right cut for
+// the rendered size on their own, which matters for a didone whose hairlines
+// vanish when a display cut is shrunk.
 const FAMILIES = [
-  ["marcellus", "Marcellus"],
+  ["bodoni-moda", "Bodoni+Moda:opsz,wght@6..96,400..900"],
   ["geist", "Geist:wght@100..900"],
-  ["martian-mono", "Martian+Mono:wght@400..500"],
+  ["geist-mono", "Geist+Mono:wght@400..500"],
 ];
 
 // The generated CSS is the only index of what belongs here, so a family that

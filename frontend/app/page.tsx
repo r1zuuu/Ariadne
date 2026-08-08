@@ -149,7 +149,7 @@ export default function EntryScreen() {
                   setMode(mode === "login" ? "register" : "login");
                   setError(null);
                 }}
-                className="rounded-control font-medium text-blue underline underline-offset-2"
+                className="rounded-control font-medium text-thread underline underline-offset-2"
               >
                 {mode === "login" ? t("switchToRegister") : t("switchToLogin")}
               </button>
@@ -161,14 +161,14 @@ export default function EntryScreen() {
               <span
                 aria-hidden="true"
                 className={`h-[6px] w-[6px] rounded-pill ${
-                  down ? "bg-iron" : server === "up" ? "bg-blue" : "bg-ink-3/40"
+                  down ? "bg-iron" : server === "up" ? "bg-thread" : "bg-ink-3/40"
                 }`}
               />
               <span className={down ? "text-iron" : undefined}>
                 {t(`server.${server}`, { url: HOST })}
               </span>
               {down ? (
-                <button type="button" onClick={probe} className="text-blue underline underline-offset-2">
+                <button type="button" onClick={probe} className="text-thread underline underline-offset-2">
                   {t("server.retry")}
                 </button>
               ) : null}
@@ -198,7 +198,7 @@ function ArtPanel({ tagline }: { tagline: string }) {
       />
       {/* Barely there, and in the brand navy: enough to tie the panel to the
           rest of the product without turning the painting into a gradient. */}
-      <div className="absolute inset-0 bg-blue/10 mix-blend-multiply" />
+      <div className="absolute inset-0 bg-thread/10 mix-blend-multiply" />
       <p className="absolute bottom-10 left-10 right-10 display-serif text-lead text-canvas-ink/85">
         {tagline}
       </p>

@@ -174,7 +174,7 @@ function ReadView({ project }: { project: Project }) {
       {/* Set apart with the thread colour, because this is the section that
           steers the agent: everything else describes the project, this one
           constrains what may be done to it. */}
-      <Card className="border-blue/25 p-6">
+      <Card className="border-thread/25 p-6">
         <h2 className="text-lead text-ink">{t("limits")}</h2>
         <p className="pb-3 pt-1 text-small text-ink-3">{t("limitsNote")}</p>
         <p
@@ -253,7 +253,7 @@ function EditCard({
           id="etap"
           value={draft.etap}
           onChange={set("etap")}
-          className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-blue focus:ring-2 focus:ring-blue/15"
+          className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-thread focus:ring-2 focus:ring-thread/15"
         >
           {["prototyp", "produkcja", "utrzymanie"].map((stage) => (
             <option key={stage} value={stage}>

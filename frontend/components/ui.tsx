@@ -21,7 +21,7 @@ type ButtonVariant = "primary" | "secondary" | "quiet" | "destructive";
 type ButtonSize = "md" | "lg";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-blue text-white border border-blue hover:bg-blue/90 active:bg-blue",
+  primary: "bg-thread text-white border border-thread hover:bg-thread/90 active:bg-thread",
   secondary: "border border-edge/60 bg-surface text-ink hover:bg-plaster-sunk hover:border-edge",
   quiet: "border border-transparent text-ink-2 hover:bg-plaster-sunk hover:text-ink",
   destructive: "border border-iron/40 bg-surface text-iron hover:bg-iron/8 hover:border-iron",
@@ -97,7 +97,7 @@ export function Input({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3/60 focus:border-blue focus:ring-2 focus:ring-blue/15 ${
+        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3/60 focus:border-thread focus:ring-2 focus:ring-thread/15 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -127,7 +127,7 @@ export function Textarea({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3/60 focus:border-blue focus:ring-2 focus:ring-blue/15 ${
+        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3/60 focus:border-thread focus:ring-2 focus:ring-thread/15 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -250,9 +250,9 @@ export function Meta({ items }: { items: ReactNode[] }) {
 
 const STATUS_TONES = {
   proposed: "bg-ochre/12 text-ochre",
-  confirmed: "bg-blue/10 text-blue",
+  confirmed: "bg-thread/10 text-thread",
   contradicted: "bg-iron/10 text-iron",
-  archived: "bg-slate/12 text-slate",
+  archived: "bg-stone/12 text-stone",
 } as const;
 
 // The one place a tinted background survives, because a status is the thing the
@@ -300,7 +300,7 @@ type BannerVariant = "error" | "notice" | "done";
 const BANNER_VARIANTS: Record<BannerVariant, string> = {
   error: "border-iron/40 bg-iron/5",
   notice: "border-ochre/40 bg-ochre/5",
-  done: "border-blue/40 bg-blue/5",
+  done: "border-thread/40 bg-thread/5",
 };
 
 // Always the same three parts in the same order: what happened, what it means

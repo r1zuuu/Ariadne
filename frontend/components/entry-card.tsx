@@ -96,7 +96,7 @@ export function EntryCard({
           <button
             type="button"
             onClick={() => setOpen(!open)}
-            className="pt-2 text-small text-blue underline underline-offset-2"
+            className="pt-2 text-small text-thread underline underline-offset-2"
           >
             {open ? t("showLess") : t("showMore")}
           </button>

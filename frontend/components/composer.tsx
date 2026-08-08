@@ -61,7 +61,7 @@ export function Composer({
 
   return (
     <div>
-      <div className="rounded-card border border-edge/50 bg-surface shadow-card transition-colors duration-state focus-within:border-blue focus-within:ring-2 focus-within:ring-blue/15">
+      <div className="rounded-card border border-edge/50 bg-surface shadow-card transition-colors duration-state focus-within:border-thread focus-within:ring-2 focus-within:ring-thread/15">
         <textarea
           ref={field}
           rows={rows}

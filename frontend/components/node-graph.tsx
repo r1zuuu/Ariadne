@@ -22,10 +22,10 @@ const RADIUS = SIZE / 2 - 40;
 const DOT = 7;
 
 const STATUS_FILL: Record<NodeStatus, string> = {
-  confirmed: "var(--color-blue)",
+  confirmed: "var(--color-thread)",
   proposed: "var(--color-ochre-mark)",
   contradicted: "var(--color-iron)",
-  archived: "var(--color-slate)",
+  archived: "var(--color-stone)",
 };
 
 export function NodeGraph({ nodes, edges }: { nodes: Node[]; edges: GraphEdge[] }) {
@@ -60,7 +60,7 @@ export function NodeGraph({ nodes, edges }: { nodes: Node[]; edges: GraphEdge[] 
               y1={from.y}
               x2={to.x}
               y2={to.y}
-              stroke="var(--color-blue-lift)"
+              stroke="var(--color-thread-lift)"
               strokeWidth="1"
               strokeDasharray={edge.kind === "similarity" ? "4 4" : undefined}
               opacity={edge.kind === "similarity" ? 0.5 : 0.8}

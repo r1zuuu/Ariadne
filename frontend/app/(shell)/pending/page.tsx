@@ -189,8 +189,8 @@ function ActionCard({
               {action.nodeContent}
             </p>
           </div>
-          <div className="rounded-control border border-blue/20 bg-blue/5 p-4">
-            <p className="pb-2 font-data text-label uppercase tracking-[0.12em] text-blue">
+          <div className="rounded-control border border-thread/20 bg-thread/5 p-4">
+            <p className="pb-2 font-data text-label uppercase tracking-[0.12em] text-thread">
               {t("after")}
             </p>
             <p className="line-clamp-6 whitespace-pre-wrap text-small leading-6 text-ink">

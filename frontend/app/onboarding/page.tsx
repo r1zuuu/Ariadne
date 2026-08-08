@@ -234,7 +234,7 @@ export default function OnboardingScreen() {
               <button
                 type="button"
                 onClick={() => router.push("/settings")}
-                className="pb-10 text-small text-blue underline underline-offset-2"
+                className="pb-10 text-small text-thread underline underline-offset-2"
               >
                 {t("project.joinInstead")}
               </button>

@@ -62,7 +62,7 @@ export default function TourScreen() {
               <path d={THREAD_PATH} stroke="var(--color-hairline)" strokeWidth="1.5" />
               <m.path
                 d={THREAD_PATH}
-                stroke="var(--color-blue)"
+                stroke="var(--color-thread)"
                 strokeWidth="1.5"
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: step / (STEPS.length - 1) }}
@@ -78,7 +78,7 @@ export default function TourScreen() {
                       the markers and a hollow one would have a line through it. */}
                   <span
                     className={`block h-[10px] w-[10px] shrink-0 transition-colors duration-state ease-out-quint ${
-                      reached ? "bg-blue" : "border border-edge bg-plaster"
+                      reached ? "bg-thread" : "border border-edge bg-plaster"
                     }`}
                   />
                   <span

@@ -144,7 +144,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                         className="absolute inset-0 rounded-control bg-surface shadow-card"
                       />
                     ) : null}
-                    <span className={`relative shrink-0 ${current ? "text-blue" : ""}`}>{icon}</span>
+                    <span className={`relative shrink-0 ${current ? "text-thread" : ""}`}>{icon}</span>
                     <span className="relative hidden lg:inline">{t(label)}</span>
                     {section === "pending" && waiting ? (
                       <span className="relative ml-auto hidden rounded-label bg-ochre/15 px-[8px] py-[2px] font-data text-data tabular text-ochre lg:inline">
@@ -216,7 +216,7 @@ function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Pr
         <p className="truncate font-data text-data text-ink-3 max-lg:hidden">
           {tProject(`etap.${active.etap}`)}
         </p>
-        <p className="grid h-[34px] w-full place-items-center rounded-control bg-surface font-data text-data font-medium text-blue lg:hidden">
+        <p className="grid h-[34px] w-full place-items-center rounded-control bg-surface font-data text-data font-medium text-thread lg:hidden">
           {active.name.slice(0, 2).toUpperCase()}
         </p>
       </div>
@@ -234,7 +234,7 @@ function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Pr
             {tProject(`etap.${active.etap}`)}
           </span>
         </span>
-        <span className="grid h-[34px] w-full place-items-center rounded-control bg-surface font-data text-data font-medium text-blue lg:hidden">
+        <span className="grid h-[34px] w-full place-items-center rounded-control bg-surface font-data text-data font-medium text-thread lg:hidden">
           {active.name.slice(0, 2).toUpperCase()}
         </span>
         <svg

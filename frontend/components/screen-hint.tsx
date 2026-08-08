@@ -48,7 +48,7 @@ export function ScreenHint({
 
   return (
     <FadeIn className="pb-6">
-      <div className="flex items-start gap-4 border-l-2 border-blue bg-plaster-sunk/50 py-4 pl-5 pr-3">
+      <div className="flex items-start gap-4 border-l-2 border-thread bg-plaster-sunk/50 py-4 pl-5 pr-3">
         <div className="min-w-0 flex-1">
           <p className="text-small font-medium text-ink">{title}</p>
           {note ? <p className="max-w-[68ch] pt-1 text-small text-ink-2">{note}</p> : null}
