@@ -161,7 +161,7 @@ export default function EntryScreen() {
               <span
                 aria-hidden="true"
                 className={`h-[6px] w-[6px] rounded-pill ${
-                  down ? "bg-iron" : server === "up" ? "bg-thread" : "bg-ink-3/40"
+                  down ? "bg-iron" : server === "up" ? "animate-breathe bg-thread" : "bg-ink-3/40"
                 }`}
               />
               <span className={down ? "text-iron" : undefined}>

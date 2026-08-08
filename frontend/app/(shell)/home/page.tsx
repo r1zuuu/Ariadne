@@ -8,6 +8,7 @@ import { useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
 import { EntryCard, headline } from "@/components/entry-card";
+import { FadeIn } from "@/components/motion";
 import { hasSeenTour } from "@/lib/first-run";
 import { PENDING_QUESTION } from "@/lib/handoff";
 import { listNodes, type Node, type Project } from "@/lib/api";
@@ -186,14 +187,18 @@ export default function HomeScreen() {
                   <EmptyState title={t("decisionsEmpty")} note={t("decisionsEmptyNote")} />
                 ) : (
                   <ul className="flex flex-col gap-3">
-                    {decisions.map((node) => (
+                    {decisions.map((node, i) => (
                       <li key={node.id}>
-                        <EntryCard
-                          entry={node}
-                          meta={`${stamp(new Date(node.createdAt))} · ${t(
-                            node.source?.channel === "coder" ? "channel.agent" : "channel.you",
-                          )}`}
-                        />
+                        {/* A short cascade: the list arrives as a sequence,
+                            which is what a thread of decisions is. */}
+                        <FadeIn delay={Math.min(i * 0.05, 0.2)}>
+                          <EntryCard
+                            entry={node}
+                            meta={`${stamp(new Date(node.createdAt))} · ${t(
+                              node.source?.channel === "coder" ? "channel.agent" : "channel.you",
+                            )}`}
+                          />
+                        </FadeIn>
                       </li>
                     ))}
                   </ul>

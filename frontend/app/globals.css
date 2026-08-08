@@ -124,6 +124,20 @@
   --duration-state: 120ms;
   --duration-enter: 200ms;
   --duration-thread: 420ms;
+
+  /* The one perpetual movement in the product: a 6px dot breathing to say the
+     server is alive. Anything else that loops forever is decoration. */
+  --animate-breathe: breathe 2.6s ease-in-out infinite;
+
+  @keyframes breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
 }
 
 /* Two shadows, both tinted with the warm ink rather than neutral black, so a

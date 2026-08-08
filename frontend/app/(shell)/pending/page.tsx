@@ -1,9 +1,11 @@
 "use client";
 
+import { AnimatePresence, m } from "motion/react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useLocale } from "@/app/locale-provider";
 import { useApp, type PendingFeed } from "@/components/app-provider";
+import { enterTransition } from "@/components/motion";
 import { EntryCard, headline } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
 import { ScreenHint } from "@/components/screen-hint";
@@ -80,21 +82,30 @@ export default function PendingScreen() {
                   <div className="pb-6">
                     <SectionHeader title={t("queued")} />
                     <ul className="flex flex-col gap-3">
-                      {group.actions.map((action) => (
-                        <li key={action.id}>
-                          <ActionCard
-                            action={action}
-                            stamp={stamp}
-                            busy={working === action.id}
-                            onApprove={() =>
-                              void act(action.id, () => approvePending(action.id), t("toastApproved"))
-                            }
-                            onReject={() =>
-                              void act(action.id, () => rejectPending(action.id), t("toastRejected"))
-                            }
-                          />
-                        </li>
-                      ))}
+                      {/* A settled card leaves the queue visibly instead of the
+                          list snapping shorter: the decision happened here. */}
+                      <AnimatePresence initial={false}>
+                        {group.actions.map((action) => (
+                          <m.li
+                            key={action.id}
+                            layout
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={enterTransition}
+                          >
+                            <ActionCard
+                              action={action}
+                              stamp={stamp}
+                              busy={working === action.id}
+                              onApprove={() =>
+                                void act(action.id, () => approvePending(action.id), t("toastApproved"))
+                              }
+                              onReject={() =>
+                                void act(action.id, () => rejectPending(action.id), t("toastRejected"))
+                              }
+                            />
+                          </m.li>
+                        ))}
+                      </AnimatePresence>
                     </ul>
                   </div>
                 ) : null}
@@ -103,8 +114,14 @@ export default function PendingScreen() {
                   <div>
                     <SectionHeader title={t("entries")} />
                     <ul className="flex flex-col gap-3">
-                      {group.nodes.map((node) => (
-                        <li key={node.id}>
+                      <AnimatePresence initial={false}>
+                        {group.nodes.map((node) => (
+                          <m.li
+                            key={node.id}
+                            layout
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={enterTransition}
+                          >
                           <EntryCard
                             entry={node}
                             meta={`${stamp(node.createdAt)} · ${node.projectName}`}
@@ -136,8 +153,9 @@ export default function PendingScreen() {
                               </>
                             }
                           />
-                        </li>
-                      ))}
+                          </m.li>
+                        ))}
+                      </AnimatePresence>
                     </ul>
                   </div>
                 ) : null}
