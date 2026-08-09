@@ -121,7 +121,7 @@ export default function TourScreen() {
                     {t("back")}
                   </Button>
                 ) : null}
-                <Button onClick={() => (last ? leave("/assistant") : setStep(step + 1))}>
+                <Button onClick={() => (last ? leave("/home") : setStep(step + 1))}>
                   {last ? t("start") : t("next")}
                 </Button>
               </div>

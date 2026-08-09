@@ -14,11 +14,12 @@ import { useTranslations } from "next-intl";
 // The written "step 2 of 3" is the information. The line repeats it, which is why
 // reduced motion can drop the drawing without losing anything.
 
-const TOTAL = 3;
-
-export function ThreadProgress({ step }: { step: 1 | 2 | 3 }) {
+export function ThreadProgress({ step }: { step: number }) {
   const t = useTranslations("onboarding");
-  const labels = [t("steps.profile"), t("steps.project"), t("steps.agent")];
+  const labels = [t("steps.profile"), t("steps.key"), t("steps.project"), t("steps.agent")];
+  // Counted from the labels rather than kept next to them: the two disagreeing
+  // is how "step 4 of 3" gets shipped.
+  const TOTAL = labels.length;
 
   return (
     <div className="border-b border-hairline bg-plaster-sunk px-8 py-5">

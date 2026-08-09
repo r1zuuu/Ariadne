@@ -100,11 +100,22 @@ export async function serverReachable(): Promise<boolean> {
 
 // --- Endpoints used by login and onboarding ---
 
+/**
+ * Which key pays for the calls to Google on this account: the person's own,
+ * the server's, or none, in which case writing an entry and both chats stop
+ * working until one is set.
+ */
+export type GeminiKeySource = "user" | "server" | "none";
+
+/** Where a person gets one. Named here because two screens send them there. */
+export const GEMINI_KEY_CONSOLE = "https://aistudio.google.com/apikey";
+
 export type Account = {
   id: string;
   email: string;
   profile: string;
   allPermission: boolean;
+  geminiKey: GeminiKeySource;
   createdAt: string;
 };
 
@@ -133,6 +144,13 @@ export type Node = {
   id: string;
   type: "session_summary" | "decision" | "note";
   content: string;
+  /** Ten words written by the model, the line a card leads with. Empty for
+      entries recorded before this existed, and for a summary call that failed;
+      the card falls back to the first sentence of the content. */
+  summary: string;
+  /** Entries this one appears to contradict, unresolved. Ids only; the screens
+      that offer a decision get the text in `conflicts` alongside. */
+  conflictsWith: string[];
   status: NodeStatus;
   // 'coder' is the agent writing after a session; the other two are the person
   // in this window. The main screen only needs that distinction.
@@ -205,6 +223,13 @@ export type ApiToken = {
 export const listTokens = () => request<ApiToken[]>("/tokens");
 
 export const deleteToken = (id: string) => request<void>(`/tokens/${id}`, { method: "DELETE" });
+
+/** Rejected by the server unless Google accepts the key, so a typo fails here. */
+export const saveGeminiKey = (key: string) =>
+  request<{ geminiKey: GeminiKeySource }>("/me/gemini-key", { method: "PUT", body: { key } });
+
+export const clearGeminiKey = () =>
+  request<{ geminiKey: GeminiKeySource }>("/me/gemini-key", { method: "DELETE" });
 
 export const setAllPermission = (allPermission: boolean) =>
   request<{ allPermission: boolean }>("/me/all-permission", {
@@ -292,7 +317,25 @@ export type PendingAction = {
   projectName: string;
 };
 
-export type ReviewNode = Node & { supersededBy: string | null; projectName: string };
+/** The other side of a suspected clash, with enough text to judge it by. */
+export type ConflictEntry = Pick<Node, "id" | "type" | "content" | "summary" | "status"> & {
+  createdAt: string;
+};
+
+export type ReviewNode = Node & {
+  supersededBy: string | null;
+  projectName: string;
+  conflicts: ConflictEntry[];
+};
+
+/** Which entry stands: the new one, the one already recorded, or both. */
+export type ConflictVerdict = "new" | "old" | "both";
+
+export const resolveConflict = (nodeId: string, otherId: string, verdict: ConflictVerdict) =>
+  request<void>(`/nodes/${nodeId}/conflicts/resolve`, {
+    method: "POST",
+    body: { otherId, verdict },
+  });
 
 export const getPending = () =>
   request<{ pendingActions: PendingAction[]; nodesToReview: ReviewNode[] }>("/pending");
@@ -307,6 +350,8 @@ export type Proposal = {
   nodeId: string;
   content: string;
   pendingActionId?: string;
+  /** Only on a create, and only when the new entry clashes with something. */
+  conflicts?: ConflictEntry[];
 };
 
 // --- Conversations ---

@@ -1,10 +1,10 @@
 "use client";
 
-import { m } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useApp } from "@/components/app-provider";
 import { enterTransition } from "@/components/motion";
 import { TitleBar } from "@/components/title-bar";
@@ -18,7 +18,7 @@ import { resetTour } from "@/lib/first-run";
 // times. Data comes from AppProvider in the (shell) layout, so navigating
 // between screens neither refetches it nor remounts this frame.
 
-export type Section = "home" | "project" | "assistant" | "database" | "pending" | "settings";
+export type Section = "home" | "project" | "database" | "pending" | "settings";
 
 // `label` is not always the section name: "database" is what the screen has
 // always been called in the code and the URL, but "Dodaj kontekst" told a
@@ -42,13 +42,6 @@ const WORK_LINKS: NavLink[] = [
     href: "/project",
     needsProject: true,
     icon: <IconProject />,
-  },
-  {
-    section: "assistant",
-    label: "assistant",
-    href: "/assistant",
-    needsProject: true,
-    icon: <IconAsk />,
   },
   {
     section: "database",
@@ -85,6 +78,19 @@ export function AppShell({ children }: { children: ReactNode }) {
   const active = activeProject;
   const waiting = pendingCount;
 
+  // The column is away by default and comes back on approach, so a screen is
+  // the screen and not a frame around one. Two ways for it to be there: pinned
+  // from the title bar, or reached for with the pointer. Either way it floats
+  // over the page rather than taking a place in the row, so nothing under it
+  // moves sideways when it arrives.
+  const [navPinned, setNavPinned] = useState(false);
+  const [navNear, setNavNear] = useState(false);
+  const navShown = navPinned || navNear;
+
+  // Arriving somewhere puts the frame away again: the column has done its job
+  // the moment the screen changes.
+  useEffect(() => setNavPinned(false), [pathname]);
+
   const signOut = () => {
     clearToken();
     // Not router.push: the token is gone and nothing behind this point should
@@ -94,61 +100,96 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-full flex-col">
-      <TitleBar project={active?.name} server={server} />
+      <TitleBar
+        project={active?.name}
+        server={server}
+        navOpen={navPinned}
+        onToggleNav={() => setNavPinned(!navPinned)}
+      />
 
-      <div className="flex min-h-0 flex-1">
+      <div
+        className="relative flex min-h-0 flex-1"
+        // The pointer's distance from the left edge decides it, rather than an
+        // invisible strip: a strip three quarters of a column wide would sit
+        // over the page swallowing clicks meant for what is under it. Three
+        // quarters to call it in, its full width to keep it, so it neither
+        // needs the very edge nor closes under the pointer.
+        onMouseMove={(event) => {
+          const width = window.innerWidth >= 1024 ? 236 : 68;
+          setNavNear((was) => event.clientX < (was ? width : width * 0.75));
+        }}
+        // A pointer that leaves through any other edge stops sending moves, and
+        // the column would stay out.
+        onMouseLeave={() => setNavNear(false)}
+      >
         {/* Icons only below 1024px, which covers the 880px window minimum, and
             labelled above it. The window opens at 1100px, so the labelled form
-            is what anyone actually sees. */}
-        <nav className="flex w-[68px] shrink-0 flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 lg:w-[236px] lg:p-4">
-          <ProjectSwitcher projects={projects ?? []} active={active} />
+            is what anyone actually sees.
 
-          <NavList
-            links={WORK_LINKS}
-            pathname={pathname}
-            hasProject={!!active}
-            waiting={waiting}
-            className="pt-2"
-          />
-
-          {/* The account group sits under its own hairline: the queue and the
-              settings are about the whole archive, not the open project. */}
-          <NavList
-            links={ACCOUNT_LINKS}
-            pathname={pathname}
-            hasProject={!!active}
-            waiting={waiting}
-            className="mt-2 border-t border-hairline pt-3"
-          />
-
-          <div className="mt-auto flex flex-col gap-1">
-            {/* Next to sign out because it is the same kind of thing: a door out
-                of the work, not part of it. resetTour clears the per-screen
-                notes too, so asking to be shown around brings all of it back. */}
-            <button
-              type="button"
-              onClick={() => {
-                resetTour();
-                router.push("/onboarding-tour");
-              }}
-              title={t("tour")}
-              className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-ink"
+            It comes in from off the left edge on the enter curve: the same
+            200ms every other arrival in the app takes, and the ease that ends
+            slowly, so the column settles rather than stops. Reduced motion is
+            handled by MotionConfig above it - the transform drops and the
+            column is simply there. */}
+        <AnimatePresence initial={false}>
+          {navShown ? (
+            <m.nav
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={enterTransition}
+              className="absolute inset-y-0 left-0 z-30 flex w-[68px] flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 shadow-lifted lg:w-[236px] lg:p-4"
             >
-              <IconTour />
-              <span className="hidden lg:inline">{t("tour")}</span>
-            </button>
+              <ProjectSwitcher projects={projects ?? []} active={active} />
 
-            <button
-              type="button"
-              onClick={signOut}
-              title={t("signOut")}
-              className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-iron"
-            >
-              <IconSignOut />
-              <span className="hidden lg:inline">{t("signOut")}</span>
-            </button>
-          </div>
-        </nav>
+              <NavList
+                links={WORK_LINKS}
+                pathname={pathname}
+                hasProject={!!active}
+                waiting={waiting}
+                className="pt-2"
+              />
+
+              {/* The account group sits under its own hairline: the queue and the
+                  settings are about the whole archive, not the open project. */}
+              <NavList
+                links={ACCOUNT_LINKS}
+                pathname={pathname}
+                hasProject={!!active}
+                waiting={waiting}
+                className="mt-2 border-t border-hairline pt-3"
+              />
+
+              <div className="mt-auto flex flex-col gap-1">
+                {/* Next to sign out because it is the same kind of thing: a door out
+                    of the work, not part of it. resetTour clears the per-screen
+                    notes too, so asking to be shown around brings all of it back. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetTour();
+                    router.push("/onboarding-tour");
+                  }}
+                  title={t("tour")}
+                  className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-ink"
+                >
+                  <IconTour />
+                  <span className="hidden lg:inline">{t("tour")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={signOut}
+                  title={t("signOut")}
+                  className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-iron"
+                >
+                  <IconSignOut />
+                  <span className="hidden lg:inline">{t("signOut")}</span>
+                </button>
+              </div>
+            </m.nav>
+          ) : null}
+        </AnimatePresence>
 
         <main className="min-h-0 flex-1 overflow-y-auto px-6 py-7 lg:px-8">{children}</main>
       </div>
@@ -350,14 +391,6 @@ function IconProject() {
     <svg {...stroke}>
       <rect x="2.5" y="3.5" width="13" height="11" rx="1.5" />
       <path d="M2.5 7h13M6 3.5v3.5" />
-    </svg>
-  );
-}
-
-function IconAsk() {
-  return (
-    <svg {...stroke}>
-      <path d="M15.5 9c0 3.1-2.9 5.6-6.5 5.6-.8 0-1.6-.1-2.3-.4L2.5 15.5l1.3-3.4A5.3 5.3 0 0 1 2.5 9C2.5 5.9 5.4 3.4 9 3.4s6.5 2.5 6.5 5.6Z" />
     </svg>
   );
 }

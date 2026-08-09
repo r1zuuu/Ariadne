@@ -1,16 +1,22 @@
 import { generateJson, generateStream } from "./gemini.js";
 import {
   ServiceError,
+  conflictsOf,
   createNode,
+  geminiKey,
   requestDelete,
   requestUpdate,
   searchNodes,
 } from "./service.js";
 
 // The two conversational endpoints. Both are the same shape underneath: retrieve
-// the entries a sentence is about, then hand them to the cheap model. Neither
-// writes to the database directly; the editor goes through requestUpdate and
-// requestDelete so a proposal lands in the same review queue a coder's does.
+// the entries a sentence is about, then hand them to the cheap model.
+//
+// The editor still goes through createNode, requestUpdate and requestDelete
+// rather than writing rows itself, so every rule about validation, ownership
+// and provenance is enforced in one place. What it does not do any more is
+// queue the result: the person asking for the change is looking at the screen,
+// so it happens, and what comes back says what was recorded.
 
 const MAX_MESSAGE = 2000;
 const RETRIEVED = 5;
@@ -82,7 +88,7 @@ export async function* answerQuestion(input: {
 
   if (!found.length) return;
 
-  for await (const text of generateStream({
+  for await (const text of generateStream(await geminiKey(input.userId), {
     system: ANSWER_RULES,
     user: `Entries:\n\n${asContext(found)}\n\nQuestion: ${input.question}`,
   })) {
@@ -141,6 +147,7 @@ export async function proposeEdits(input: {
   });
 
   const answer = await generateJson<{ reply: string; proposals: Proposal[] }>(
+    await geminiKey(input.userId),
     {
       system: EDIT_RULES,
       user: found.length
@@ -164,9 +171,15 @@ export async function proposeEdits(input: {
         content: proposal.content.trim(),
         source: { session_id: input.sessionId, channel: "app_chat" },
       });
-      // A created node is already 'proposed', which is the review queue for new
-      // entries, so it needs no pending_action on top.
-      queued.push({ action: "create" as const, nodeId: created.nodeId, content: proposal.content.trim() });
+      // Written by the person in front of the screen, so it is recorded rather
+      // than queued. What it may contradict travels with it: this is the one
+      // moment the writer is here to say which of the two entries stands.
+      queued.push({
+        action: "create" as const,
+        nodeId: created.nodeId,
+        content: proposal.content.trim(),
+        conflicts: await conflictsOf(input.userId, created.conflictsWith),
+      });
       continue;
     }
 

@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
+import { ConflictNotice } from "@/components/conflict-notice";
 import { ConversationList } from "@/components/conversation-list";
+import { useFailure } from "@/components/failure";
 import { FadeIn } from "@/components/motion";
 import { useToast } from "@/components/toast";
-import { Card, EmptyState, Meta, PageHeader, Status } from "@/components/ui";
+import { Card, EmptyState, Meta, Status } from "@/components/ui";
 import {
   chatEdit,
   createConversation,
@@ -58,6 +60,7 @@ function toTurns(messages: ConversationMessage[]): Turn[] {
 
 export default function DatabaseScreen() {
   const t = useTranslations("database");
+  const failure = useFailure();
   const toast = useToast();
 
   const { activeProject, pendingFeed, refreshPending } = useApp();
@@ -129,7 +132,7 @@ export default function DatabaseScreen() {
         await refreshPending();
       }
     } catch (caught) {
-      const error = caught instanceof Error ? caught.message : String(caught);
+      const error = failure(caught);
       settled = { message: said, error };
       patch({ error });
     } finally {
@@ -170,7 +173,16 @@ export default function DatabaseScreen() {
 
   return (
     <div className="mx-auto max-w-[760px]">
-        <PageHeader title={t("title")} lead={t("lead")} />
+      {/* Not PageHeader: this screen is a composer with a question over it, the
+          same arrangement as the dashboard and the assistant, and that question
+          belongs above the field rather than in a page banner. Centred on the
+          screen until the first thing is written, then it lets the proposals
+          below have the height. */}
+      <div className={empty ? "flex screen-opening flex-col justify-center" : ""}>
+        <div className="pb-7 text-center">
+          <h1 className="mx-auto max-w-[16ch] text-display text-ink">{t("title")}</h1>
+          <p className="mx-auto max-w-[62ch] pt-4 text-body text-ink-2">{t("lead")}</p>
+        </div>
 
         <Composer
           value={message}
@@ -186,6 +198,7 @@ export default function DatabaseScreen() {
           autoFocus
           suggestions={empty ? [t("suggest1"), t("suggest2"), t("suggest3")] : []}
         />
+      </div>
 
         <ul className="flex flex-col gap-8 pt-8">
           {turns.map((turn, i) => (
@@ -204,7 +217,11 @@ export default function DatabaseScreen() {
                   </p>
                   <p className="pt-2 text-body leading-8 text-ink">{turn.reply}</p>
                   {turn.queued?.length ? (
-                    <Queued proposals={turn.queued} stillWaiting={stillWaiting} />
+                    <Queued
+                      proposals={turn.queued}
+                      stillWaiting={stillWaiting}
+                      onResolved={() => void refreshPending()}
+                    />
                   ) : (
                     <div className="pt-4">
                       <EmptyState title={t("nothingProposed")} note={t("nothingProposedNote")} />
@@ -237,15 +254,20 @@ export default function DatabaseScreen() {
   );
 }
 
-// What will be saved, exactly as it will be saved, with where it stands now.
-// This is the screen's promise: you see the text before it becomes memory, and
-// you can come back later and see whether it made it.
+// What was written, exactly as it was written, with where it stands now. This is
+// the screen's promise: you see the text that became memory, and you can come
+// back later and see what happened to it.
+//
+// A clash with an existing entry is answered here rather than left for the
+// queue, because here is where the person who wrote it is standing.
 function Queued({
   proposals,
   stillWaiting,
+  onResolved,
 }: {
   proposals: Proposal[];
   stillWaiting: Set<string> | null;
+  onResolved: () => void;
 }) {
   const t = useTranslations("database");
 
@@ -275,6 +297,13 @@ function Queued({
                   {proposal.content}
                 </p>
               </Card>
+              {proposal.conflicts?.length ? (
+                <ConflictNotice
+                  nodeId={proposal.nodeId}
+                  conflicts={proposal.conflicts}
+                  onResolved={onResolved}
+                />
+              ) : null}
             </li>
           );
         })}

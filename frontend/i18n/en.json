@@ -52,12 +52,13 @@
     "step": "step {current} of {total}",
     "steps": {
       "profile": "PROFILE",
+      "key": "KEY",
       "project": "PROJECT",
       "agent": "AGENT"
     },
     "next": "Next",
     "back": "Back",
-    "skip": "Skip step 3",
+    "skip": "Skip setup",
     "finish": "Start",
     "profile": {
       "title": "How you work",
@@ -138,11 +139,24 @@
       },
       "tokenWhat": "This is your token. Give it to the agent as an Authorization: Bearer header.",
       "tokenWhere": "Copy it now. Once you leave this screen you will not see it again."
+    },
+    "key": {
+      "title": "Your Gemini key",
+      "lead": {
+        "none": "Ariadne uses Gemini for two things: turning entries into vectors so they can be searched, and writing the answers to your questions. Without a key neither works, and the chat goes quiet without saying why.",
+        "server": "The server already has a key, so you can skip this step. Add your own if you would rather your requests were billed to you.",
+        "user": "This account already has a key. Type a new one to replace it."
+      },
+      "hint": "AIza...",
+      "optional": "You can skip this and add the key later in settings.",
+      "where": "Where to get a key"
     }
   },
   "common": {
     "language": "LANGUAGE",
-    "loading": "Loading"
+    "loading": "Loading",
+    "failed": "That did not work. Try again.",
+    "noGeminiKey": "There is no Gemini key, so Ariadne can neither answer nor record an entry. Add one in settings."
   },
   "home": {
     "retry": "Check again",
@@ -160,14 +174,6 @@
       "archived": "Archived"
     },
     "askTitle": "What do you want to know?",
-    "askPlaceholder": "Ask about decisions, agreements or constraints in this project...",
-    "askHint": "Enter sends, Shift + Enter starts a new line",
-    "ask": "Ask",
-    "asking": "Looking",
-    "suggest1": "What did we decide recently?",
-    "suggest2": "Why did we choose this stack?",
-    "suggest3": "What constraints does this project have?",
-    "suggest4": "What changed recently?",
     "memoryLine": "Ariadne answers from {entries, plural, one {# entry} other {# entries}} recorded in this project.",
     "memoryLink": "See project memory",
     "decisions": "Recent decisions",
@@ -189,14 +195,15 @@
   "nav": {
     "project": "Project",
     "home": "Overview",
-    "assistant": "Ask",
     "memory": "Add to memory",
     "pending": "To approve",
     "settings": "Settings",
     "tour": "Show me around",
     "signOut": "Sign out",
     "needsProject": "Choose a project first",
-    "noProject": "No project"
+    "noProject": "No project",
+    "hideNav": "Hide menu",
+    "showNav": "Show menu"
   },
   "tour": {
     "step": "step {current} of {total}",
@@ -221,25 +228,21 @@
     }
   },
   "assistant": {
-    "title": "Ask Ariadne",
-    "empty": "Ask about the project's past. The answer is built only from recorded entries, and you will see which ones underneath it.",
     "placeholder": "What would you like to ask?",
     "ask": "Ask",
     "asking": "Looking",
-    "sources": "Based on",
     "nothingRecorded": "Nothing has been recorded about this yet.",
-    "lead": "Ariadne answers from the decisions, agreements and context recorded for this project.",
     "hint": "Enter sends, Shift + Enter starts a new line",
     "sourcesCount": "{count, plural, one {Based on # entry} other {Based on # entries}}",
     "nothingRecordedNote": "Ariadne only answers from recorded context, so it does not guess. You can add this under Add to memory.",
-    "newQuestion": "New question",
     "suggest1": "What did we decide recently?",
     "suggest2": "Why did we choose this stack?",
     "suggest3": "What constraints does this project have?",
     "historyTitle": "Recent conversations",
     "historyNew": "New conversation",
     "historyEmpty": "No conversations yet.",
-    "historyEmptyNote": "Ask your first question and the conversation stays here, so you can come back to it."
+    "historyEmptyNote": "Ask your first question and the conversation stays here, so you can come back to it.",
+    "suggest4": "What changed recently?"
   },
   "database": {
     "title": "Add to memory",
@@ -250,28 +253,28 @@
     "thinking": "Reading the project's context...",
     "nothingProposed": "Nothing here needs changing.",
     "queuedNote": "Proposals are waiting.",
-    "queuedLink": "Review proposals",
+    "queuedLink": "See project memory",
     "action": {
       "update": "Entry correction",
       "delete": "To delete",
       "create": "New entry"
     },
-    "lead": "Describe a decision or an agreement. Ariadne prepares an entry for approval.",
+    "lead": "Describe a decision or an agreement. Ariadne records it straight away, because you are the one writing it.",
     "hint": "Enter sends, Shift + Enter starts a new line",
     "suggest1": "We switched the form library from X to Y.",
     "suggest2": "We are not using a backend; the app stays static.",
     "suggest3": "Case studies are postponed.",
     "nothingProposedNote": "Ariadne found nothing in this that needs recording or correcting.",
-    "willSave": "Will be saved",
+    "willSave": "Recorded",
     "awaiting": "Waiting for approval",
-    "toast": "The proposal was created and is waiting for approval.",
+    "toast": "Recorded in the project's memory.",
     "historyTitle": "Recently added context",
     "historyEmpty": "You have not added any context yet.",
     "historyEmptyNote": "Describe your first decision or change, and the whole run of it stays here.",
     "youWrote": "You wrote",
-    "ariadneProposed": "Ariadne proposed",
+    "ariadneProposed": "Ariadne recorded",
     "statusPending": "Waiting for approval",
-    "statusSaved": "Saved",
+    "statusSaved": "Recorded",
     "statusRejected": "Rejected",
     "historyNew": "New entry"
   },
@@ -369,7 +372,6 @@
     "title": "Settings",
     "lead": "Account, what agents may do, tokens and team.",
     "loading": "Loading...",
-    "failed": "That did not work. Try again.",
     "accountError": "The server is not answering",
     "accountErrorNote": "Account settings could not be loaded. Check that the Ariadne server is running and try again.",
     "retry": "Try again",
@@ -392,6 +394,20 @@
       "pl": "Polski",
       "en": "English"
     },
+    "gemini": "Gemini key",
+    "geminiState": {
+      "user": "Ariadne embeds and answers on your key. Requests from this account are billed to you at Google.",
+      "server": "Ariadne runs on the server's key. Add your own if you would rather pay for your own requests.",
+      "none": "There is no key at all, so recording entries and both chats do not work. Add one to turn them on."
+    },
+    "geminiLabel": "Your key",
+    "geminiHint": "AIza...",
+    "geminiNote": "The key is encrypted before it is stored and never comes back from the server.",
+    "geminiWhere": "Where to get a key",
+    "geminiChecking": "Checking...",
+    "geminiSaved": "Key saved",
+    "geminiRemove": "Remove key",
+    "geminiRemoved": "Key removed",
     "autoApprove": "Automatic approval",
     "autoApproveIsOff": "Edits and removals an agent asks for wait in the queue for your decision. New entries always go to the queue, whatever this is set to.",
     "autoApproveIsOn": "An agent corrects and archives entries on the spot, without asking. New entries still wait for approval.",
@@ -447,5 +463,17 @@
     "joinCodeNote": "Paste the code somebody on the team sent you.",
     "join": "Join",
     "joined": "You are in the workspace."
+  },
+  "conflict": {
+    "title": "CONTRADICTION",
+    "lead": "This entry clashes with something already in memory. Both cannot be true at once, so say which one stands. The other does not disappear: it is marked as overruled and keeps a link to what replaced it.",
+    "keepNew": "The new one stands",
+    "keepOld": "The old one stands",
+    "keepBoth": "Both are true",
+    "done": {
+      "new": "The older entry is marked as overruled.",
+      "old": "The new entry is marked as overruled.",
+      "both": "Left as they were."
+    }
   }
 }

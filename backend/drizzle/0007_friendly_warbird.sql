@@ -1,0 +1,1 @@
+ALTER TABLE "nodes" ADD COLUMN "conflicts_with" uuid[] DEFAULT '{}'::uuid[] NOT NULL;

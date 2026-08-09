@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useLocale } from "@/app/locale-provider";
 import { useApp, type PendingFeed } from "@/components/app-provider";
 import { Collapse, enterTransition } from "@/components/motion";
+import { ConflictNotice } from "@/components/conflict-notice";
 import { EntryCard, headline } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
 import { Button, Card, EmptyState, Meta, PageHeader, Status } from "@/components/ui";
@@ -71,7 +72,7 @@ export default function PendingScreen() {
             {groups.map((group) => (
               <section key={group.project}>
                 <div className="flex items-baseline gap-4 pb-4">
-                  <h2 className="text-lead font-semibold text-ink">{group.project}</h2>
+                  <h2 className="text-section text-ink">{group.project}</h2>
                   <Meta items={[t("count", { count: group.actions.length + group.nodes.length })]} />
                 </div>
 
@@ -148,6 +149,15 @@ export default function PendingScreen() {
                               </>
                             }
                           />
+                          {/* Under the card rather than inside it: the clash is
+                              about two entries, and the card is one of them. */}
+                          {node.conflicts?.length ? (
+                            <ConflictNotice
+                              nodeId={node.id}
+                              conflicts={node.conflicts}
+                              onResolved={() => void refreshPending()}
+                            />
+                          ) : null}
                           </m.li>
                         ))}
                       </AnimatePresence>

@@ -52,12 +52,13 @@
     "step": "krok {current} z {total}",
     "steps": {
       "profile": "PROFIL",
+      "key": "KLUCZ",
       "project": "PROJEKT",
       "agent": "AGENT"
     },
     "next": "Dalej",
     "back": "Wróć",
-    "skip": "Pomiń krok 3",
+    "skip": "Pomiń konfigurację",
     "finish": "Zaczynamy",
     "profile": {
       "title": "Kim jesteś przy pracy",
@@ -138,11 +139,24 @@
       },
       "tokenWhat": "To jest twój token. Podaj go agentowi jako nagłówek Authorization: Bearer.",
       "tokenWhere": "Skopiuj go teraz. Po opuszczeniu tego ekranu nie zobaczysz go ponownie."
+    },
+    "key": {
+      "title": "Klucz do Gemini",
+      "lead": {
+        "none": "Ariadne używa Gemini do dwóch rzeczy: zamienia wpisy na wektory, żeby dało się je wyszukiwać, i pisze odpowiedzi na Twoje pytania. Bez klucza nic z tego nie zadziała, a czat będzie milczał bez wyjaśnienia.",
+        "server": "Serwer ma już swój klucz, więc możesz ten krok pominąć. Własny klucz podaj, jeśli wolisz, żeby zapytania szły na Twój rachunek.",
+        "user": "Ten klucz jest już zapisany na Twoim koncie. Wpisz nowy, jeśli chcesz go podmienić."
+      },
+      "hint": "AIza...",
+      "optional": "Możesz pominąć i dodać klucz później w ustawieniach.",
+      "where": "Skąd wziąć klucz"
     }
   },
   "common": {
     "language": "JĘZYK",
-    "loading": "Ładuję"
+    "loading": "Ładuję",
+    "failed": "Nie udało się. Spróbuj jeszcze raz.",
+    "noGeminiKey": "Brak klucza do Gemini, więc Ariadne nie może odpowiedzieć ani zapisać wpisu. Dodaj klucz w ustawieniach."
   },
   "home": {
     "retry": "Sprawdź jeszcze raz",
@@ -160,14 +174,6 @@
       "archived": "Zarchiwizowany"
     },
     "askTitle": "Czego chcesz się dowiedzieć?",
-    "askPlaceholder": "Zapytaj o decyzje, ustalenia albo ograniczenia tego projektu...",
-    "askHint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
-    "ask": "Zapytaj",
-    "asking": "Szukam",
-    "suggest1": "Jakie decyzje podjęliśmy ostatnio?",
-    "suggest2": "Dlaczego wybraliśmy ten stack?",
-    "suggest3": "Jakie ograniczenia ma ten projekt?",
-    "suggest4": "Co zmieniło się ostatnio?",
     "memoryLine": "Ariadne odpowiada na podstawie {entries, plural, one {# wpisu} few {# wpisów} many {# wpisów} other {# wpisu}} zapisanych w tym projekcie.",
     "memoryLink": "Zobacz pamięć projektu",
     "decisions": "Ostatnie ustalenia",
@@ -189,14 +195,15 @@
   "nav": {
     "project": "Projekt",
     "home": "Przegląd",
-    "assistant": "Zapytaj",
     "memory": "Dodaj do pamięci",
     "pending": "Do zatwierdzenia",
     "settings": "Ustawienia",
     "tour": "Oprowadź mnie po Ariadne",
     "signOut": "Wyloguj się",
     "needsProject": "Najpierw wybierz projekt",
-    "noProject": "Brak projektu"
+    "noProject": "Brak projektu",
+    "hideNav": "Ukryj menu",
+    "showNav": "Pokaż menu"
   },
   "tour": {
     "step": "krok {current} z {total}",
@@ -221,25 +228,21 @@
     }
   },
   "assistant": {
-    "title": "Zapytaj Ariadne",
-    "empty": "Zapytaj o przeszłość projektu. Odpowiedź powstaje wyłącznie z zapisanych wpisów, a pod nią zobaczysz, z których.",
     "placeholder": "O co chcesz zapytać?",
     "ask": "Zapytaj",
     "asking": "Szukam",
-    "sources": "Na podstawie",
     "nothingRecorded": "Nic na ten temat nie zostało jeszcze zapisane.",
-    "lead": "Ariadne odpowiada na podstawie zapisanych decyzji, ustaleń i kontekstu tego projektu.",
     "hint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
     "sourcesCount": "{count, plural, one {Na podstawie # wpisu} few {Na podstawie # wpisów} many {Na podstawie # wpisów} other {Na podstawie # wpisu}}",
     "nothingRecordedNote": "Ariadne odpowiada tylko z zapisanego kontekstu, więc nie zgaduje. Możesz dodać tę informację w zakładce Dodaj do pamięci.",
-    "newQuestion": "Nowe pytanie",
     "suggest1": "Jakie decyzje podjęliśmy ostatnio?",
     "suggest2": "Dlaczego wybraliśmy ten stack?",
     "suggest3": "Jakie ograniczenia ma ten projekt?",
     "historyTitle": "Ostatnie rozmowy",
     "historyNew": "Nowa rozmowa",
     "historyEmpty": "Nie masz jeszcze żadnej rozmowy.",
-    "historyEmptyNote": "Zadaj pierwsze pytanie, a rozmowa zostanie tutaj i będziesz mógł do niej wrócić."
+    "historyEmptyNote": "Zadaj pierwsze pytanie, a rozmowa zostanie tutaj i będziesz mógł do niej wrócić.",
+    "suggest4": "Co zmieniło się ostatnio?"
   },
   "database": {
     "title": "Dodaj do pamięci",
@@ -250,28 +253,28 @@
     "thinking": "Czytam kontekst projektu...",
     "nothingProposed": "Nic tu nie wymaga zmiany.",
     "queuedNote": "Propozycje czekają.",
-    "queuedLink": "Przejrzyj propozycje",
+    "queuedLink": "Zobacz pamięć projektu",
     "action": {
       "update": "Poprawka wpisu",
       "delete": "Do usunięcia",
       "create": "Nowy wpis"
     },
-    "lead": "Opisz decyzję albo ustalenie. Ariadne przygotuje wpis do zatwierdzenia.",
+    "lead": "Opisz decyzję albo ustalenie. Ariadne zapisze wpis od razu, bo piszesz go sam.",
     "hint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
     "suggest1": "Zmieniliśmy bibliotekę formularzy z X na Y.",
     "suggest2": "Nie używamy backendu, aplikacja zostaje statyczna.",
     "suggest3": "Case studies odkładamy na później.",
     "nothingProposedNote": "Ariadne nie znalazła w tej wypowiedzi nic, co trzeba zapisać albo poprawić.",
-    "willSave": "Zostanie zapisane",
+    "willSave": "Zapisane w pamięci",
     "awaiting": "Czeka na zatwierdzenie",
-    "toast": "Propozycja została utworzona i czeka na zatwierdzenie.",
+    "toast": "Zapisane w pamięci projektu.",
     "historyTitle": "Ostatnio dodany kontekst",
     "historyEmpty": "Nie dodałeś jeszcze żadnego kontekstu.",
     "historyEmptyNote": "Opisz pierwszą decyzję albo zmianę, a cały jej przebieg zostanie tutaj.",
     "youWrote": "Ty napisałeś",
-    "ariadneProposed": "Ariadne zaproponowała",
+    "ariadneProposed": "Ariadne zapisała",
     "statusPending": "Czeka na zatwierdzenie",
-    "statusSaved": "Zapisano",
+    "statusSaved": "Zapisane",
     "statusRejected": "Odrzucono",
     "historyNew": "Nowy wpis"
   },
@@ -369,7 +372,6 @@
     "title": "Ustawienia",
     "lead": "Konto, uprawnienia agentów, tokeny i zespół.",
     "loading": "Wczytuję...",
-    "failed": "Nie udało się. Spróbuj jeszcze raz.",
     "accountError": "Serwer nie odpowiada",
     "accountErrorNote": "Nie udało się pobrać ustawień konta. Sprawdź, czy serwer Ariadne działa, i spróbuj ponownie.",
     "retry": "Spróbuj ponownie",
@@ -392,6 +394,20 @@
       "pl": "Polski",
       "en": "English"
     },
+    "gemini": "Klucz Gemini",
+    "geminiState": {
+      "user": "Ariadne liczy embeddingi i odpowiedzi na Twoim kluczu. Zapytania z tego konta obciążają Twój rachunek u Google.",
+      "server": "Ariadne działa na kluczu serwera. Możesz podać własny, jeśli wolisz płacić za swoje zapytania sam.",
+      "none": "Nie ma żadnego klucza, więc zapisywanie wpisów i oba czaty nie działają. Podaj klucz, żeby je uruchomić."
+    },
+    "geminiLabel": "Twój klucz",
+    "geminiHint": "AIza...",
+    "geminiNote": "Klucz jest szyfrowany przed zapisem i nigdy nie wraca z serwera.",
+    "geminiWhere": "Skąd wziąć klucz",
+    "geminiChecking": "Sprawdzam...",
+    "geminiSaved": "Klucz zapisany",
+    "geminiRemove": "Usuń klucz",
+    "geminiRemoved": "Klucz usunięty",
     "autoApprove": "Automatyczne zatwierdzanie",
     "autoApproveIsOff": "Zmiany i usunięcia zgłoszone przez agenta czekają na twoją zgodę w kolejce. Nowe wpisy zawsze trafiają do kolejki, niezależnie od tego ustawienia.",
     "autoApproveIsOn": "Agent poprawia i archiwizuje wpisy od razu, bez pytania. Nowe wpisy dalej czekają na zatwierdzenie.",
@@ -447,5 +463,17 @@
     "joinCodeNote": "Wklej kod, który dostałeś od kogoś z zespołu.",
     "join": "Dołącz",
     "joined": "Jesteś w przestrzeni."
+  },
+  "conflict": {
+    "title": "SPRZECZNOŚĆ",
+    "lead": "Ten wpis kłóci się z tym, co już jest w pamięci. Oba nie mogą być prawdą naraz, więc powiedz, który zostaje. Ten odrzucony nie znika: dostaje status odwołanego i link do wpisu, który go zastąpił.",
+    "keepNew": "Zostaje nowy",
+    "keepOld": "Zostaje stary",
+    "keepBoth": "Oba są prawdziwe",
+    "done": {
+      "new": "Stary wpis oznaczony jako odwołany.",
+      "old": "Nowy wpis oznaczony jako odwołany.",
+      "both": "Zostawione bez zmian."
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { hash as hashPassword, verify as verifyArgon2 } from "@node-rs/argon2";
-import { and, cosineDistance, desc, eq, gt, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, cosineDistance, desc, eq, gt, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "./db/client.js";
 import {
@@ -15,7 +15,8 @@ import {
   users,
   workspaces,
 } from "./db/schema.js";
-import { embed } from "./gemini.js";
+import { open, seal } from "./crypto.js";
+import { embed, findConflicts, summarize } from "./gemini.js";
 
 // Business logic lives here once; MCP tools and REST endpoints are thin
 // wrappers over these functions (plan section 2).
@@ -27,7 +28,11 @@ export class ServiceError extends Error {
       | "unknown_repo"
       | "not_found"
       | "unauthorized"
-      | "rate_limited",
+      | "rate_limited"
+      // Its own code, not a validation error: nothing about the request is
+      // wrong, the account simply has no key to Google and neither has the
+      // server. The app turns this one into "add your key in settings".
+      | "no_gemini_key",
     message: string,
   ) {
     super(message);
@@ -139,6 +144,107 @@ async function workspaceOfProject(userId: string, projectId: string): Promise<st
   return project.workspaceId;
 }
 
+/**
+ * Whose key pays for a call to Gemini. The person's own first, the server's
+ * afterwards: an instance that carries a key in its environment works for
+ * everyone on it out of the box, and anyone who would rather spend their own
+ * quota says so in settings and is served first from then on.
+ *
+ * One place decides this, because the alternative is every call site inventing
+ * its own order and the answer to "which key just got billed" being "depends".
+ */
+export async function geminiKey(userId: string): Promise<string> {
+  const [user] = await db
+    .select({ sealed: users.geminiKey })
+    .from(users)
+    .where(eq(users.id, userId));
+  // A key that no longer opens (the server secret was rotated, the row was
+  // edited) is treated as absent rather than fatal: the fallback still works
+  // and settings will show the account as having none.
+  const own = user?.sealed ? open(user.sealed) : null;
+  const key = own || process.env.GEMINI_API_KEY;
+  if (!key) {
+    throw new ServiceError(
+      "no_gemini_key",
+      "no Gemini key: add one in settings, or set GEMINI_API_KEY on the server",
+    );
+  }
+  return key;
+}
+
+/** Where the key in use comes from, for a settings screen that tells the truth. */
+export type GeminiKeySource = "user" | "server" | "none";
+
+/**
+ * The summary is decoration over the entry, so it never decides whether the
+ * entry gets written. A refused model call, a rate limit, a malformed answer:
+ * the card falls back to the first sentence and the archive is unharmed.
+ */
+async function summarizeOrNothing(key: string, content: string): Promise<string> {
+  try {
+    return await summarize(key, content);
+  } catch {
+    return "";
+  }
+}
+
+// How close an existing entry has to be before the model is asked whether it
+// clashes with the new one. Cosine similarity over normalized 768-dimension
+// vectors: below this the two are not even about the same thing, so paying for
+// a reading of the pair buys nothing.
+//
+// ponytail: one number for every project. If this turns out to be noisy on a
+// large archive, the fix is a per-project setting, not a cleverer formula.
+const CONFLICT_SIMILARITY = 0.7;
+const CONFLICT_CANDIDATES = 4;
+
+/**
+ * Entries the new one appears to contradict. Two stages, because neither works
+ * alone: the vector search narrows thousands of entries to a handful about the
+ * same subject, and the model decides which of those actually clash. A wrong
+ * answer here costs a person one dismissed suggestion, so a failure is silence.
+ */
+async function conflictsFor(input: {
+  key: string;
+  workspaceId: string;
+  projectId: string;
+  content: string;
+  embedding: number[];
+}): Promise<string[]> {
+  try {
+    const distance = cosineDistance(nodes.embedding, input.embedding);
+    const near = await db
+      .select({ id: nodes.id, content: nodes.content, similarity: sql<number>`1 - (${distance})` })
+      .from(nodes)
+      .where(
+        and(
+          eq(nodes.workspaceId, input.workspaceId),
+          eq(nodes.projectId, input.projectId),
+          // Only what still claims to be true. An archived entry was put away
+          // and a contradicted one has already lost an argument; neither can be
+          // contradicted again, so neither is worth a reading.
+          inArray(nodes.status, ["proposed", "confirmed"]),
+        ),
+      )
+      .orderBy(distance)
+      .limit(CONFLICT_CANDIDATES);
+
+    const candidates = near.filter((row) => row.similarity >= CONFLICT_SIMILARITY);
+    if (!candidates.length) return [];
+
+    const clashing = await findConflicts(
+      input.key,
+      input.content,
+      candidates.map((row) => row.content),
+    );
+    return clashing.map((i: number) => candidates[i].id);
+  } catch {
+    // A write is never held up by this: an entry with an undetected conflict is
+    // exactly what the archive did before the check existed.
+    return [];
+  }
+}
+
 export async function createNode(input: {
   userId: string;
   projectId: string;
@@ -147,7 +253,13 @@ export async function createNode(input: {
   anchors?: Anchor[];
   source: SourceMeta;
   replacesNodeId?: string;
-}): Promise<{ nodeId: string; status: "proposed"; contradictedNodeId?: string }> {
+}): Promise<{
+  nodeId: string;
+  status: "proposed" | "confirmed";
+  /** Entries the new one appears to contradict, for the screen that wrote it. */
+  conflictsWith: string[];
+  contradictedNodeId?: string;
+}> {
   // Validation gate (plan section 5), shared by both entry paths.
   assertUuid(input.userId, "userId");
   assertUuid(input.projectId, "projectId");
@@ -166,8 +278,21 @@ export async function createNode(input: {
   assertAnchors(anchors);
   const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
-  // Network call stays outside the transaction.
-  const embedding = await embed(content, "RETRIEVAL_DOCUMENT");
+  // Network calls stay outside the transaction. The embedding goes first
+  // because the conflict search needs the vector to find anything; the summary
+  // and the search then run side by side, since neither waits on the other.
+  const key = await geminiKey(input.userId);
+  const embedding = await embed(key, content, "RETRIEVAL_DOCUMENT");
+  const [summary, conflictsWith] = await Promise.all([
+    summarizeOrNothing(key, content),
+    conflictsFor({ key, workspaceId, projectId: input.projectId, content, embedding }),
+  ]);
+
+  // The queue exists because a coder writes while nobody is watching. A person
+  // writing in the app is watching, has just read the exact text on screen, and
+  // is the one who would approve it a moment later - so their own entries are
+  // settled as they are written. Anything from a coder still waits.
+  const byHand = input.source.channel !== "coder";
 
   return db.transaction(async (tx) => {
     const [node] = await tx
@@ -178,7 +303,11 @@ export async function createNode(input: {
         projectId: input.projectId,
         type: input.type,
         content,
-        status: "proposed", // always forced, never taken from input
+        summary,
+        conflictsWith,
+        status: byHand ? "confirmed" : "proposed", // never taken from input
+        confirmedBy: byHand ? input.userId : null,
+        confirmedAt: byHand ? new Date() : null,
         source: input.source,
         embedding,
       })
@@ -211,7 +340,12 @@ export async function createNode(input: {
       );
     }
 
-    return { nodeId: node.id, status: "proposed", contradictedNodeId };
+    return {
+      nodeId: node.id,
+      status: byHand ? "confirmed" : "proposed",
+      conflictsWith,
+      contradictedNodeId,
+    };
   });
 }
 
@@ -252,6 +386,8 @@ const NODE_COLUMNS = {
   id: nodes.id,
   type: nodes.type,
   content: nodes.content,
+  summary: nodes.summary,
+  conflictsWith: nodes.conflictsWith,
   status: nodes.status,
   source: nodes.source,
   supersededBy: nodes.supersededBy,
@@ -263,6 +399,57 @@ const NODE_COLUMNS = {
 // The users table is joined twice on a node (who wrote it, who confirmed it),
 // so the second one needs a name of its own.
 const confirmer = alias(users, "confirmer");
+
+/**
+ * The entries a row says it clashes with, as text a screen can show. A second
+ * query for the same reason anchors get one, and scoped to what the reader may
+ * see anyway.
+ *
+ * Ids pointing at an entry that has since been archived or contradicted are
+ * dropped rather than shown: the clash is over, one side simply lost it
+ * somewhere else.
+ */
+export async function conflictsOf(userId: string, ids: string[]): Promise<ConflictEntry[]> {
+  if (!ids.length) return [];
+  return db
+    .select({
+      id: nodes.id,
+      type: nodes.type,
+      content: nodes.content,
+      summary: nodes.summary,
+      status: nodes.status,
+      createdAt: nodes.createdAt,
+    })
+    .from(nodes)
+    .where(
+      and(
+        inArray(nodes.id, ids),
+        inArray(nodes.workspaceId, reachableWorkspaces(userId)),
+        inArray(nodes.status, ["proposed", "confirmed"]),
+      ),
+    );
+}
+
+async function attachConflicts<T extends { conflictsWith: string[] }>(
+  userId: string,
+  rows: T[],
+): Promise<(T & { conflicts: ConflictEntry[] })[]> {
+  const found = await conflictsOf(userId, [...new Set(rows.flatMap((row) => row.conflictsWith))]);
+  const byId = new Map(found.map((row) => [row.id, row]));
+  return rows.map((row) => ({
+    ...row,
+    conflicts: row.conflictsWith.map((id) => byId.get(id)).filter(Boolean) as ConflictEntry[],
+  }));
+}
+
+export type ConflictEntry = {
+  id: string;
+  type: string;
+  content: string;
+  summary: string;
+  status: string;
+  createdAt: Date;
+};
 
 // Anchors arrive in a second query instead of a join: a node can carry several,
 // and a join would repeat the node row per anchor for every caller to regroup.
@@ -301,7 +488,7 @@ export async function searchNodes(input: {
   // tell apart from "nothing recorded yet".
   const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
-  const queryVector = await embed(input.query, "RETRIEVAL_QUERY");
+  const queryVector = await embed(await geminiKey(input.userId), input.query, "RETRIEVAL_QUERY");
   const distance = cosineDistance(nodes.embedding, queryVector);
 
   // Metadata filters BEFORE similarity: they narrow, vectors rank (plan section 7).
@@ -310,6 +497,9 @@ export async function searchNodes(input: {
       id: nodes.id,
       type: nodes.type,
       content: nodes.content,
+      // What a citation under an answer is labelled with: ten words beat the
+      // first 140 characters of a paragraph for saying which entry this is.
+      summary: nodes.summary,
       status: nodes.status,
       source: nodes.source,
       createdAt: nodes.createdAt,
@@ -550,10 +740,14 @@ async function hasAllPermission(userId: string): Promise<boolean> {
 }
 
 // Applies an update to a node's content and/or anchors. Content change
-// recomputes the embedding - otherwise RAG keeps searching stale meaning.
+// recomputes the embedding - otherwise RAG keeps searching stale meaning - and
+// the summary with it, or the card would keep leading with a line about text
+// that is no longer there.
 // The workspace is passed in rather than assumed from an earlier check: this is
-// the statement that actually writes, so it carries the tenant itself.
+// the statement that actually writes, so it carries the tenant itself. The
+// account whose key pays comes in the same way, for the same reason.
 async function applyNodeUpdate(
+  userId: string,
   workspaceId: string,
   nodeId: string,
   payload: UpdatePayload,
@@ -564,8 +758,15 @@ async function applyNodeUpdate(
   if (payload.anchors) assertAnchors(payload.anchors);
   const updates: Partial<typeof nodes.$inferInsert> = { updatedAt: new Date() };
   if (payload.content !== undefined) {
-    updates.content = validateContent(payload.content);
-    updates.embedding = await embed(updates.content, "RETRIEVAL_DOCUMENT");
+    const content = validateContent(payload.content);
+    const key = await geminiKey(userId);
+    const [embedding, summary] = await Promise.all([
+      embed(key, content, "RETRIEVAL_DOCUMENT"),
+      summarizeOrNothing(key, content),
+    ]);
+    updates.content = content;
+    updates.embedding = embedding;
+    updates.summary = summary;
   }
   // Merged into source rather than given a column: it is provenance, same as the
   // channel the node arrived through, and updated_at already carries the when.
@@ -619,8 +820,11 @@ export async function requestUpdate(input: {
   const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
 
   const payload: UpdatePayload = { content: input.content, anchors: input.anchors };
-  if (await hasAllPermission(input.userId)) {
-    await applyNodeUpdate(workspaceId, input.nodeId, payload);
+  // Same rule as a new entry written here: the queue is for what a coder does
+  // unattended, and "app_agent" is this app rewording a sentence its owner just
+  // typed and read back on screen.
+  if (input.requestedBy === "app_agent" || (await hasAllPermission(input.userId))) {
+    await applyNodeUpdate(input.userId, workspaceId, input.nodeId, payload);
     return { applied: true };
   }
   const [pending] = await db
@@ -644,7 +848,8 @@ export async function requestDelete(input: {
 }): Promise<{ applied: true } | { applied: false; pendingActionId: string }> {
   const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
 
-  if (await hasAllPermission(input.userId)) {
+  // As above: asked for from inside the app, it happens now.
+  if (input.requestedBy === "app_agent" || (await hasAllPermission(input.userId))) {
     await archiveNodeById(workspaceId, input.nodeId); // never a physical DELETE
     return { applied: true };
   }
@@ -691,7 +896,10 @@ export async function approvePending(input: { userId: string; pendingActionId: s
   // double-apply. Fine for a queue a person clicks through; add a conditional
   // status flip if two members ever race on the same entry.
   if (pending.action === "update") {
+    // The key belongs to whoever approves, not to whoever asked: the approver is
+    // the one present, and the requester may be an agent whose account is gone.
     await applyNodeUpdate(
+      input.userId,
       pending.workspaceId,
       pending.nodeId,
       pending.payload as UpdatePayload,
@@ -749,6 +957,62 @@ export async function confirmNode(input: { userId: string; nodeId: string }) {
   }
 }
 
+/** Which of the two entries a person decided to keep, or neither answer. */
+export type ConflictVerdict = "new" | "old" | "both";
+
+/**
+ * Settles one suspected clash between two entries. Three answers and no fourth:
+ * the new one wins, the old one wins, or the model was wrong and both stand.
+ *
+ * The losing entry is contradicted rather than deleted, and it keeps a link to
+ * the one that beat it. That is the difference between an archive that forgot
+ * and an archive that changed its mind: "we no longer do X, we do Y" is the
+ * sentence somebody will need in six months.
+ */
+export async function resolveConflict(input: {
+  userId: string;
+  nodeId: string;
+  otherId: string;
+  verdict: ConflictVerdict;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.nodeId, "nodeId");
+  assertUuid(input.otherId, "otherId");
+  if (input.nodeId === input.otherId) {
+    throw new ServiceError("validation", "an entry cannot conflict with itself");
+  }
+  const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
+
+  if (input.verdict === "new") {
+    await contradictNode({
+      userId: input.userId,
+      nodeId: input.otherId,
+      supersededBy: input.nodeId,
+    });
+  }
+  if (input.verdict === "old") {
+    await contradictNode({
+      userId: input.userId,
+      nodeId: input.nodeId,
+      supersededBy: input.otherId,
+    });
+  }
+
+  // The pair is settled whichever way it went, so the suspicion goes - from
+  // both entries, because either one may be carrying it. Left behind, the
+  // screens would keep asking a question that has been answered.
+  await Promise.all(
+    [input.nodeId, input.otherId].map((id, i) =>
+      db
+        .update(nodes)
+        .set({
+          conflictsWith: sql`array_remove(${nodes.conflictsWith}, ${i === 0 ? input.otherId : input.nodeId}::uuid)`,
+        })
+        .where(and(eq(nodes.id, id), eq(nodes.workspaceId, workspaceId))),
+    ),
+  );
+}
+
 export async function archiveNode(input: { userId: string; nodeId: string }) {
   const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
   await archiveNodeById(workspaceId, input.nodeId);
@@ -768,6 +1032,7 @@ export async function editNode(input: {
   }
   const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
   const row = await applyNodeUpdate(
+    input.userId,
     workspaceId,
     input.nodeId,
     { content: input.content, anchors: input.anchors },
@@ -946,12 +1211,60 @@ export async function getAccount(userId: string) {
       email: users.email,
       profile: users.profile,
       allPermission: users.allPermission,
+      geminiKey: users.geminiKey,
       createdAt: users.createdAt,
     })
     .from(users)
     .where(eq(users.id, userId));
   if (!user) throw new ServiceError("not_found", "user not found");
-  return user;
+  // The key itself never leaves the server. What the screen needs is which of
+  // the three states the account is in, and "user" means one that still opens:
+  // a row sealed with a secret that has since changed is as good as none.
+  const source: GeminiKeySource =
+    user.geminiKey && open(user.geminiKey)
+      ? "user"
+      : process.env.GEMINI_API_KEY
+        ? "server"
+        : "none";
+  const { geminiKey: _sealed, ...account } = user;
+  return { ...account, geminiKey: source };
+}
+
+/**
+ * Stores the person's own key, after proving it works. One embedding call of a
+ * single word is the cheapest thing the API does, and it turns a pasted typo
+ * into an error in the field where it was pasted - rather than into a chat that
+ * mysteriously stops answering a week later.
+ */
+export async function setGeminiKey(input: { userId: string; key: string }) {
+  assertUuid(input.userId, "userId");
+  const key = input.key?.trim();
+  if (!key) throw new ServiceError("validation", "key must not be empty");
+
+  try {
+    await embed(key, "ariadne", "RETRIEVAL_QUERY");
+  } catch {
+    throw new ServiceError("validation", "Google refused this key");
+  }
+
+  const [updated] = await db
+    .update(users)
+    .set({ geminiKey: seal(key) })
+    .where(eq(users.id, input.userId))
+    .returning({ id: users.id });
+  if (!updated) throw new ServiceError("not_found", "user not found");
+  return { geminiKey: "user" as GeminiKeySource };
+}
+
+export async function clearGeminiKey(userId: string) {
+  assertUuid(userId, "userId");
+  const [updated] = await db
+    .update(users)
+    .set({ geminiKey: null })
+    .where(eq(users.id, userId))
+    .returning({ id: users.id });
+  if (!updated) throw new ServiceError("not_found", "user not found");
+  return { geminiKey: (process.env.GEMINI_API_KEY ? "server" : "none") as GeminiKeySource };
 }
 
 export async function updateProfile(input: { userId: string; profile: string }) {
@@ -1730,11 +2043,14 @@ export async function getReviewFeed(userId: string) {
       id: nodes.id,
       type: nodes.type,
       content: nodes.content,
+      // The queue leads with the same line the rest of the app does.
+      summary: nodes.summary,
       status: nodes.status,
       source: nodes.source,
       // The feed is where a contradicted node is read, and the status only means
       // something next to the node that overruled it.
       supersededBy: nodes.supersededBy,
+      conflictsWith: nodes.conflictsWith,
       createdAt: nodes.createdAt,
       projectId: projects.id,
       projectName: projects.name,
@@ -1748,7 +2064,14 @@ export async function getReviewFeed(userId: string) {
     .where(
       and(
         inArray(nodes.workspaceId, reachableWorkspaces(userId)),
-        inArray(nodes.status, ["proposed", "contradicted"]),
+        or(
+          inArray(nodes.status, ["proposed", "contradicted"]),
+          // A settled entry with an unanswered clash still waits for a person.
+          // Written in the app it is confirmed on the spot and would otherwise
+          // have nowhere to raise its hand once that screen is closed, and this
+          // list is where everything that wants a decision belongs.
+          sql`array_length(${nodes.conflictsWith}, 1) > 0`,
+        ),
       ),
     )
     .orderBy(desc(nodes.createdAt))
@@ -1757,5 +2080,5 @@ export async function getReviewFeed(userId: string) {
   // ponytail: both lists capped at FEED_LIMIT with no paging. The screen is
   // explicitly ignorable, so a long tail is not worth a cursor yet; add one when
   // the count stops fitting on a screen.
-  return { pendingActions: queued, nodesToReview: unsettled };
+  return { pendingActions: queued, nodesToReview: await attachConflicts(userId, unsettled) };
 }

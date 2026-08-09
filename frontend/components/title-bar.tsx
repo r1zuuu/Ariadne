@@ -19,8 +19,19 @@ export type ServerState = "checking" | "up" | "down";
 // Screen 01 puts the server line under the form, where the eye already is when
 // the button will not submit, so the bar leaves it out there rather than saying
 // the same thing twice on one screen.
-export function TitleBar({ project, server }: { project?: string; server?: ServerState }) {
+export function TitleBar({
+  project,
+  server,
+  navOpen,
+  onToggleNav,
+}: {
+  project?: string;
+  server?: ServerState;
+  navOpen?: boolean;
+  onToggleNav?: () => void;
+}) {
   const t = useTranslations("auth.server");
+  const tNav = useTranslations("nav");
 
   return (
     // "deep", not the bare attribute: bare means only direct hits on the header
@@ -30,7 +41,33 @@ export function TitleBar({ project, server }: { project?: string; server?: Serve
       data-tauri-drag-region="deep"
       className="flex h-[38px] shrink-0 select-none items-center justify-between border-b border-hairline bg-plaster-sunk px-5"
     >
-      <div className="flex items-baseline gap-4">
+      <div className="flex items-center gap-4">
+        {/* The column folds away from here rather than from inside itself: a
+            handle that goes with what it opens has nowhere to live once it is
+            gone. Same glyph both ways, with the state in aria-expanded. */}
+        {onToggleNav ? (
+          <button
+            type="button"
+            onClick={onToggleNav}
+            aria-expanded={navOpen}
+            aria-label={tNav(navOpen ? "hideNav" : "showNav")}
+            title={tNav(navOpen ? "hideNav" : "showNav")}
+            className="-ml-2 grid h-[26px] w-[26px] place-items-center rounded-control text-ink-2 transition-colors duration-state hover:bg-surface hover:text-ink"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              aria-hidden="true"
+            >
+              <rect x="2" y="3" width="12" height="10" rx="1.5" />
+              <path d="M6.5 3v10" />
+            </svg>
+          </button>
+        ) : null}
         {/* The wordmark is the one word in the frame allowed the brand face.
             15px keeps the didone's hairlines alive in a 38px bar. */}
         <span className="display-serif text-[15px] tracking-[0.08em] text-ink">ARIADNE</span>

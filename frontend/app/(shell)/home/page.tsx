@@ -6,11 +6,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
-import { Composer } from "@/components/composer";
-import { headline } from "@/components/entry-card";
+import { Ask } from "@/components/ask";
+import { headline, lead } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
 import { hasSeenTour } from "@/lib/first-run";
-import { PENDING_QUESTION } from "@/lib/handoff";
 import {
   approvePending,
   archiveNode,
@@ -42,7 +41,6 @@ export default function HomeScreen() {
 
   const [latestDecision, setLatestDecision] = useState<Node[] | null>(null);
   const [since, setSince] = useState<Date | null>(null);
-  const [question, setQuestion] = useState("");
   const [settling, setSettling] = useState(false);
 
   // Read once, then stamped forward, so the line answers "since when" with the
@@ -79,13 +77,6 @@ export default function HomeScreen() {
   const active = activeProject;
   const stamp = useStamp(locale);
 
-  const ask = (text: string) => {
-    // Handed over rather than answered here: the assistant owns conversation,
-    // and two places streaming the same answer is two places to keep in step.
-    sessionStorage.setItem(PENDING_QUESTION, text);
-    router.push("/assistant");
-  };
-
   // The head of the review queue, with enough identity to settle it here: a
   // tick and a cross on the overview is the whole point of surfacing it.
   const waitingCount = pendingFeed
@@ -108,7 +99,7 @@ export default function HomeScreen() {
       ? {
           id: node.id,
           label: t(`status.${node.status}`),
-          text: headline(node.content),
+          text: lead(node),
           accept: () => confirmNode(node.id),
           acceptToast: tQueue("toastConfirmed"),
           dismiss: () => archiveNode(node.id),
@@ -153,44 +144,47 @@ export default function HomeScreen() {
         />
       ) : (
         <>
-          <section className="pb-8 pt-6">
-            <p className="pb-3 text-data text-ink-3">
-              {since ? t("seen", { at: stamp(since, true) }) : t("seenFirst")}
-            </p>
-            {/* The one display-size line in the app: the question the whole
-                product exists to answer. Left-aligned, with the right side
-                left open on purpose. */}
-            <h1 className="max-w-[16ch] text-display text-ink">{t("askTitle")}</h1>
-
-            <div className="max-w-[820px] pt-8">
-              <Composer
-                value={question}
-                onChange={setQuestion}
-                onSubmit={ask}
-                placeholder={t("askPlaceholder")}
-                submitLabel={t("ask")}
-                busyLabel={t("asking")}
-                hint={t("askHint")}
-                suggestions={[t("suggest1"), t("suggest2"), t("suggest3"), t("suggest4")]}
-              />
-            </div>
-
-            {/* Where the answers come from, in one real number. Under the
-                composer rather than above it: the question is the thing to
-                do, and this answers what a reader wonders after typing one. */}
-            {active?.nodeCount ? (
-              <p className="pt-5 text-small text-ink-3">
-                {t("memoryLine", { entries: active.nodeCount })}{" "}
-                <Link href="/project" className="text-thread underline underline-offset-2">
-                  {t("memoryLink")}
-                </Link>
-              </p>
-            ) : null}
-          </section>
+          {/* The conversation itself, with this screen's own words above and
+              below the field. The answer arrives here rather than on a screen
+              of its own: one room, one door. */}
+          <Ask
+            opening={
+              <>
+                <p className="pb-3 text-center text-data text-ink-3">
+                  {since ? t("seen", { at: stamp(since, true) }) : t("seenFirst")}
+                </p>
+                {/* The one display-size line in the app: the question the whole
+                    product exists to answer. Centred over the field it asks
+                    for, so the two read as one object. */}
+                <h1 className="mx-auto max-w-[16ch] text-center text-display text-ink">
+                  {t("askTitle")}
+                </h1>
+              </>
+            }
+            footnote={
+              // Where the answers come from, in one real number. Under the
+              // composer rather than above it: the question is the thing to do,
+              // and this answers what a reader wonders after typing one.
+              active?.nodeCount ? (
+                <p className="text-center text-small text-ink-3">
+                  {t("memoryLine", { entries: active.nodeCount })}{" "}
+                  <Link href="/project" className="text-thread underline underline-offset-2">
+                    {t("memoryLink")}
+                  </Link>
+                </p>
+              ) : null
+            }
+          />
 
           {/* The thread picks up where the question ends: a short taut lead-in
-              on the hairline that carries the eye down to what was decided. */}
-          <div className="relative mb-8 border-t border-hairline" aria-hidden="true">
+              on the hairline that carries the eye down to what was decided.
+
+              The gap above it is the whole width of the field, and deliberate.
+              A sticky composer only lets go at the end of the block it sits in,
+              which is the end of the conversation - so without this the field
+              was still hanging over the screen when the summary arrived under
+              it. With it, the two never share a screen. */}
+          <div className="relative mb-8 mt-10 border-t border-hairline" aria-hidden="true">
             <svg
               width="64"
               height="9"
@@ -225,7 +219,7 @@ export default function HomeScreen() {
                 <Link href="/project" className="block">
                   <Card interactive className="p-5">
                     <p className="line-clamp-2 text-body font-medium leading-7 text-ink">
-                      {headline(latestDecision[0].content)}
+                      {lead(latestDecision[0])}
                     </p>
                     <p className="pt-2 text-data text-ink-3">
                       {stamp(new Date(latestDecision[0].createdAt))}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   AgentStep,
+  KeyStep,
   PROFILE_QUESTIONS,
   ProfileStep,
   ProjectStep,
@@ -19,11 +20,14 @@ import { Banner, Button } from "@/components/ui";
 import {
   ApiError,
   createProject,
+  getAccount,
   listProjects,
   mintToken,
   readToken,
+  saveGeminiKey,
   saveProfile,
   serverUrl,
+  type GeminiKeySource,
 } from "@/lib/api";
 
 // Screen 02. Collect a profile, create the first project, connect an agent, and
@@ -43,11 +47,15 @@ export default function OnboardingScreen() {
   const tAuth = useTranslations("auth");
   const router = useRouter();
 
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [profileIndex, setProfileIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>(EMPTY_ANSWERS);
   const [profile, setProfile] = useState("");
   const [card, setCard] = useState<Card>(EMPTY_CARD);
+  const [geminiKey, setGeminiKey] = useState("");
+  // What the account has before this run. "server" means the instance carries a
+  // key of its own, and the step says so instead of asking for one twice.
+  const [keySource, setKeySource] = useState<GeminiKeySource>("none");
   const [agent, setAgent] = useState<Agent>("claude-code");
   const [token, setToken] = useState<string | null>(null);
   const [tokenFailed, setTokenFailed] = useState(false);
@@ -69,6 +77,9 @@ export default function OnboardingScreen() {
     // onboarding, so only a definite answer redirects.
     void listProjects()
       .then((rows) => rows.length && router.replace("/home"))
+      .catch(() => {});
+    void getAccount()
+      .then((account) => setKeySource(account.geminiKey))
       .catch(() => {});
   }, [router]);
 
@@ -107,6 +118,19 @@ export default function OnboardingScreen() {
       }
 
       if (step === 2) {
+        // An empty field is a skip, not a failure: the step is optional and the
+        // server may already have a key. A wrong one stops here, because the
+        // one moment this is fixable cheaply is while it is still on screen.
+        if (geminiKey.trim()) {
+          await saveGeminiKey(geminiKey.trim());
+          setKeySource("user");
+          setGeminiKey("");
+        }
+        setStep(3);
+        return;
+      }
+
+      if (step === 3) {
         if (!card.name.trim()) {
           setFieldError(t("project.error.name"));
           return;
@@ -121,13 +145,15 @@ export default function OnboardingScreen() {
           ograniczenia: card.ograniczenia.trim(),
         });
         await mint();
-        setStep(3);
+        setStep(4);
         return;
       }
 
       router.push("/home");
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === "validation" && step === 2) {
+        setFieldError(caught.message);
+      } else if (caught instanceof ApiError && caught.code === "validation" && step === 3) {
         setFieldError(/repo_ref/.test(caught.message) ? t("project.error.repoTaken") : caught.message);
       } else {
         setFailure(failureMessage(caught));
@@ -141,8 +167,7 @@ export default function OnboardingScreen() {
     setFailure(null);
     setFieldError(null);
     if (step === 1 && profileIndex > 0) return setProfileIndex(profileIndex - 1);
-    if (step === 2) return setStep(1);
-    if (step === 3) return setStep(2);
+    if (step > 1) return setStep((step - 1) as 1 | 2 | 3);
   };
 
   const canGoBack = step > 1 || profileIndex > 0;
@@ -150,8 +175,10 @@ export default function OnboardingScreen() {
   // The right column: what has been entered so far. It is here because two thirds
   // of this screen was empty and the question "why am I typing this" had no
   // answer on it.
+  // The key step has no record of its own to show, so it keeps the profile on
+  // screen: what was just written is better company than an empty project card.
   const preview: { title: string; note?: string; entries: Entry[]; empty: string } =
-    step === 1
+    step <= 2
       ? {
           title: t("profile.previewTitle"),
           note: t("profile.note"),
@@ -192,6 +219,13 @@ export default function OnboardingScreen() {
                 onProfile={setProfile}
               />
             ) : step === 2 ? (
+              <KeyStep
+                value={geminiKey}
+                source={keySource}
+                error={fieldError}
+                onChange={setGeminiKey}
+              />
+            ) : step === 3 ? (
               <ProjectStep
                 card={card}
                 error={fieldError}
@@ -212,14 +246,14 @@ export default function OnboardingScreen() {
                 making the whole screen read as one undifferentiated column. */}
             <div className="mt-9 flex items-center gap-6 border-t border-hairline pb-8 pt-6">
               <Button onClick={() => void advance()} disabled={busy}>
-                {step === 3 ? t("finish") : t("next")}
+                {step === 4 ? t("finish") : t("next")}
               </Button>
               {canGoBack ? (
                 <Button variant="quiet" onClick={back} disabled={busy}>
                   {t("back")}
                 </Button>
               ) : null}
-              {step < 3 ? (
+              {step < 4 ? (
                 <Button variant="quiet" className="ml-auto" onClick={() => router.push("/home")} disabled={busy}>
                   {t("skip")}
                 </Button>
@@ -230,7 +264,7 @@ export default function OnboardingScreen() {
                 this wizard is what a fresh account sees first. Without a way
                 out of it the invitation ends here, on a form asking them to
                 start a project they were never going to start. */}
-            {step === 2 ? (
+            {step === 3 ? (
               <button
                 type="button"
                 onClick={() => router.push("/settings")}
