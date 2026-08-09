@@ -2,7 +2,7 @@
 
 Warstwa pamieci dla LLM coderow. Nic ariadny: wychodzisz z sesji i wracasz dokladnie tam, gdzie skonczyles. Baza Postgres + pgvector na VPS jako jedyne zrodlo prawdy, aplikacja desktopowa Tauri 2 + Next.js jako klient, komunikacja coderow przez MCP, wyszukiwanie przez RAG z cytowaniem.
 
-## 0. Gdzie jestesmy, stan na 08.08.2026
+## 0. Gdzie jestesmy, stan na 09.08.2026
 
 Na main sa zmergowane kroki 1 do 5d razem z redesignem UI (PR #1 do #10). Do scalenia zostaja dwa branche: feature/workspaces-backend (wlasnosc przeniesiona z usera na workspace) i wychodzacy z niego feature/screen-8-settings (ekran 8 i zespol w interfejsie). MVP z sekcji 11 jest kompletne: osiem ekranow na osiem.
 
@@ -29,7 +29,8 @@ Czego brakuje w 5b: nic. Krok domkniety.
 - Ekran 8 (ustawienia): konto z profilem, zmiana hasla, przelacznik jezyka, automatyczne zatwierdzanie, tokeny z lista i odwolywaniem, zespol z czlonkami i zaproszeniami. GET /tokens i DELETE /tokens/:id istnialy od 5a i do teraz nie mialy w aplikacji zadnego wywolania.
 - Doszly tez: limit prob logowania (licznik w pamieci procesu, 10 na 15 minut na adres) i PUT /me/password.
 
-Zostaje z MVP: nic. Osiem ekranow z sekcji 11 stoi.
+Zostaje z MVP: nic. Ekranow jest siedem, nie osiem: chat RAG przestal byc osobnym
+ekranem i mieszka na przegladzie (sekcja 11).
 
 - Redesign 2 (branch feature/ui-redesign-2, po merge'u #11 i #12): nowy jezyk
   wizualny - ciepla kosc zamiast chlodnej szarosci, Bodoni Moda na naglowkach
@@ -41,6 +42,24 @@ Zostaje z MVP: nic. Osiem ekranow z sekcji 11 stoi.
   ksztaltami statusow i legenda. Naprawione wieczne "Wczytuje..." na /project
   (konto z jednym projektem nie zapisywalo activeProject) i na /settings przy
   padnietym fetchu - oba maja stany bledu z retry. DESIGN.md przepisany.
+  Druga fala tego samego brancha, 09.08.2026, juz z klikania: pole z pytaniem
+  stoi na srodku okna z pytaniem nad nim, kolumna nawigacji chowa sie i wraca na
+  zblizenie kursora (wjazd z lewej, 200ms na krzywej enter), naglowki sekcji
+  poszly o krok skali w gore, a to, co jest pod zgieciem, wystaje na tyle, zeby
+  bylo widac, ze ekran ma ciag dalszy. Wysokosci zyja w dwoch narzedziach w
+  globals.css: screen-content to cale widoczne okno, screen-opening to okno bez
+  jednego kroku skali.
+
+- Krok 5f, branch feature/ui-redesign-2, 09.08.2026. Trzy rzeczy naraz, wszystkie
+  wyszly z klikania po gotowej aplikacji, nie z planu. Streszczenia wpisow pisane
+  przez model przy zapisie (kolumna nodes.summary): karta prowadzi dziesiecioma
+  slowami, a to, co user napisal, czeka pod "pokaz wiecej". Wlasny klucz Gemini
+  per konto, zapieczetowany AES-256-GCM kluczem wyprowadzonym z JWT_SECRET, z
+  polem w ustawieniach i osobnym krokiem w onboardingu, zeby nikt nie zgadywal,
+  czemu czat milczy. Wykrywanie sprzecznosci przy zapisie: wektory zawezaja do
+  kilku sasiadow, model czyta pare i mowi, czy to kolizja, a czlowiek rozstrzyga
+  jednym klikiem na gotowym juz superseded_by. Do tego status z kanalu (sekcja 4)
+  i scalenie ekranu 5 z ekranem 3 (sekcja 11).
 
 Jedna decyzja czeka na usera:
 1. Logowanie przez Google: zaprojektowane na ekranie 01, ale nie ma go ani w sekcji 10, ani w backendzie, ani w kodzie frontu (grep po "google" trafia tylko w skrypt do fontow). Rekomendacja: zapisac w sekcji 14 jako swiadomie odlozone, bo OAuth w Tauri to loopback albo deep link plus endpoint providera, a konto na haslo dziala.
@@ -93,6 +112,7 @@ CREATE TABLE users (
   password_hash text NOT NULL,              -- argon2id
   profile       text NOT NULL DEFAULT '',   -- lekki profil: kim jest, jak lubi pracowac
   all_permission boolean NOT NULL DEFAULT false,
+  gemini_key    text,                       -- wlasny klucz do Google, zapieczetowany AES-256-GCM
   created_at    timestamptz NOT NULL DEFAULT now()
 );
 
@@ -167,6 +187,10 @@ CREATE TABLE nodes (
   confirmed_at timestamptz,
   type       text NOT NULL CHECK (type IN ('session_summary','decision','note')),
   content    text NOT NULL,                 -- jedna mysl po ludzku; to idzie do embeddingu
+  summary    text NOT NULL DEFAULT '',      -- dziesiec slow od modelu; linijka, ktora prowadzi karte
+  -- Wpisy, ktorym ten zaprzecza. Podejrzenie, nie werdykt: czlowiek mowi, ktory
+  -- zostaje, i wtedy ta lista pustoszeje, a odpowiedz niesie superseded_by.
+  conflicts_with uuid[] NOT NULL DEFAULT '{}',
   status     text NOT NULL DEFAULT 'proposed'
                CHECK (status IN ('proposed','confirmed','contradicted','archived')),
   source     jsonb NOT NULL DEFAULT '{}',   -- patrz format nizej
@@ -235,8 +259,17 @@ Format kolumny source (jsonb):
 | proposed | archived | klik "odrzuc" w feedzie aplikacji |
 | proposed | contradicted | nowy add_context z replaces_node_id wskazujacym ten wezel |
 | confirmed | contradicted | jak wyzej (potwierdzone tez mozna odwrocic nowa decyzja) |
+| proposed lub confirmed | contradicted | rozstrzygniecie wykrytej sprzecznosci: czlowiek mowi, ktory wpis zostaje |
 | contradicted | archived | klik usera w feedzie ALBO automatycznie po 7 dniach bez reakcji |
 | dowolny | archived | zatwierdzone delete_context |
+
+Wpis napisany w aplikacji nie zaczyna od proposed. Status bierze sie z kanalu:
+kanal coder laduje jako proposed i czeka w kolejce, bo coder pisze bez nadzoru,
+a app_chat i app_form laduja od razu jako confirmed z podpisem tego, kto je
+napisal. Kolejka istnieje dla wpisow powstalych, gdy nikogo nie bylo przy
+ekranie; proszenie czlowieka o zatwierdzenie zdania, ktore sam wlasnie napisal i
+przeczytal na ekranie, bylo tym samym klikiem dwa razy. To samo dotyczy zmian i
+usuniec proponowanych przez czat pamieci: dzieja sie od razu.
 
 Zasady:
 - Zapis nigdy nie jest blokowany. Wszystko wchodzi od razu, status niesie zaufanie.
@@ -404,6 +437,9 @@ Auth: POST /auth/register (email, haslo), POST /auth/login -> JWT, haslo hashowa
 - POST /pending/:id/reject
 - POST /nodes/:id/confirm     proposed -> confirmed
 - POST /nodes/:id/archive     odrzucenie / archiwizacja
+- POST /nodes/:id/conflicts/resolve  rozstrzygniecie sprzecznosci: new, old albo both
+- PUT  /me/gemini-key         wlasny klucz do Gemini (sprawdzany jednym embed przed zapisem)
+- DELETE /me/gemini-key       powrot na klucz serwera, jesli instancja go ma
 - POST /chat/query            pytanie do asystenta RAG (streaming odpowiedzi)
 - POST /chat/edit             konwersacyjny edytor bazy (tani LLM z narzedziami)
 - PUT  /me/password           zmiana hasla (obecne + nowe)
@@ -432,12 +468,12 @@ Ustalenia z realizacji (krok 5a):
 2. Onboarding (tylko pierwszy raz): (a) kreator profilu, 3-4 pytania, wynik jako tekst edytowalny; (b) zalozenie pierwszego projektu, formularz karty; (c) podpiecie codera: wybor z listy (Claude Code / Codex / inny), wygenerowany token, gotowy snippet do skopiowania i dokladna instrukcja gdzie go wkleic, krok po kroku dla nietechnicznych.
 3. Ekran glowny: lista projektow + 4 akcje: wybierz projekt, zapytaj asystenta, rozmawiaj z baza, do potwierdzenia (z licznikiem oczekujacych).
 4. Widok projektu: karta projektu (edytowalna) + graf (sekcja 8) + lista ostatnich wezlow.
-5. Chat RAG: pytanie, odpowiedz z cytowaniami (zrodlo + data + anchors jako linki do plikow).
+5. Chat RAG: NIE JEST OSOBNYM EKRANEM od 09.08.2026. Rozmowa zyje na ekranie 3, bo composer na przegladzie i tak tylko przerzucal pytanie na ekran 5 przez sessionStorage: jeden silnik, dwoje drzwi, dwa naglowki i dwa zestawy podpowiedzi do trzymania w zgodzie. Pytanie, odpowiedz z cytowaniami i historia rozmow sa teraz w components/ask.tsx, osadzonym w ekranie 3. Cytowane sa wylacznie te wpisy, na ktore odpowiedz sie powolala, jedna cicha linijka na wpis; piec kart pod kazda odpowiedzia mowilo "to dotyczy wszystkich pieciu", co bylo nieprawda.
 6. Rozmawiaj z baza: chat z tanim LLM, ktory dodaje / proponuje edycje / proponuje usuniecia; propozycje destrukcyjne widoczne od razu jako karty do zatwierdzenia.
 7. Do potwierdzenia: feed pending_actions oraz wezlow proposed i contradicted; przyciski potwierdz / odrzuc; nieblokujacy, mozna ignorowac.
-8. Ustawienia: konto (profil, zmiana hasla, jezyk), automatyczne zatwierdzanie, tokeny MCP z lista i odwolywaniem, zespol (przestrzenie, czlonkowie, zaproszenia, wyjscie, wpisanie kodu). Klucz Gemini per user nie wszedl, MVP stoi na wspolnym kluczu aplikacji (sekcja 14).
+8. Ustawienia: konto (profil, zmiana hasla, jezyk), klucz Gemini, automatyczne zatwierdzanie, tokeny MCP z lista i odwolywaniem, zespol (przestrzenie, czlonkowie, zaproszenia, wyjscie, wpisanie kodu).
 
-Nietechniczny user zyje w ekranach 3, 5, 6. Techniczny dodatkowo w 4 i 7. Nic wiecej w wersji pierwszej.
+Nietechniczny user zyje w ekranach 3 i 6. Techniczny dodatkowo w 4 i 7. Nic wiecej w wersji pierwszej.
 
 Zespol nie dostal osobnego ekranu. Jest sekcja ekranu 8, bo to ustawienie zmieniane dwa razy i zapominane, a osobna pozycja w kolumnie mowilaby, ze to miejsce, w ktorym sie pracuje. Osoba zaproszona do cudzej przestrzeni nie ma wlasnego projektu, wiec ekran wejscia wysyla ja do onboardingu; krok z karta projektu ma odnosnik do ustawien, inaczej zaproszenie konczy sie na formularzu zakladania projektu, ktorego ta osoba nie zamierzala zakladac.
 
@@ -636,6 +672,15 @@ Krok 5e. Ekran 8 i tryb zespolowy. ZROBIONE 2026-08-08, branche feature/workspac
 - Znalezione przez klikanie, nie przez czytanie kodu: kod zaproszenia wyswietlal sie pod ostrzezeniem "ten token widzisz raz" (CommandBlock mial to zdanie zaszyte, wbrew wlasnemu komentarzowi), przyjecie zaproszenia nie odswiezalo kolumny, a osoba zaproszona nie miala jak dojsc do pola na kod, bo onboarding nie ma menu.
 - Odstepstwo od sekcji 13 w wersji sprzed tej zmiany: tryb zespolowy byl krokiem 7 "kierunek, nie zadanie". User zdecydowal inaczej i wszedl przed MVP. Wycena z tamtego akapitu okazala sie trafna co do zakresu: przepisany scope w warstwie serwisowej i przepisany blok cross-user w verify-rest.ts.
 
+Krok 5f. Streszczenia, wlasny klucz Gemini, sprzecznosci. ZROBIONE 2026-08-09, branch feature/ui-redesign-2.
+- Gotowe gdy: karta wpisu prowadzi zdaniem, ktore da sie przeczytac jednym rzutem oka; konto bez klucza wie, czego mu brakuje i gdzie to wpisac; dwa wpisy, ktore nie moga byc naraz prawdziwe, nie leza w bazie po cichu.
+- Spelnione: verify-rest.ts 159 sprawdzen (bylo 158), migracje 0006 i 0007 na prawdziwej bazie, plus dwa jednorazowe skrypty na przypadku ze zgloszenia ("portfolio jednojezyczne" kontra "portfolio trojjezyczne"): wykrywa te pare, nie wykrywa wpisu o innym temacie ani wpisu o tym samym temacie, ktory niczemu nie przeczy, a po rozstrzygnieciu stary wpis ma status contradicted i link do nastepcy.
+- Prog podobienstwa to jedna liczba dla wszystkich projektow (0.7, komentarz ponytail: w service.ts). Sama bliskosc wektorow nie wystarcza i nigdy nie wystarczy: "portfolio trojjezyczne" i "teksty portfolio prostym jezykiem" sa blisko siebie, a tylko pierwsza para to sprzecznosc. Model jest tu filtrem, prog tylko brama.
+- Wykrywanie dziala od zapisu w przod. Pary lezace juz w bazie zostaja niewykryte, decyzja usera; przemial istniejacych wpisow to jeden skrypt, gdy zajdzie potrzeba.
+- Streszczenia tez licza sie tylko przy zapisie i przy edycji tresci. Wpisy sprzed tej zmiany maja puste summary i karta wraca dla nich do pierwszego zdania, wiec nic nie znika.
+- Znalezione przez klikanie, nie przez czytanie kodu: wpis napisany w panelu wracal do wlasnego autora jako "do zatwierdzenia" (stad status z kanalu), a piec kart zrodel pod kazda odpowiedzia twierdzilo, ze odpowiedz dotyczy wszystkich pieciu wpisow.
+- Prompt streszczenia poprawiany dwa razy, oba razy z powodu widocznego dopiero na wyniku: proszony o zdanie model pisal zdanie podrzedne, na ktore nie mial miejsca, a twardy limit ucinal je w polowie ("...ze wzgledu na"); regula jezyka nazywajaca polski z nazwy byla czytana jako preferencja polskiego i tytulowala angielskie wpisy po polsku. Teraz prosi o fraze i nie nazywa zadnego jezyka.
+
 Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezycie, Row-Level Security, hook konca sesji dla Claude Code, obsluga coderow bez MCP (cienkie CLI).
 
 Dlaczego to jest prawdopodobnie wlasciwy produkt, a wersja jednoosobowa prototypem: solo Ariadne konkuruje z wlasna pamiecia usera, ktory polowe decyzji z zeszlego tygodnia i tak pamieta. W zespole ta konkurencja znika, bo decyzja kolegi z wtorku nie jest w polowie zapamietana, ona jest calkowicie niewidzialna. CLAUDE.md w repo trzyma reguly, nie powody, i nikt go nie aktualizuje po rozmowie na Slacku. Do tego kazda osoba ma wlasnego agenta, a kazdy agent startuje od zera: piec osob to piec agentow codziennie odgadujacych ten sam kontekst. Oszczednosc mnozy sie przez liczbe ludzi.
@@ -648,7 +693,7 @@ Czego to kosztuje, zeby nie wygladalo na dolozenie tabelki:
 
 Najtrudniejszy problem nie jest techniczny, jest znaczeniowy. Statusy zakladaja jedna osobe decydujaca: proposed to "nikt tego nie ocenil", confirmed to "ja potwierdzilem". W zespole natychmiast pada pytanie, kto potwierdza. Jesli kazdy, to confirmed nic nie znaczy, bo junior potwierdzi decyzje architektoniczna, ktorej nie rozumie. Jesli tylko wlasciciel, to jest waskim gardlem i kolejka rosnie do stu pozycji. Do tego dwie osoby zapisza tego samego dnia dwie sprzeczne decyzje, obie proposed, obie szczere, i nie ma automatu, ktory to rozstrzygnie. Bez odpowiedzi na to pytanie tryb zespolowy nie ma sensu, choćby cala schema byla gotowa.
 
-Odpowiedz z 08.08.2026, decyzja usera: zatwierdza kazdy czlonek, a wpis zapamietuje kto i kiedy (nodes.confirmed_by, confirmed_at). Podpis jest tym, co ratuje status przed znaczeniem "ktos kiedys sie zgodzil": czytelnik widzi, czyja to byla ocena, i moze ja zakwestionowac przez contradicted. Waskie gardlo u wlasciciela bylo drozsze niz ryzyko, ze junior potwierdzi cos, czego nie rozumie. Dwie sprzeczne decyzje tego samego dnia dalej rozstrzyga czlowiek, przez supersededBy; automatu na to nadal nie ma i nie planujemy.
+Odpowiedz z 08.08.2026, decyzja usera: zatwierdza kazdy czlonek, a wpis zapamietuje kto i kiedy (nodes.confirmed_by, confirmed_at). Podpis jest tym, co ratuje status przed znaczeniem "ktos kiedys sie zgodzil": czytelnik widzi, czyja to byla ocena, i moze ja zakwestionowac przez contradicted. Waskie gardlo u wlasciciela bylo drozsze niz ryzyko, ze junior potwierdzi cos, czego nie rozumie. Dwie sprzeczne decyzje tego samego dnia rozstrzyga czlowiek, przez supersededBy. Automatu rozstrzygajacego nadal nie ma i nie bedzie, ale od 09.08.2026 jest automat WYKRYWAJACY, opisany nizej przy kroku 5f: model tylko podnosi reke, decyzja zostaje po stronie czlowieka.
 
 Czego w trybie zespolowym NIE robimy na start: uprawnien per rola. Wartosc siedzi we wspolnym czytaniu i w przypisanym zapisie, nie w macierzy uprawnien. Role to osobna warstwa i typowo pierwsza rzecz, ktora niepotrzebnie zabija projekt na tym etapie.
 
@@ -664,7 +709,7 @@ Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym
 - Row-Level Security: krok 6. Scope stoi na warstwie serwisowej i na bloku cross-workspace w verify-rest.ts. Przy zespolach to przestaje byc "miloby bylo", wiec jest to pierwsza pozycja kroku 6, nie dowolna.
 - Historia wersji tresci wezla: gdy okaze sie potrzebna.
 - Coderzy bez MCP: gdy zajdzie potrzeba.
-- Wlasny klucz Gemini per user vs wspolny klucz aplikacji: MVP na wspolnym, przelacznik w ustawieniach pozniej.
+- Wlasny klucz Gemini per user: ZROBIONE 09.08.2026, patrz krok 5f. Kolejnosc jest taka: klucz konta, a gdy go nie ma, klucz serwera z .env. Bez zadnego z nich zapis wpisu i oba czaty zwracaja no_gemini_key, a aplikacja tlumaczy to na zdanie z odnosnikiem do ustawien.
 - Wysylka zaproszen mailem: dopiero z VPS-em. Zaproszenie to dzis kod do skopiowania, kolumna invites.email juz jest i wiaze kod z adresem, wiec dolozenie nadawcy to jeden endpoint na gotowej kolumnie. Bez publicznego adresu link z maila nie ma dokad prowadzic.
 - Usuniecie przestrzeni i przekazanie wlasnosci: nie ma. Wlasciciel nie moze wyjsc z wlasnej przestrzeni, a zalozonej nie da sie skasowac z aplikacji. Do zrobienia, gdy ktos zalozy druga przez pomylke.
 - Nazwa wyswietlana usera: autora pokazujemy mailem, a scislej czescia przed malpa. Kolumna dojdzie, gdy adresy przestana wystarczac.
