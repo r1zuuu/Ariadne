@@ -211,7 +211,7 @@ export function SectionHeader({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4 pb-4">
-      <h2 className="flex items-baseline gap-3 text-lead font-semibold text-ink">
+      <h2 className="flex items-baseline gap-3 text-section text-ink">
         {title}
         {count !== undefined ? (
           <span className="font-prose text-data tabular text-ink-3">{count}</span>

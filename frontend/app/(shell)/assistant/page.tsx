@@ -196,9 +196,9 @@ export default function AssistantScreen() {
   return (
     <div className="mx-auto max-w-[760px]">
         {empty ? (
-          <div className="pt-6">
-            <h1 className="max-w-[14ch] text-display text-ink">{t("title")}</h1>
-            <p className="max-w-[62ch] pt-4 text-body text-ink-2">{t("lead")}</p>
+          <div className="pt-6 text-center">
+            <h1 className="mx-auto max-w-[14ch] text-display text-ink">{t("title")}</h1>
+            <p className="mx-auto max-w-[62ch] pt-4 text-body text-ink-2">{t("lead")}</p>
           </div>
         ) : null}
 

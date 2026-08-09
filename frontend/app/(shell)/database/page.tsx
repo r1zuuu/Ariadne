@@ -8,7 +8,7 @@ import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
 import { FadeIn } from "@/components/motion";
 import { useToast } from "@/components/toast";
-import { Card, EmptyState, Meta, PageHeader, Status } from "@/components/ui";
+import { Card, EmptyState, Meta, Status } from "@/components/ui";
 import {
   chatEdit,
   createConversation,
@@ -170,7 +170,13 @@ export default function DatabaseScreen() {
 
   return (
     <div className="mx-auto max-w-[760px]">
-        <PageHeader title={t("title")} lead={t("lead")} />
+        {/* Not PageHeader: this screen is a composer with a question over it,
+            the same arrangement as the dashboard and the assistant, and that
+            question belongs above the field rather than in a page banner. */}
+        <div className="pb-7 pt-6 text-center">
+          <h1 className="mx-auto max-w-[16ch] text-display text-ink">{t("title")}</h1>
+          <p className="mx-auto max-w-[62ch] pt-4 text-body text-ink-2">{t("lead")}</p>
+        </div>
 
         <Composer
           value={message}

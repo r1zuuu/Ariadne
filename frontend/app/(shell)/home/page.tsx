@@ -154,15 +154,17 @@ export default function HomeScreen() {
       ) : (
         <>
           <section className="pb-8 pt-6">
-            <p className="pb-3 text-data text-ink-3">
+            <p className="pb-3 text-center text-data text-ink-3">
               {since ? t("seen", { at: stamp(since, true) }) : t("seenFirst")}
             </p>
             {/* The one display-size line in the app: the question the whole
-                product exists to answer. Left-aligned, with the right side
-                left open on purpose. */}
-            <h1 className="max-w-[16ch] text-display text-ink">{t("askTitle")}</h1>
+                product exists to answer. Centred over the field it asks for,
+                so the two read as one object. */}
+            <h1 className="mx-auto max-w-[16ch] text-center text-display text-ink">
+              {t("askTitle")}
+            </h1>
 
-            <div className="max-w-[820px] pt-8">
+            <div className="mx-auto max-w-[820px] pt-8">
               <Composer
                 value={question}
                 onChange={setQuestion}
@@ -179,7 +181,7 @@ export default function HomeScreen() {
                 composer rather than above it: the question is the thing to
                 do, and this answers what a reader wonders after typing one. */}
             {active?.nodeCount ? (
-              <p className="pt-5 text-small text-ink-3">
+              <p className="pt-5 text-center text-small text-ink-3">
                 {t("memoryLine", { entries: active.nodeCount })}{" "}
                 <Link href="/project" className="text-thread underline underline-offset-2">
                   {t("memoryLink")}

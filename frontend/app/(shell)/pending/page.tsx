@@ -71,7 +71,7 @@ export default function PendingScreen() {
             {groups.map((group) => (
               <section key={group.project}>
                 <div className="flex items-baseline gap-4 pb-4">
-                  <h2 className="text-lead font-semibold text-ink">{group.project}</h2>
+                  <h2 className="text-section text-ink">{group.project}</h2>
                   <Meta items={[t("count", { count: group.actions.length + group.nodes.length })]} />
                 </div>
 

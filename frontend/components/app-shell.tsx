@@ -4,7 +4,7 @@ import { m } from "motion/react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useApp } from "@/components/app-provider";
 import { enterTransition } from "@/components/motion";
 import { TitleBar } from "@/components/title-bar";
@@ -85,6 +85,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const active = activeProject;
   const waiting = pendingCount;
 
+  // The column folds away for reading and writing, which is what the chat
+  // screens are for. Held here rather than in storage: it is a per-sitting
+  // choice, and the frame never unmounts while the app is open.
+  const [navOpen, setNavOpen] = useState(true);
+
   const signOut = () => {
     clearToken();
     // Not router.push: the token is gone and nothing behind this point should
@@ -94,13 +99,20 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-full flex-col">
-      <TitleBar project={active?.name} server={server} />
+      <TitleBar
+        project={active?.name}
+        server={server}
+        navOpen={navOpen}
+        onToggleNav={() => setNavOpen(!navOpen)}
+      />
 
       <div className="flex min-h-0 flex-1">
         {/* Icons only below 1024px, which covers the 880px window minimum, and
             labelled above it. The window opens at 1100px, so the labelled form
             is what anyone actually sees. */}
-        <nav className="flex w-[68px] shrink-0 flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 lg:w-[236px] lg:p-4">
+        <nav
+          className={`${navOpen ? "flex" : "hidden"} w-[68px] shrink-0 flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 lg:w-[236px] lg:p-4`}
+        >
           <ProjectSwitcher projects={projects ?? []} active={active} />
 
           <NavList

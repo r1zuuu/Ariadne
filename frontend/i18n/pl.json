@@ -196,7 +196,9 @@
     "tour": "Oprowadź mnie po Ariadne",
     "signOut": "Wyloguj się",
     "needsProject": "Najpierw wybierz projekt",
-    "noProject": "Brak projektu"
+    "noProject": "Brak projektu",
+    "hideNav": "Ukryj menu",
+    "showNav": "Pokaż menu"
   },
   "tour": {
     "step": "krok {current} z {total}",

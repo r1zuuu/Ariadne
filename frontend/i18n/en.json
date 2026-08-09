@@ -196,7 +196,9 @@
     "tour": "Show me around",
     "signOut": "Sign out",
     "needsProject": "Choose a project first",
-    "noProject": "No project"
+    "noProject": "No project",
+    "hideNav": "Hide menu",
+    "showNav": "Show menu"
   },
   "tour": {
     "step": "step {current} of {total}",

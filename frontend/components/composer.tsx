@@ -97,7 +97,7 @@ export function Composer({
       {/* Questions, not chips: each suggestion reads as a line you could have
           written, marked by the thread taking it up on hover. */}
       {suggestions.length ? (
-        <ul className="flex flex-wrap gap-x-7 gap-y-2 pt-4">
+        <ul className="flex flex-wrap justify-center gap-x-7 gap-y-2 pt-4">
           {suggestions.map((suggestion) => (
             <li key={suggestion}>
               <button
