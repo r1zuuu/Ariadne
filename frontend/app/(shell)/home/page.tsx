@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
@@ -44,7 +44,6 @@ export default function HomeScreen() {
   const [since, setSince] = useState<Date | null>(null);
   const [question, setQuestion] = useState("");
   const [settling, setSettling] = useState(false);
-  const summary = useRef<HTMLDivElement>(null);
 
   // Read once, then stamped forward, so the line answers "since when" with the
   // previous visit rather than with this one.
@@ -154,77 +153,52 @@ export default function HomeScreen() {
         />
       ) : (
         <>
-          {/* The question and its field take the whole screen and sit in the
-              middle of it; what is under them starts below the fold, which is
-              where a glance-deep summary belongs. */}
-          <section className="flex screen-content flex-col">
-            <div className="flex flex-1 flex-col justify-center">
-              <p className="pb-3 text-center text-data text-ink-3">
-                {since ? t("seen", { at: stamp(since, true) }) : t("seenFirst")}
-              </p>
-              {/* The one display-size line in the app: the question the whole
-                  product exists to answer. Centred over the field it asks for,
-                  so the two read as one object. */}
-              <h1 className="mx-auto max-w-[16ch] text-center text-display text-ink">
-                {t("askTitle")}
-              </h1>
+          {/* The question and its field own the window and sit in the middle of
+              it, all but the last step of it: the summary below starts just
+              inside the bottom edge, so the strip of it that shows is what says
+              the screen goes on. */}
+          <section className="flex screen-content flex-col justify-center">
+            <p className="pb-3 text-center text-data text-ink-3">
+              {since ? t("seen", { at: stamp(since, true) }) : t("seenFirst")}
+            </p>
+            {/* The one display-size line in the app: the question the whole
+                product exists to answer. Centred over the field it asks for,
+                so the two read as one object. */}
+            <h1 className="mx-auto max-w-[16ch] text-center text-display text-ink">
+              {t("askTitle")}
+            </h1>
 
-              {/* w-full, because auto side margins on a flex child stop it from
-                  stretching and the field would shrink to its own text. */}
-              <div className="mx-auto w-full max-w-[820px] pt-8">
-                <Composer
-                  value={question}
-                  onChange={setQuestion}
-                  onSubmit={ask}
-                  placeholder={t("askPlaceholder")}
-                  submitLabel={t("ask")}
-                  busyLabel={t("asking")}
-                  hint={t("askHint")}
-                  suggestions={[t("suggest1"), t("suggest2"), t("suggest3"), t("suggest4")]}
-                />
-              </div>
-
-              {/* Where the answers come from, in one real number. Under the
-                  composer rather than above it: the question is the thing to
-                  do, and this answers what a reader wonders after typing one. */}
-              {active?.nodeCount ? (
-                <p className="pt-5 text-center text-small text-ink-3">
-                  {t("memoryLine", { entries: active.nodeCount })}{" "}
-                  <Link href="/project" className="text-thread underline underline-offset-2">
-                    {t("memoryLink")}
-                  </Link>
-                </p>
-              ) : null}
+            {/* w-full, because auto side margins on a flex child stop it from
+                stretching and the field would shrink to its own text. */}
+            <div className="mx-auto w-full max-w-[820px] pt-8">
+              <Composer
+                value={question}
+                onChange={setQuestion}
+                onSubmit={ask}
+                placeholder={t("askPlaceholder")}
+                submitLabel={t("ask")}
+                busyLabel={t("asking")}
+                hint={t("askHint")}
+                suggestions={[t("suggest1"), t("suggest2"), t("suggest3"), t("suggest4")]}
+              />
             </div>
 
-            {/* The screen ends at the fold, so what is under it has to be said
-                rather than found: the thread carries on downwards and names the
-                two things it leads to. A click follows it. No bobbing arrow -
-                the one thing in this product allowed to move forever is the
-                dot that says the server is alive. */}
-            <button
-              type="button"
-              onClick={() => summary.current?.scrollIntoView({ behavior: "smooth" })}
-              className="group mx-auto flex flex-col items-center gap-2 pb-3 pt-8 text-data text-ink-3 transition-colors duration-state hover:text-ink-2"
-            >
-              {t("decisions")} · {t("waitingTitle")}
-              <svg
-                width="9"
-                height="22"
-                viewBox="0 0 9 22"
-                fill="none"
-                aria-hidden="true"
-                className="text-thread/60 transition-transform duration-state ease-out-quint group-hover:translate-y-[3px]"
-              >
-                <path d="M4.5 0v14" stroke="currentColor" strokeWidth="1.5" />
-                <circle cx="4.5" cy="17.5" r="2" fill="currentColor" />
-              </svg>
-            </button>
+            {/* Where the answers come from, in one real number. Under the
+                composer rather than above it: the question is the thing to
+                do, and this answers what a reader wonders after typing one. */}
+            {active?.nodeCount ? (
+              <p className="pt-5 text-center text-small text-ink-3">
+                {t("memoryLine", { entries: active.nodeCount })}{" "}
+                <Link href="/project" className="text-thread underline underline-offset-2">
+                  {t("memoryLink")}
+                </Link>
+              </p>
+            ) : null}
           </section>
 
           {/* The thread picks up where the question ends: a short taut lead-in
               on the hairline that carries the eye down to what was decided. */}
-          <div ref={summary} className="relative mb-8 border-t border-hairline" aria-hidden="true">
+          <div className="relative mb-8 border-t border-hairline" aria-hidden="true">
             <svg
               width="64"
               height="9"

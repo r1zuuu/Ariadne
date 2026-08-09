@@ -157,12 +157,13 @@
   box-shadow: 0 10px 28px rgb(0 0 0 / 0.5);
 }
 
-/* The height a screen has to itself: the window, less the 38px title bar and
-   the air <main> keeps above and below its content. The chat screens centre
-   their field in exactly this, so the field lands on the middle of the window
-   and whatever else the screen holds starts below the fold. */
+/* The height a screen gives its question and its field: the window, less the
+   38px title bar, the air <main> keeps around its content, and one last step
+   for what follows. That last step is the point - the next section starts just
+   above the fold, so a strip of it is on screen and nothing has to announce
+   that there is more. */
 @utility screen-content {
-  min-height: calc(100dvh - 38px - 2 * var(--spacing-7));
+  min-height: calc(100dvh - 38px - 2 * var(--spacing-7) - var(--spacing-10));
 }
 
 /* Counters change while the reader is looking at them, so mono digits never
