@@ -194,7 +194,12 @@ export default function AssistantScreen() {
   const empty = turns.length === 0;
 
   return (
-    <div className="mx-auto max-w-[760px]">
+    <div className="mx-auto flex w-full max-w-[760px] flex-1 flex-col">
+      {/* Until the first question, the field is the screen and sits in the
+          middle of it. Once there is a transcript the group stops claiming the
+          height, the answers push down from the top and the composer sticks to
+          the bottom edge, which is where a conversation wants it. */}
+      <div className={empty ? "flex flex-1 flex-col justify-center" : ""}>
         {empty ? (
           <div className="pt-6 text-center">
             <h1 className="mx-auto max-w-[14ch] text-display text-ink">{t("title")}</h1>
@@ -250,6 +255,7 @@ export default function AssistantScreen() {
             suggestions={empty ? [t("suggest1"), t("suggest2"), t("suggest3")] : []}
           />
         </div>
+      </div>
 
         <div className="pt-8">
           <ConversationList

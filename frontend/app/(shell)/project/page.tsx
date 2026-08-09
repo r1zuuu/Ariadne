@@ -55,7 +55,7 @@ export default function ProjectScreen() {
   }, [project?.id, loadGraph]);
 
   return (
-    <div className="mx-auto max-w-[900px]">
+    <div className="mx-auto flex w-full max-w-[900px] flex-1 flex-col">
         {project === null ? (
           server === "down" ? (
             // A dead backend used to park this screen on "loading" forever.

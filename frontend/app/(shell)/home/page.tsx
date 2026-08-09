@@ -134,7 +134,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <div className="mx-auto max-w-[1080px]">
+    <div className="mx-auto flex w-full max-w-[1080px] flex-1 flex-col">
       {server === "down" ? (
         <Banner
           variant="notice"
@@ -153,7 +153,10 @@ export default function HomeScreen() {
         />
       ) : (
         <>
-          <section className="pb-8 pt-6">
+          {/* The question and its field take the whole screen and sit in the
+              middle of it; what is under them starts below the fold, which is
+              where a glance-deep summary belongs. */}
+          <section className="flex flex-1 flex-col justify-center pb-8 pt-6">
             <p className="pb-3 text-center text-data text-ink-3">
               {since ? t("seen", { at: stamp(since, true) }) : t("seenFirst")}
             </p>
@@ -164,7 +167,9 @@ export default function HomeScreen() {
               {t("askTitle")}
             </h1>
 
-            <div className="mx-auto max-w-[820px] pt-8">
+            {/* w-full, because auto side margins on a flex child stop it from
+                stretching and the field would shrink to its own text. */}
+            <div className="mx-auto w-full max-w-[820px] pt-8">
               <Composer
                 value={question}
                 onChange={setQuestion}

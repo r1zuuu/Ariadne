@@ -4,7 +4,7 @@ import { m } from "motion/react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useApp } from "@/components/app-provider";
 import { enterTransition } from "@/components/motion";
 import { TitleBar } from "@/components/title-bar";
@@ -85,10 +85,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   const active = activeProject;
   const waiting = pendingCount;
 
-  // The column folds away for reading and writing, which is what the chat
-  // screens are for. Held here rather than in storage: it is a per-sitting
-  // choice, and the frame never unmounts while the app is open.
-  const [navOpen, setNavOpen] = useState(true);
+  // The column is away by default and comes back on approach, so a screen is
+  // the screen and not a frame around one. Two ways for it to be there: pinned
+  // from the title bar, which keeps it in the layout, or reached for with the
+  // pointer, which floats it over the page instead of shifting it.
+  const [navPinned, setNavPinned] = useState(false);
+  const [navNear, setNavNear] = useState(false);
+  const navShown = navPinned || navNear;
+
+  // Arriving somewhere puts the frame away again: the column has done its job
+  // the moment the screen changes.
+  useEffect(() => setNavPinned(false), [pathname]);
 
   const signOut = () => {
     clearToken();
@@ -102,16 +109,36 @@ export function AppShell({ children }: { children: ReactNode }) {
       <TitleBar
         project={active?.name}
         server={server}
-        navOpen={navOpen}
-        onToggleNav={() => setNavOpen(!navOpen)}
+        navOpen={navPinned}
+        onToggleNav={() => setNavPinned(!navPinned)}
       />
 
-      <div className="flex min-h-0 flex-1">
+      <div
+        className="relative flex min-h-0 flex-1"
+        // The pointer's distance from the left edge decides it, rather than an
+        // invisible strip: a strip three quarters of a column wide would sit
+        // over the page swallowing clicks meant for what is under it. Three
+        // quarters to call it in, its full width to keep it, so it neither
+        // needs the very edge nor closes under the pointer.
+        onMouseMove={(event) => {
+          const width = window.innerWidth >= 1024 ? 236 : 68;
+          setNavNear((was) => event.clientX < (was ? width : width * 0.75));
+        }}
+        // A pointer that leaves through any other edge stops sending moves, and
+        // the column would stay out.
+        onMouseLeave={() => setNavNear(false)}
+      >
         {/* Icons only below 1024px, which covers the 880px window minimum, and
             labelled above it. The window opens at 1100px, so the labelled form
-            is what anyone actually sees. */}
+            is what anyone actually sees.
+
+            Pinned it takes its own place in the row; reached for, it floats
+            over the page, because a column that pushes the text sideways every
+            time the pointer passes the edge is worse than no column. */}
         <nav
-          className={`${navOpen ? "flex" : "hidden"} w-[68px] shrink-0 flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 lg:w-[236px] lg:p-4`}
+          className={`${navShown ? "flex" : "hidden"} ${
+            navPinned ? "" : "absolute inset-y-0 left-0 z-30 shadow-lifted"
+          } w-[68px] shrink-0 flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 lg:w-[236px] lg:p-4`}
         >
           <ProjectSwitcher projects={projects ?? []} active={active} />
 
@@ -162,7 +189,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </nav>
 
-        <main className="min-h-0 flex-1 overflow-y-auto px-6 py-7 lg:px-8">{children}</main>
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto px-6 py-7 lg:px-8">
+          {children}
+        </main>
       </div>
     </div>
   );
