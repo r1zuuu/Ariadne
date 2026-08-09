@@ -61,18 +61,24 @@ export function ConversationList({
   return (
     <section>
       <div className="flex items-baseline justify-between gap-4 pb-3">
+        {/* While a conversation is open this is the quietest thing on the
+            screen: one line the colour of a date. It is a way back to something
+            you are not doing, and it used to sit under the field competing with
+            the answer being written. */}
         {collapsible ? (
           <button
             type="button"
             onClick={() => setOpen(!open)}
             aria-expanded={open}
-            className="text-small text-ink-2 transition-colors duration-state hover:text-ink"
+            className="text-data text-ink-3 transition-colors duration-state hover:text-ink-2"
           >
             {labels.title} ({conversations.length})
           </button>
         ) : (
           <h2 className="text-section text-ink">{labels.title}</h2>
         )}
+        {/* Not quietened with it: starting a new conversation is a thing you
+            actually do from here, unlike the list itself. */}
         <Button variant="quiet" onClick={onNew}>
           {labels.newOne}
         </Button>

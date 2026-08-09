@@ -178,7 +178,7 @@ export default function DatabaseScreen() {
           belongs above the field rather than in a page banner. Centred on the
           screen until the first thing is written, then it lets the proposals
           below have the height. */}
-      <div className={empty ? "flex screen-content flex-col justify-center" : ""}>
+      <div className={empty ? "flex screen-opening flex-col justify-center" : ""}>
         <div className="pb-7 text-center">
           <h1 className="mx-auto max-w-[16ch] text-display text-ink">{t("title")}</h1>
           <p className="mx-auto max-w-[62ch] pt-4 text-body text-ink-2">{t("lead")}</p>

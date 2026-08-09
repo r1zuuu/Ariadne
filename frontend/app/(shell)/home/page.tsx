@@ -157,7 +157,7 @@ export default function HomeScreen() {
               it, all but the last step of it: the summary below starts just
               inside the bottom edge, so the strip of it that shows is what says
               the screen goes on. */}
-          <section className="flex screen-content flex-col justify-center">
+          <section className="flex screen-opening flex-col justify-center">
             <p className="pb-3 text-center text-data text-ink-3">
               {since ? t("seen", { at: stamp(since, true) }) : t("seenFirst")}
             </p>

@@ -201,7 +201,7 @@ export default function AssistantScreen() {
           middle of it. Once there is a transcript the group stops claiming the
           height, the answers push down from the top and the composer sticks to
           the bottom edge, which is where a conversation wants it. */}
-      <div className={empty ? "flex screen-content flex-col justify-center" : ""}>
+      <div className={empty ? "flex screen-opening flex-col justify-center" : ""}>
         {empty ? (
           // The same block as the memory screen, down to the gap under the
           // lead: without it the field sat straight against the sentence.
@@ -212,32 +212,44 @@ export default function AssistantScreen() {
         ) : null}
 
         {!empty ? (
-          <ul className="flex flex-col gap-8 pb-6">
-            {turns.map((turn, i) => (
-              <li key={i}>
-                {/* The question sits in a tinted block and the answer on the
-                    page. Two speakers need to be told apart at a glance, and
-                    giving both a card would just be two cards. */}
-                <p className="rounded-card bg-plaster-sunk px-6 py-4 text-body font-medium text-ink">
-                  {turn.question}
-                </p>
+          // The transcript sits in the middle of the window rather than against
+          // the title bar. Two turns pinned to the top read as the remains of a
+          // page you have scrolled past; this screen is a conversation, and a
+          // short one belongs where the eye already is. The block is a window
+          // tall, so it stops centring the moment the transcript outgrows it -
+          // and the history below it goes under the fold, out of the way of the
+          // thing being written.
+          <div className="flex screen-content flex-col justify-center">
+            <ul className="flex flex-col gap-8 pb-6">
+              {turns.map((turn, i) => (
+                <li key={i}>
+                  {/* The question sits in a tinted block and the answer on the
+                      page. Two speakers need to be told apart at a glance, and
+                      giving both a card would just be two cards. */}
+                  <p className="rounded-card bg-plaster-sunk px-6 py-4 text-body font-medium text-ink">
+                    {turn.question}
+                  </p>
 
-                {turn.error ? (
-                  <p className="pt-5 text-body text-iron">{turn.error}</p>
-                ) : turn.sources.length === 0 && turn.done && !turn.answer ? (
-                  <div className="pt-5">
-                    <EmptyState title={t("nothingRecorded")} note={t("nothingRecordedNote")} />
-                  </div>
-                ) : (
-                  <Answer turn={turn} />
-                )}
-              </li>
-            ))}
-          </ul>
+                  {turn.error ? (
+                    <p className="pt-5 text-body text-iron">{turn.error}</p>
+                  ) : turn.sources.length === 0 && turn.done && !turn.answer ? (
+                    <div className="pt-5">
+                      <EmptyState title={t("nothingRecorded")} note={t("nothingRecordedNote")} />
+                    </div>
+                  ) : (
+                    <Answer turn={turn} />
+                  )}
+                </li>
+              ))}
+            </ul>
+            {/* Outside the list: as a flex child it claimed a whole gap slot of
+                its own, which read as a hole between the answer and the
+                composer. Inside the centred block, though, because following a
+                streaming answer means scrolling to the end of the transcript,
+                not to the bottom of the space it is centred in. */}
+            <div ref={endRef} aria-hidden="true" />
+          </div>
         ) : null}
-        {/* Outside the list: as a flex child it claimed a whole gap slot of
-            its own, which read as a hole between the answer and the composer. */}
-        <div ref={endRef} aria-hidden="true" />
 
         <div
           className={
