@@ -205,8 +205,8 @@ export function Ask({
 
   return (
     // Relative, because the shelf of past conversations hangs off the right of
-    // this block and lines itself up with the middle of it.
-    <div className="relative">
+    // this column and lines itself up with the middle of it.
+    <div className="relative mx-auto max-w-[760px]">
       <ConversationShelf
         conversations={history}
         activeId={conversationId}
@@ -214,7 +214,6 @@ export function Ask({
         onNew={startNew}
       />
 
-      <div className="mx-auto max-w-[760px]">
       {/* Until the first question, the field is the screen and sits in the
           middle of it. Once there is a transcript the group stops claiming the
           height, the answers push down from the top and the composer sticks to
@@ -287,7 +286,7 @@ export function Ask({
 
         {/* The full list stays for windows too narrow for the shelf, and for
             anyone reaching it by keyboard: a hover-only way in is no way in. */}
-        <div className="pt-8 min-[1180px]:hidden">
+        <div className="pt-8 min-[1280px]:hidden">
           <ConversationList
             conversations={history}
             activeId={conversationId}
@@ -302,23 +301,23 @@ export function Ask({
             }}
           />
         </div>
-      </div>
     </div>
   );
 }
 
-// Past conversations, on a shelf beside the question rather than in a block
-// under it. Under the field they sat in the way of the thing being written; out
-// here they are peripheral vision, which is what a way back should be.
+// Past conversations, beside the question rather than in a block under it.
+// Under the field they sat in the way of the thing being written; out here they
+// are peripheral vision, which is what a way back should be.
 //
-// Narrow, with one line per conversation, and it widens under the pointer to
-// show the titles in full. Nothing else about it changes: no fade in, no
-// shuffling of what is on it, so the row you reached for is the row you get.
+// Nothing but text: no card, no border, no shadow. It grows to the right, into
+// the empty margin, so opening it never covers a word of the conversation and
+// the titles keep their left edge - the line you started reading is the line
+// you go on reading.
 //
-// Hidden below 1180px, where the margin beside a 760px column stops being wide
-// enough to hold anything; the full list under the composer covers that case.
-// It opens on focus as well as on hover, because a keyboard cannot hover and a
-// row you can reach but not read is not a way back.
+// Hidden below 1280px, where that margin stops being wide enough to grow into;
+// the full list under the composer covers that case. It opens on focus as well
+// as on hover, because a keyboard cannot hover and a row you can reach but not
+// read is not a way back.
 function ConversationShelf({
   conversations,
   activeId,
@@ -335,9 +334,9 @@ function ConversationShelf({
   if (!conversations.length) return null;
 
   return (
-    <aside className="group absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 min-[1180px]:block">
-      <div className="w-[150px] rounded-card border border-transparent bg-transparent p-3 transition-[width,background-color,border-color,box-shadow] duration-enter ease-out-quint group-hover:w-[280px] group-hover:border-hairline group-hover:bg-elevated group-hover:shadow-lifted group-focus-within:w-[280px] group-focus-within:border-hairline group-focus-within:bg-elevated group-focus-within:shadow-lifted">
-        <p className="px-2 pb-2 text-label uppercase tracking-[0.12em] text-ink-3">
+    <aside className="group absolute left-full top-1/2 z-10 hidden -translate-y-1/2 pl-6 min-[1280px]:block">
+      <div className="w-[140px] transition-[width] duration-enter ease-out-quint group-hover:w-[200px] group-focus-within:w-[200px]">
+        <p className="pb-2 text-label uppercase tracking-[0.12em] text-ink-3/70">
           {t("historyTitle")}
         </p>
         <ul className="flex flex-col">
@@ -347,8 +346,9 @@ function ConversationShelf({
                 type="button"
                 onClick={() => onOpen(conversation.id)}
                 aria-current={conversation.id === activeId ? "true" : undefined}
-                className={`block w-full truncate rounded-control px-2 py-[6px] text-left text-data transition-colors duration-state hover:bg-surface ${
-                  conversation.id === activeId ? "text-ink" : "text-ink-3 hover:text-ink-2"
+                title={conversation.title}
+                className={`block w-full truncate py-[5px] text-left text-data transition-colors duration-state ${
+                  conversation.id === activeId ? "text-ink-2" : "text-ink-3 hover:text-ink"
                 }`}
               >
                 {conversation.title}
@@ -356,12 +356,12 @@ function ConversationShelf({
             </li>
           ))}
         </ul>
-        {/* Only once the shelf is open: collapsed, it is a list of titles and
+        {/* Only once it is open: collapsed, this is a list of titles and
             nothing else. */}
         <button
           type="button"
           onClick={onNew}
-          className="hidden w-full rounded-control px-2 pt-3 text-left text-data text-thread underline underline-offset-2 group-hover:block group-focus-within:block"
+          className="hidden w-full pt-3 text-left text-data text-thread underline underline-offset-2 group-hover:block group-focus-within:block"
         >
           {t("historyNew")}
         </button>

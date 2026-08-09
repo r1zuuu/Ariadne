@@ -177,8 +177,14 @@ export default function HomeScreen() {
           />
 
           {/* The thread picks up where the question ends: a short taut lead-in
-              on the hairline that carries the eye down to what was decided. */}
-          <div className="relative mb-8 border-t border-hairline" aria-hidden="true">
+              on the hairline that carries the eye down to what was decided.
+
+              The gap above it is the whole width of the field, and deliberate.
+              A sticky composer only lets go at the end of the block it sits in,
+              which is the end of the conversation - so without this the field
+              was still hanging over the screen when the summary arrived under
+              it. With it, the two never share a screen. */}
+          <div className="relative mb-8 mt-10 border-t border-hairline" aria-hidden="true">
             <svg
               width="64"
               height="9"
