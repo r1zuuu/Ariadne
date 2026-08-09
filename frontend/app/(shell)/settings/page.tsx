@@ -67,7 +67,7 @@ export default function SettingsScreen() {
   useEffect(loadAccount, [loadAccount]);
 
   return (
-    <div className="mx-auto flex w-full max-w-[860px] flex-1 flex-col">
+    <div className="mx-auto max-w-[860px]">
       <PageHeader title={t("title")} lead={t("lead")} />
 
       {account === null ? (

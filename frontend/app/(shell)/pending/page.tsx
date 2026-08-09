@@ -59,7 +59,7 @@ export default function PendingScreen() {
   const empty = feed && !feed.pendingActions.length && !feed.nodesToReview.length;
 
   return (
-    <div className="mx-auto flex w-full max-w-[860px] flex-1 flex-col">
+    <div className="mx-auto max-w-[860px]">
         <PageHeader title={t("title")} />
 
         {feed === null ? (

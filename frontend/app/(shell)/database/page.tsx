@@ -169,14 +169,14 @@ export default function DatabaseScreen() {
   const empty = turns.length === 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-[760px] flex-1 flex-col">
+    <div className="mx-auto max-w-[760px]">
       {/* Not PageHeader: this screen is a composer with a question over it, the
           same arrangement as the dashboard and the assistant, and that question
           belongs above the field rather than in a page banner. Centred on the
           screen until the first thing is written, then it lets the proposals
           below have the height. */}
-      <div className={empty ? "flex flex-1 flex-col justify-center" : ""}>
-        <div className="pb-7 pt-6 text-center">
+      <div className={empty ? "flex screen-content flex-col justify-center" : ""}>
+        <div className="pb-7 text-center">
           <h1 className="mx-auto max-w-[16ch] text-display text-ink">{t("title")}</h1>
           <p className="mx-auto max-w-[62ch] pt-4 text-body text-ink-2">{t("lead")}</p>
         </div>

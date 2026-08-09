@@ -1,6 +1,6 @@
 "use client";
 
-import { m } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -87,8 +87,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // The column is away by default and comes back on approach, so a screen is
   // the screen and not a frame around one. Two ways for it to be there: pinned
-  // from the title bar, which keeps it in the layout, or reached for with the
-  // pointer, which floats it over the page instead of shifting it.
+  // from the title bar, or reached for with the pointer. Either way it floats
+  // over the page rather than taking a place in the row, so nothing under it
+  // moves sideways when it arrives.
   const [navPinned, setNavPinned] = useState(false);
   const [navNear, setNavNear] = useState(false);
   const navShown = navPinned || navNear;
@@ -132,66 +133,72 @@ export function AppShell({ children }: { children: ReactNode }) {
             labelled above it. The window opens at 1100px, so the labelled form
             is what anyone actually sees.
 
-            Pinned it takes its own place in the row; reached for, it floats
-            over the page, because a column that pushes the text sideways every
-            time the pointer passes the edge is worse than no column. */}
-        <nav
-          className={`${navShown ? "flex" : "hidden"} ${
-            navPinned ? "" : "absolute inset-y-0 left-0 z-30 shadow-lifted"
-          } w-[68px] shrink-0 flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 lg:w-[236px] lg:p-4`}
-        >
-          <ProjectSwitcher projects={projects ?? []} active={active} />
-
-          <NavList
-            links={WORK_LINKS}
-            pathname={pathname}
-            hasProject={!!active}
-            waiting={waiting}
-            className="pt-2"
-          />
-
-          {/* The account group sits under its own hairline: the queue and the
-              settings are about the whole archive, not the open project. */}
-          <NavList
-            links={ACCOUNT_LINKS}
-            pathname={pathname}
-            hasProject={!!active}
-            waiting={waiting}
-            className="mt-2 border-t border-hairline pt-3"
-          />
-
-          <div className="mt-auto flex flex-col gap-1">
-            {/* Next to sign out because it is the same kind of thing: a door out
-                of the work, not part of it. resetTour clears the per-screen
-                notes too, so asking to be shown around brings all of it back. */}
-            <button
-              type="button"
-              onClick={() => {
-                resetTour();
-                router.push("/onboarding-tour");
-              }}
-              title={t("tour")}
-              className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-ink"
+            It comes in from off the left edge on the enter curve: the same
+            200ms every other arrival in the app takes, and the ease that ends
+            slowly, so the column settles rather than stops. Reduced motion is
+            handled by MotionConfig above it - the transform drops and the
+            column is simply there. */}
+        <AnimatePresence initial={false}>
+          {navShown ? (
+            <m.nav
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={enterTransition}
+              className="absolute inset-y-0 left-0 z-30 flex w-[68px] flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 shadow-lifted lg:w-[236px] lg:p-4"
             >
-              <IconTour />
-              <span className="hidden lg:inline">{t("tour")}</span>
-            </button>
+              <ProjectSwitcher projects={projects ?? []} active={active} />
 
-            <button
-              type="button"
-              onClick={signOut}
-              title={t("signOut")}
-              className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-iron"
-            >
-              <IconSignOut />
-              <span className="hidden lg:inline">{t("signOut")}</span>
-            </button>
-          </div>
-        </nav>
+              <NavList
+                links={WORK_LINKS}
+                pathname={pathname}
+                hasProject={!!active}
+                waiting={waiting}
+                className="pt-2"
+              />
 
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto px-6 py-7 lg:px-8">
-          {children}
-        </main>
+              {/* The account group sits under its own hairline: the queue and the
+                  settings are about the whole archive, not the open project. */}
+              <NavList
+                links={ACCOUNT_LINKS}
+                pathname={pathname}
+                hasProject={!!active}
+                waiting={waiting}
+                className="mt-2 border-t border-hairline pt-3"
+              />
+
+              <div className="mt-auto flex flex-col gap-1">
+                {/* Next to sign out because it is the same kind of thing: a door out
+                    of the work, not part of it. resetTour clears the per-screen
+                    notes too, so asking to be shown around brings all of it back. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetTour();
+                    router.push("/onboarding-tour");
+                  }}
+                  title={t("tour")}
+                  className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-ink"
+                >
+                  <IconTour />
+                  <span className="hidden lg:inline">{t("tour")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={signOut}
+                  title={t("signOut")}
+                  className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-iron"
+                >
+                  <IconSignOut />
+                  <span className="hidden lg:inline">{t("signOut")}</span>
+                </button>
+              </div>
+            </m.nav>
+          ) : null}
+        </AnimatePresence>
+
+        <main className="min-h-0 flex-1 overflow-y-auto px-6 py-7 lg:px-8">{children}</main>
       </div>
     </div>
   );

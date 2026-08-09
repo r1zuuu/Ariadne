@@ -16,12 +16,7 @@ export default function ShellLayout({ children }: { children: ReactNode }) {
   return (
     <AppProvider>
       <AppShell>
-        {/* A flex column all the way down from <main>, so a screen can hand its
-            leading section the leftover height and centre in it. Percentages
-            would need a definite height at every step; flex-1 does not. */}
-        <FadeIn key={pathname} className="flex flex-1 flex-col">
-          {children}
-        </FadeIn>
+        <FadeIn key={pathname}>{children}</FadeIn>
       </AppShell>
     </AppProvider>
   );

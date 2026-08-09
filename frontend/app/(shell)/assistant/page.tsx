@@ -194,14 +194,16 @@ export default function AssistantScreen() {
   const empty = turns.length === 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-[760px] flex-1 flex-col">
+    <div className="mx-auto max-w-[760px]">
       {/* Until the first question, the field is the screen and sits in the
           middle of it. Once there is a transcript the group stops claiming the
           height, the answers push down from the top and the composer sticks to
           the bottom edge, which is where a conversation wants it. */}
-      <div className={empty ? "flex flex-1 flex-col justify-center" : ""}>
+      <div className={empty ? "flex screen-content flex-col justify-center" : ""}>
         {empty ? (
-          <div className="pt-6 text-center">
+          // The same block as the memory screen, down to the gap under the
+          // lead: without it the field sat straight against the sentence.
+          <div className="pb-7 text-center">
             <h1 className="mx-auto max-w-[14ch] text-display text-ink">{t("title")}</h1>
             <p className="mx-auto max-w-[62ch] pt-4 text-body text-ink-2">{t("lead")}</p>
           </div>
