@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { LOCALES, useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
+import { useFailure } from "@/components/failure";
 import { CommandBlock } from "@/components/command-block";
 import { useToast } from "@/components/toast";
 import {
@@ -18,11 +19,12 @@ import {
 } from "@/components/ui";
 import {
   acceptInvite,
-  ApiError,
   changePassword,
+  clearGeminiKey,
   createInvite,
   createWorkspace,
   deleteToken,
+  GEMINI_KEY_CONSOLE,
   getAccount,
   listInvites,
   listMembers,
@@ -31,6 +33,7 @@ import {
   mintToken,
   removeMember,
   revokeInvite,
+  saveGeminiKey,
   saveProfile,
   setAllPermission,
   type Account,
@@ -87,6 +90,7 @@ export default function SettingsScreen() {
       ) : (
         <>
           <AccountSection account={account} onSaved={setAccount} toast={toast} />
+          <GeminiSection account={account} onSaved={setAccount} toast={toast} />
           <PermissionSection account={account} onSaved={setAccount} toast={toast} />
           <TokensSection toast={toast} />
           <TeamSection account={account} toast={toast} />
@@ -97,13 +101,6 @@ export default function SettingsScreen() {
 }
 
 type Toast = ReturnType<typeof useToast>;
-
-/** The one message a failed request turns into, wherever it failed. */
-function useFailure() {
-  const t = useTranslations("settings");
-  return (error: unknown) =>
-    error instanceof ApiError && error.message ? error.message : t("failed");
-}
 
 // --- Account: who you are, and how you get in ---
 
@@ -251,6 +248,104 @@ function PasswordCard({ toast }: { toast: Toast }) {
         </div>
       </form>
     </Card>
+  );
+}
+
+// --- The key that pays for the thinking ---
+//
+// Three states and each says something different, so the section says which one
+// it is in plain words rather than showing an empty field: your own key, the
+// server's key, or none at all, which is the state where writing an entry and
+// both chats stop working.
+
+function GeminiSection({
+  account,
+  onSaved,
+  toast,
+}: {
+  account: Account;
+  onSaved: (account: Account) => void;
+  toast: Toast;
+}) {
+  const t = useTranslations("settings");
+  const failure = useFailure();
+  const [key, setKey] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const source = account.geminiKey;
+
+  const run = async (action: () => Promise<{ geminiKey: Account["geminiKey"] }>, done: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const saved = await action();
+      onSaved({ ...account, geminiKey: saved.geminiKey });
+      setKey("");
+      toast(done);
+    } catch (caught) {
+      // In the field rather than in a toast: the key is what was wrong, and a
+      // message that slides away leaves nothing to correct against.
+      setError(failure(caught));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="mt-8 border-t border-hairline pt-7">
+      <SectionHeader title={t("gemini")} />
+
+      <Card className="p-6">
+        <p className="max-w-[62ch] text-small text-ink-2">{t(`geminiState.${source}`)}</p>
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void run(() => saveGeminiKey(key.trim()), t("geminiSaved"));
+          }}
+          className="pt-5"
+        >
+          <Input
+            id="settings-gemini-key"
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            label={t("geminiLabel")}
+            placeholder={t("geminiHint")}
+            note={t("geminiNote")}
+            error={error ?? undefined}
+            value={key}
+            onChange={(event) => setKey(event.target.value)}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-4">
+            <a
+              href={GEMINI_KEY_CONSOLE}
+              target="_blank"
+              rel="noreferrer"
+              className="text-small text-thread underline underline-offset-2"
+            >
+              {t("geminiWhere")}
+            </a>
+            <div className="flex gap-3">
+              {source === "user" ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={busy}
+                  onClick={() => void run(clearGeminiKey, t("geminiRemoved"))}
+                >
+                  {t("geminiRemove")}
+                </Button>
+              ) : null}
+              <Button type="submit" loading={busy} disabled={!key.trim()}>
+                {busy ? t("geminiChecking") : t("save")}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Card>
+    </section>
   );
 }
 

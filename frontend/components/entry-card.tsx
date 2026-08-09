@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useState, type ReactNode } from "react";
+import { Collapse } from "@/components/motion";
 import { Card, Meta, Status } from "@/components/ui";
 import type { Node } from "@/lib/api";
 
@@ -14,21 +15,25 @@ import type { Node } from "@/lib/api";
 // hairlines, because a list of ten white rectangles you can only read is four
 // screens of packaging around text.
 //
-// An entry is up to 4000 characters and its first sentence is written as a
-// summary, so it leads with that sentence and keeps the rest behind "show more".
-// The alternative, a truncated blob, makes ten entries unscannable.
+// An entry is up to 4000 characters. What the card leads with is the ten words
+// the model wrote over it when it was recorded, at reading size, and the text
+// the person actually wrote waits behind "show more". Scanning a list is then
+// reading ten lines of ten words rather than ten truncated blobs.
+//
+// Two things can leave an entry without a summary: it was recorded before this
+// existed, or the model call failed while the entry was saved anyway. Both fall
+// back to the first sentence, which is what the card led with before.
 
-/** The opening sentence, which is the headline the writer already wrote. */
+/** The opening sentence, the summary a writer already wrote themselves. */
 export function headline(content: string): string {
   const end = /[.!?](\s|$)/.exec(content);
   const first = end ? content.slice(0, end.index + 1) : content;
   return first.length > 140 ? `${first.slice(0, 139)}…` : first;
 }
 
-/** Everything after the headline, or nothing when the entry is one sentence. */
-function body(content: string): string {
-  const end = /[.!?](\s|$)/.exec(content);
-  return end ? content.slice(end.index + 1).trim() : "";
+/** What the card says in one line, from the model or from the entry itself. */
+export function lead(entry: { summary?: string; content: string }): string {
+  return entry.summary?.trim() || headline(entry.content);
 }
 
 /**
@@ -46,7 +51,10 @@ export function EntryCard({
   actions,
   showStatus = true,
 }: {
-  entry: Pick<Node, "content" | "type" | "status" | "createdAt" | "author" | "confirmedBy">;
+  entry: Pick<
+    Node,
+    "content" | "summary" | "type" | "status" | "createdAt" | "author" | "confirmedBy"
+  >;
   /** Date, project, channel. Joined onto the type in the metadata line. */
   meta?: ReactNode;
   actions?: ReactNode;
@@ -55,7 +63,11 @@ export function EntryCard({
   const t = useTranslations("entry");
   const tHome = useTranslations("home");
   const [open, setOpen] = useState(false);
-  const rest = body(entry.content);
+  const line = lead(entry);
+  // Nothing to open when the entry is its own lead line, which happens without
+  // a summary on a one-sentence entry. A toggle that reveals the same words
+  // again is worse than no toggle.
+  const more = entry.content.trim() !== line.trim();
 
   const inner = (
     <>
@@ -80,26 +92,27 @@ export function EntryCard({
         ) : null}
       </div>
 
-      <p className="pt-3 text-body font-medium leading-7 text-ink">{headline(entry.content)}</p>
+      {/* The biggest thing on the card, because it is the thing being read. */}
+      <p className="pt-3 text-lead text-ink">{line}</p>
 
-      {rest ? (
+      {more ? (
         <>
-          {/* The clamp class is written out, not interpolated: Tailwind scans
-              source text and never sees a class built at runtime. */}
-          <p
-            className={`whitespace-pre-wrap pt-2 text-small leading-6 text-ink-2 ${
-              open ? "" : "line-clamp-3"
-            }`}
-          >
-            {rest}
-          </p>
           <button
             type="button"
             onClick={() => setOpen(!open)}
-            className="pt-2 text-small text-thread underline underline-offset-2"
+            aria-expanded={open}
+            className="pt-3 text-small text-thread underline underline-offset-2"
           >
             {open ? t("showLess") : t("showMore")}
           </button>
+          {/* The entry as it was written, in full and unclipped: the summary is
+              the model's word for it, this is the record. It grows out of the
+              line above rather than replacing it, so the two stay comparable. */}
+          <Collapse open={open}>
+            <p className="whitespace-pre-wrap pt-3 text-small leading-6 text-ink-2">
+              {entry.content}
+            </p>
+          </Collapse>
         </>
       ) : null}
     </>

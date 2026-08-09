@@ -52,12 +52,13 @@
     "step": "krok {current} z {total}",
     "steps": {
       "profile": "PROFIL",
+      "key": "KLUCZ",
       "project": "PROJEKT",
       "agent": "AGENT"
     },
     "next": "Dalej",
     "back": "Wróć",
-    "skip": "Pomiń krok 3",
+    "skip": "Pomiń konfigurację",
     "finish": "Zaczynamy",
     "profile": {
       "title": "Kim jesteś przy pracy",
@@ -138,11 +139,24 @@
       },
       "tokenWhat": "To jest twój token. Podaj go agentowi jako nagłówek Authorization: Bearer.",
       "tokenWhere": "Skopiuj go teraz. Po opuszczeniu tego ekranu nie zobaczysz go ponownie."
+    },
+    "key": {
+      "title": "Klucz do Gemini",
+      "lead": {
+        "none": "Ariadne używa Gemini do dwóch rzeczy: zamienia wpisy na wektory, żeby dało się je wyszukiwać, i pisze odpowiedzi na Twoje pytania. Bez klucza nic z tego nie zadziała, a czat będzie milczał bez wyjaśnienia.",
+        "server": "Serwer ma już swój klucz, więc możesz ten krok pominąć. Własny klucz podaj, jeśli wolisz, żeby zapytania szły na Twój rachunek.",
+        "user": "Ten klucz jest już zapisany na Twoim koncie. Wpisz nowy, jeśli chcesz go podmienić."
+      },
+      "hint": "AIza...",
+      "optional": "Możesz pominąć i dodać klucz później w ustawieniach.",
+      "where": "Skąd wziąć klucz"
     }
   },
   "common": {
     "language": "JĘZYK",
-    "loading": "Ładuję"
+    "loading": "Ładuję",
+    "failed": "Nie udało się. Spróbuj jeszcze raz.",
+    "noGeminiKey": "Brak klucza do Gemini, więc Ariadne nie może odpowiedzieć ani zapisać wpisu. Dodaj klucz w ustawieniach."
   },
   "home": {
     "retry": "Sprawdź jeszcze raz",
@@ -371,7 +385,6 @@
     "title": "Ustawienia",
     "lead": "Konto, uprawnienia agentów, tokeny i zespół.",
     "loading": "Wczytuję...",
-    "failed": "Nie udało się. Spróbuj jeszcze raz.",
     "accountError": "Serwer nie odpowiada",
     "accountErrorNote": "Nie udało się pobrać ustawień konta. Sprawdź, czy serwer Ariadne działa, i spróbuj ponownie.",
     "retry": "Spróbuj ponownie",
@@ -394,6 +407,20 @@
       "pl": "Polski",
       "en": "English"
     },
+    "gemini": "Klucz Gemini",
+    "geminiState": {
+      "user": "Ariadne liczy embeddingi i odpowiedzi na Twoim kluczu. Zapytania z tego konta obciążają Twój rachunek u Google.",
+      "server": "Ariadne działa na kluczu serwera. Możesz podać własny, jeśli wolisz płacić za swoje zapytania sam.",
+      "none": "Nie ma żadnego klucza, więc zapisywanie wpisów i oba czaty nie działają. Podaj klucz, żeby je uruchomić."
+    },
+    "geminiLabel": "Twój klucz",
+    "geminiHint": "AIza...",
+    "geminiNote": "Klucz jest szyfrowany przed zapisem i nigdy nie wraca z serwera.",
+    "geminiWhere": "Skąd wziąć klucz",
+    "geminiChecking": "Sprawdzam...",
+    "geminiSaved": "Klucz zapisany",
+    "geminiRemove": "Usuń klucz",
+    "geminiRemoved": "Klucz usunięty",
     "autoApprove": "Automatyczne zatwierdzanie",
     "autoApproveIsOff": "Zmiany i usunięcia zgłoszone przez agenta czekają na twoją zgodę w kolejce. Nowe wpisy zawsze trafiają do kolejki, niezależnie od tego ustawienia.",
     "autoApproveIsOn": "Agent poprawia i archiwizuje wpisy od razu, bez pytania. Nowe wpisy dalej czekają na zatwierdzenie.",

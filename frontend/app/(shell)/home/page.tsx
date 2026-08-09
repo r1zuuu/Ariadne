@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
-import { headline } from "@/components/entry-card";
+import { headline, lead } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
 import { hasSeenTour } from "@/lib/first-run";
 import { PENDING_QUESTION } from "@/lib/handoff";
@@ -108,7 +108,7 @@ export default function HomeScreen() {
       ? {
           id: node.id,
           label: t(`status.${node.status}`),
-          text: headline(node.content),
+          text: lead(node),
           accept: () => confirmNode(node.id),
           acceptToast: tQueue("toastConfirmed"),
           dismiss: () => archiveNode(node.id),
@@ -233,7 +233,7 @@ export default function HomeScreen() {
                 <Link href="/project" className="block">
                   <Card interactive className="p-5">
                     <p className="line-clamp-2 text-body font-medium leading-7 text-ink">
-                      {headline(latestDecision[0].content)}
+                      {lead(latestDecision[0])}
                     </p>
                     <p className="pt-2 text-data text-ink-3">
                       {stamp(new Date(latestDecision[0].createdAt))}

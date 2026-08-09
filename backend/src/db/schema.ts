@@ -20,6 +20,10 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(), // argon2id
   profile: text("profile").notNull().default(""), // who the user is, how they like to work
   allPermission: boolean("all_permission").notNull().default(false),
+  // The person's own key to Google's API, sealed with AES-GCM (see crypto.ts):
+  // a dump of this table must not hand anyone a working key to a paid service.
+  // Null means the account has none and falls back to the server's, if it has one.
+  geminiKey: text("gemini_key"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -145,6 +149,11 @@ export const nodes = pgTable(
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
     type: text("type").notNull(),
     content: text("content").notNull(), // one human-readable thought; this gets embedded
+    // Ten words of model-written summary, the line a card leads with. Empty for
+    // entries written before this existed and for a summary call that failed;
+    // both cases fall back to the entry's first sentence, so it is never a
+    // reason to refuse a write. Never embedded: retrieval reads the real thing.
+    summary: text("summary").notNull().default(""),
     status: text("status").notNull().default("proposed"),
     source: jsonb("source").notNull().default(sql`'{}'::jsonb`),
     // Which node overruled this one. Set together with status 'contradicted';

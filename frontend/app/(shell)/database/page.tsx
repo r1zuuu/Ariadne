@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
+import { useFailure } from "@/components/failure";
 import { FadeIn } from "@/components/motion";
 import { useToast } from "@/components/toast";
 import { Card, EmptyState, Meta, Status } from "@/components/ui";
@@ -58,6 +59,7 @@ function toTurns(messages: ConversationMessage[]): Turn[] {
 
 export default function DatabaseScreen() {
   const t = useTranslations("database");
+  const failure = useFailure();
   const toast = useToast();
 
   const { activeProject, pendingFeed, refreshPending } = useApp();
@@ -129,7 +131,7 @@ export default function DatabaseScreen() {
         await refreshPending();
       }
     } catch (caught) {
-      const error = caught instanceof Error ? caught.message : String(caught);
+      const error = failure(caught);
       settled = { message: said, error };
       patch({ error });
     } finally {

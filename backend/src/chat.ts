@@ -2,6 +2,7 @@ import { generateJson, generateStream } from "./gemini.js";
 import {
   ServiceError,
   createNode,
+  geminiKey,
   requestDelete,
   requestUpdate,
   searchNodes,
@@ -82,7 +83,7 @@ export async function* answerQuestion(input: {
 
   if (!found.length) return;
 
-  for await (const text of generateStream({
+  for await (const text of generateStream(await geminiKey(input.userId), {
     system: ANSWER_RULES,
     user: `Entries:\n\n${asContext(found)}\n\nQuestion: ${input.question}`,
   })) {
@@ -141,6 +142,7 @@ export async function proposeEdits(input: {
   });
 
   const answer = await generateJson<{ reply: string; proposals: Proposal[] }>(
+    await geminiKey(input.userId),
     {
       system: EDIT_RULES,
       user: found.length

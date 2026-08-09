@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { CommandBlock } from "./command-block";
 import { Button, Field, Label } from "./ui";
-import { serverUrl } from "@/lib/api";
+import { GEMINI_KEY_CONSOLE, serverUrl, type GeminiKeySource } from "@/lib/api";
 
 // The three step bodies. The orchestrator in app/onboarding/page.tsx owns the
 // state, the network and the navigation; these only render and report changes.
@@ -72,6 +72,54 @@ export function ProfileStep({
         />
       </div>
       <p className="max-w-[68ch] pt-5 text-small text-ink-2">{t("note")}</p>
+    </div>
+  );
+}
+
+// Step 2. The one thing on this screen that is not about the person or their
+// project: without a key to Google, Ariadne cannot embed an entry or answer a
+// question, and finding that out later on a chat that says nothing is the worst
+// possible way to learn it. Skippable all the same, and the step says what
+// skipping costs rather than blocking the way through.
+export function KeyStep({
+  value,
+  source,
+  error,
+  onChange,
+}: {
+  value: string;
+  /** What the account has today: the server's key already covers "server". */
+  source: GeminiKeySource;
+  error: string | null;
+  onChange: (value: string) => void;
+}) {
+  const t = useTranslations("onboarding.key");
+
+  return (
+    <div>
+      <h1 className="max-w-[24ch] text-title">{t("title")}</h1>
+      <p className="max-w-[62ch] pt-5 text-body text-ink-2">{t(`lead.${source}`)}</p>
+      <input
+        id="gemini-key"
+        type="password"
+        autoFocus
+        autoComplete="off"
+        spellCheck={false}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={t("hint")}
+        className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread"
+      />
+      {error ? <p className="max-w-[62ch] pt-4 text-small text-iron">{error}</p> : null}
+      <p className="pt-4 text-small text-ink-3">{t("optional")}</p>
+      <a
+        href={GEMINI_KEY_CONSOLE}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-5 inline-block text-small text-thread underline underline-offset-2"
+      >
+        {t("where")}
+      </a>
     </div>
   );
 }

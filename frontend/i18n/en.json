@@ -52,12 +52,13 @@
     "step": "step {current} of {total}",
     "steps": {
       "profile": "PROFILE",
+      "key": "KEY",
       "project": "PROJECT",
       "agent": "AGENT"
     },
     "next": "Next",
     "back": "Back",
-    "skip": "Skip step 3",
+    "skip": "Skip setup",
     "finish": "Start",
     "profile": {
       "title": "How you work",
@@ -138,11 +139,24 @@
       },
       "tokenWhat": "This is your token. Give it to the agent as an Authorization: Bearer header.",
       "tokenWhere": "Copy it now. Once you leave this screen you will not see it again."
+    },
+    "key": {
+      "title": "Your Gemini key",
+      "lead": {
+        "none": "Ariadne uses Gemini for two things: turning entries into vectors so they can be searched, and writing the answers to your questions. Without a key neither works, and the chat goes quiet without saying why.",
+        "server": "The server already has a key, so you can skip this step. Add your own if you would rather your requests were billed to you.",
+        "user": "This account already has a key. Type a new one to replace it."
+      },
+      "hint": "AIza...",
+      "optional": "You can skip this and add the key later in settings.",
+      "where": "Where to get a key"
     }
   },
   "common": {
     "language": "LANGUAGE",
-    "loading": "Loading"
+    "loading": "Loading",
+    "failed": "That did not work. Try again.",
+    "noGeminiKey": "There is no Gemini key, so Ariadne can neither answer nor record an entry. Add one in settings."
   },
   "home": {
     "retry": "Check again",
@@ -371,7 +385,6 @@
     "title": "Settings",
     "lead": "Account, what agents may do, tokens and team.",
     "loading": "Loading...",
-    "failed": "That did not work. Try again.",
     "accountError": "The server is not answering",
     "accountErrorNote": "Account settings could not be loaded. Check that the Ariadne server is running and try again.",
     "retry": "Try again",
@@ -394,6 +407,20 @@
       "pl": "Polski",
       "en": "English"
     },
+    "gemini": "Gemini key",
+    "geminiState": {
+      "user": "Ariadne embeds and answers on your key. Requests from this account are billed to you at Google.",
+      "server": "Ariadne runs on the server's key. Add your own if you would rather pay for your own requests.",
+      "none": "There is no key at all, so recording entries and both chats do not work. Add one to turn them on."
+    },
+    "geminiLabel": "Your key",
+    "geminiHint": "AIza...",
+    "geminiNote": "The key is encrypted before it is stored and never comes back from the server.",
+    "geminiWhere": "Where to get a key",
+    "geminiChecking": "Checking...",
+    "geminiSaved": "Key saved",
+    "geminiRemove": "Remove key",
+    "geminiRemoved": "Key removed",
     "autoApprove": "Automatic approval",
     "autoApproveIsOff": "Edits and removals an agent asks for wait in the queue for your decision. New entries always go to the queue, whatever this is set to.",
     "autoApproveIsOn": "An agent corrects and archives entries on the spot, without asking. New entries still wait for approval.",

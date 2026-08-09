@@ -15,7 +15,8 @@ import {
   users,
   workspaces,
 } from "./db/schema.js";
-import { embed } from "./gemini.js";
+import { open, seal } from "./crypto.js";
+import { embed, summarize } from "./gemini.js";
 
 // Business logic lives here once; MCP tools and REST endpoints are thin
 // wrappers over these functions (plan section 2).
@@ -27,7 +28,11 @@ export class ServiceError extends Error {
       | "unknown_repo"
       | "not_found"
       | "unauthorized"
-      | "rate_limited",
+      | "rate_limited"
+      // Its own code, not a validation error: nothing about the request is
+      // wrong, the account simply has no key to Google and neither has the
+      // server. The app turns this one into "add your key in settings".
+      | "no_gemini_key",
     message: string,
   ) {
     super(message);
@@ -139,6 +144,50 @@ async function workspaceOfProject(userId: string, projectId: string): Promise<st
   return project.workspaceId;
 }
 
+/**
+ * Whose key pays for a call to Gemini. The person's own first, the server's
+ * afterwards: an instance that carries a key in its environment works for
+ * everyone on it out of the box, and anyone who would rather spend their own
+ * quota says so in settings and is served first from then on.
+ *
+ * One place decides this, because the alternative is every call site inventing
+ * its own order and the answer to "which key just got billed" being "depends".
+ */
+export async function geminiKey(userId: string): Promise<string> {
+  const [user] = await db
+    .select({ sealed: users.geminiKey })
+    .from(users)
+    .where(eq(users.id, userId));
+  // A key that no longer opens (the server secret was rotated, the row was
+  // edited) is treated as absent rather than fatal: the fallback still works
+  // and settings will show the account as having none.
+  const own = user?.sealed ? open(user.sealed) : null;
+  const key = own || process.env.GEMINI_API_KEY;
+  if (!key) {
+    throw new ServiceError(
+      "no_gemini_key",
+      "no Gemini key: add one in settings, or set GEMINI_API_KEY on the server",
+    );
+  }
+  return key;
+}
+
+/** Where the key in use comes from, for a settings screen that tells the truth. */
+export type GeminiKeySource = "user" | "server" | "none";
+
+/**
+ * The summary is decoration over the entry, so it never decides whether the
+ * entry gets written. A refused model call, a rate limit, a malformed answer:
+ * the card falls back to the first sentence and the archive is unharmed.
+ */
+async function summarizeOrNothing(key: string, content: string): Promise<string> {
+  try {
+    return await summarize(key, content);
+  } catch {
+    return "";
+  }
+}
+
 export async function createNode(input: {
   userId: string;
   projectId: string;
@@ -166,8 +215,14 @@ export async function createNode(input: {
   assertAnchors(anchors);
   const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
-  // Network call stays outside the transaction.
-  const embedding = await embed(content, "RETRIEVAL_DOCUMENT");
+  // Network calls stay outside the transaction, and side by side rather than
+  // one after the other: the summary is not built on the embedding, so making
+  // the writer wait for both in turn would be latency bought for nothing.
+  const key = await geminiKey(input.userId);
+  const [embedding, summary] = await Promise.all([
+    embed(key, content, "RETRIEVAL_DOCUMENT"),
+    summarizeOrNothing(key, content),
+  ]);
 
   return db.transaction(async (tx) => {
     const [node] = await tx
@@ -178,6 +233,7 @@ export async function createNode(input: {
         projectId: input.projectId,
         type: input.type,
         content,
+        summary,
         status: "proposed", // always forced, never taken from input
         source: input.source,
         embedding,
@@ -252,6 +308,7 @@ const NODE_COLUMNS = {
   id: nodes.id,
   type: nodes.type,
   content: nodes.content,
+  summary: nodes.summary,
   status: nodes.status,
   source: nodes.source,
   supersededBy: nodes.supersededBy,
@@ -301,7 +358,7 @@ export async function searchNodes(input: {
   // tell apart from "nothing recorded yet".
   const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
-  const queryVector = await embed(input.query, "RETRIEVAL_QUERY");
+  const queryVector = await embed(await geminiKey(input.userId), input.query, "RETRIEVAL_QUERY");
   const distance = cosineDistance(nodes.embedding, queryVector);
 
   // Metadata filters BEFORE similarity: they narrow, vectors rank (plan section 7).
@@ -550,10 +607,14 @@ async function hasAllPermission(userId: string): Promise<boolean> {
 }
 
 // Applies an update to a node's content and/or anchors. Content change
-// recomputes the embedding - otherwise RAG keeps searching stale meaning.
+// recomputes the embedding - otherwise RAG keeps searching stale meaning - and
+// the summary with it, or the card would keep leading with a line about text
+// that is no longer there.
 // The workspace is passed in rather than assumed from an earlier check: this is
-// the statement that actually writes, so it carries the tenant itself.
+// the statement that actually writes, so it carries the tenant itself. The
+// account whose key pays comes in the same way, for the same reason.
 async function applyNodeUpdate(
+  userId: string,
   workspaceId: string,
   nodeId: string,
   payload: UpdatePayload,
@@ -564,8 +625,15 @@ async function applyNodeUpdate(
   if (payload.anchors) assertAnchors(payload.anchors);
   const updates: Partial<typeof nodes.$inferInsert> = { updatedAt: new Date() };
   if (payload.content !== undefined) {
-    updates.content = validateContent(payload.content);
-    updates.embedding = await embed(updates.content, "RETRIEVAL_DOCUMENT");
+    const content = validateContent(payload.content);
+    const key = await geminiKey(userId);
+    const [embedding, summary] = await Promise.all([
+      embed(key, content, "RETRIEVAL_DOCUMENT"),
+      summarizeOrNothing(key, content),
+    ]);
+    updates.content = content;
+    updates.embedding = embedding;
+    updates.summary = summary;
   }
   // Merged into source rather than given a column: it is provenance, same as the
   // channel the node arrived through, and updated_at already carries the when.
@@ -620,7 +688,7 @@ export async function requestUpdate(input: {
 
   const payload: UpdatePayload = { content: input.content, anchors: input.anchors };
   if (await hasAllPermission(input.userId)) {
-    await applyNodeUpdate(workspaceId, input.nodeId, payload);
+    await applyNodeUpdate(input.userId, workspaceId, input.nodeId, payload);
     return { applied: true };
   }
   const [pending] = await db
@@ -691,7 +759,10 @@ export async function approvePending(input: { userId: string; pendingActionId: s
   // double-apply. Fine for a queue a person clicks through; add a conditional
   // status flip if two members ever race on the same entry.
   if (pending.action === "update") {
+    // The key belongs to whoever approves, not to whoever asked: the approver is
+    // the one present, and the requester may be an agent whose account is gone.
     await applyNodeUpdate(
+      input.userId,
       pending.workspaceId,
       pending.nodeId,
       pending.payload as UpdatePayload,
@@ -768,6 +839,7 @@ export async function editNode(input: {
   }
   const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
   const row = await applyNodeUpdate(
+    input.userId,
     workspaceId,
     input.nodeId,
     { content: input.content, anchors: input.anchors },
@@ -946,12 +1018,60 @@ export async function getAccount(userId: string) {
       email: users.email,
       profile: users.profile,
       allPermission: users.allPermission,
+      geminiKey: users.geminiKey,
       createdAt: users.createdAt,
     })
     .from(users)
     .where(eq(users.id, userId));
   if (!user) throw new ServiceError("not_found", "user not found");
-  return user;
+  // The key itself never leaves the server. What the screen needs is which of
+  // the three states the account is in, and "user" means one that still opens:
+  // a row sealed with a secret that has since changed is as good as none.
+  const source: GeminiKeySource =
+    user.geminiKey && open(user.geminiKey)
+      ? "user"
+      : process.env.GEMINI_API_KEY
+        ? "server"
+        : "none";
+  const { geminiKey: _sealed, ...account } = user;
+  return { ...account, geminiKey: source };
+}
+
+/**
+ * Stores the person's own key, after proving it works. One embedding call of a
+ * single word is the cheapest thing the API does, and it turns a pasted typo
+ * into an error in the field where it was pasted - rather than into a chat that
+ * mysteriously stops answering a week later.
+ */
+export async function setGeminiKey(input: { userId: string; key: string }) {
+  assertUuid(input.userId, "userId");
+  const key = input.key?.trim();
+  if (!key) throw new ServiceError("validation", "key must not be empty");
+
+  try {
+    await embed(key, "ariadne", "RETRIEVAL_QUERY");
+  } catch {
+    throw new ServiceError("validation", "Google refused this key");
+  }
+
+  const [updated] = await db
+    .update(users)
+    .set({ geminiKey: seal(key) })
+    .where(eq(users.id, input.userId))
+    .returning({ id: users.id });
+  if (!updated) throw new ServiceError("not_found", "user not found");
+  return { geminiKey: "user" as GeminiKeySource };
+}
+
+export async function clearGeminiKey(userId: string) {
+  assertUuid(userId, "userId");
+  const [updated] = await db
+    .update(users)
+    .set({ geminiKey: null })
+    .where(eq(users.id, userId))
+    .returning({ id: users.id });
+  if (!updated) throw new ServiceError("not_found", "user not found");
+  return { geminiKey: (process.env.GEMINI_API_KEY ? "server" : "none") as GeminiKeySource };
 }
 
 export async function updateProfile(input: { userId: string; profile: string }) {
@@ -1730,6 +1850,8 @@ export async function getReviewFeed(userId: string) {
       id: nodes.id,
       type: nodes.type,
       content: nodes.content,
+      // The queue leads with the same line the rest of the app does.
+      summary: nodes.summary,
       status: nodes.status,
       source: nodes.source,
       // The feed is where a contradicted node is read, and the status only means

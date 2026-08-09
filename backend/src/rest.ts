@@ -15,6 +15,7 @@ import {
   approvePending,
   archiveNode,
   changePassword,
+  clearGeminiKey,
   confirmNode,
   contradictNode,
   appendToConversation,
@@ -44,6 +45,7 @@ import {
   revokeInvite,
   searchNodes,
   setAllPermission,
+  setGeminiKey,
   updateProfile,
   updateProject,
 } from "./service.js";
@@ -234,6 +236,7 @@ async function readBody<T>(c: Context, schema: z.ZodType<T>): Promise<T> {
 
 const STATUS_BY_CODE: Record<ServiceError["code"], 400 | 401 | 404 | 429> = {
   validation: 400,
+  no_gemini_key: 400,
   unauthorized: 401,
   rate_limited: 429,
   unknown_repo: 404,
@@ -345,6 +348,15 @@ export function createRestApp() {
     const { allPermission } = await readBody(c, z.object({ allPermission: z.boolean() }));
     return c.json(await setAllPermission({ userId: userId(c), allPermission }));
   });
+
+  // The key goes in and never comes back out: both routes answer with which of
+  // the three sources is now in play, which is all a screen can honestly show.
+  app.put("/me/gemini-key", async (c) => {
+    const { key } = await readBody(c, z.object({ key: z.string() }));
+    return c.json(await setGeminiKey({ userId: userId(c), key }));
+  });
+
+  app.delete("/me/gemini-key", async (c) => c.json(await clearGeminiKey(userId(c))));
 
   // --- MCP tokens ---
 

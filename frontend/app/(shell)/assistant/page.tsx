@@ -6,6 +6,7 @@ import { useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
+import { useFailure } from "@/components/failure";
 import { Collapse } from "@/components/motion";
 import { Card, EmptyState, Meta } from "@/components/ui";
 import { takePendingQuestion } from "@/lib/handoff";
@@ -65,6 +66,7 @@ function toTurns(messages: ConversationMessage[]): Turn[] {
 
 export default function AssistantScreen() {
   const t = useTranslations("assistant");
+  const failure = useFailure();
   const { activeProject } = useApp();
 
   const projectId = activeProject?.id ?? null;
@@ -117,7 +119,7 @@ export default function AssistantScreen() {
           }
         }
       } catch (caught) {
-        patch({ error: caught instanceof Error ? caught.message : String(caught) });
+        patch({ error: failure(caught) });
       } finally {
         patch({ done: true });
         setBusy(false);
@@ -143,7 +145,7 @@ export default function AssistantScreen() {
         // bad; replacing a good answer with an error about storage is worse.
       }
     },
-    [turns, refreshHistory],
+    [turns, refreshHistory, failure],
   );
 
   // Which project the transcript on screen belongs to. Clearing happens only
