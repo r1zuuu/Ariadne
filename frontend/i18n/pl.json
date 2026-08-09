@@ -174,14 +174,6 @@
       "archived": "Zarchiwizowany"
     },
     "askTitle": "Czego chcesz się dowiedzieć?",
-    "askPlaceholder": "Zapytaj o decyzje, ustalenia albo ograniczenia tego projektu...",
-    "askHint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
-    "ask": "Zapytaj",
-    "asking": "Szukam",
-    "suggest1": "Jakie decyzje podjęliśmy ostatnio?",
-    "suggest2": "Dlaczego wybraliśmy ten stack?",
-    "suggest3": "Jakie ograniczenia ma ten projekt?",
-    "suggest4": "Co zmieniło się ostatnio?",
     "memoryLine": "Ariadne odpowiada na podstawie {entries, plural, one {# wpisu} few {# wpisów} many {# wpisów} other {# wpisu}} zapisanych w tym projekcie.",
     "memoryLink": "Zobacz pamięć projektu",
     "decisions": "Ostatnie ustalenia",
@@ -203,7 +195,6 @@
   "nav": {
     "project": "Projekt",
     "home": "Przegląd",
-    "assistant": "Zapytaj",
     "memory": "Dodaj do pamięci",
     "pending": "Do zatwierdzenia",
     "settings": "Ustawienia",
@@ -237,25 +228,21 @@
     }
   },
   "assistant": {
-    "title": "Zapytaj Ariadne",
-    "empty": "Zapytaj o przeszłość projektu. Odpowiedź powstaje wyłącznie z zapisanych wpisów, a pod nią zobaczysz, z których.",
     "placeholder": "O co chcesz zapytać?",
     "ask": "Zapytaj",
     "asking": "Szukam",
-    "sources": "Na podstawie",
     "nothingRecorded": "Nic na ten temat nie zostało jeszcze zapisane.",
-    "lead": "Ariadne odpowiada na podstawie zapisanych decyzji, ustaleń i kontekstu tego projektu.",
     "hint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
     "sourcesCount": "{count, plural, one {Na podstawie # wpisu} few {Na podstawie # wpisów} many {Na podstawie # wpisów} other {Na podstawie # wpisu}}",
     "nothingRecordedNote": "Ariadne odpowiada tylko z zapisanego kontekstu, więc nie zgaduje. Możesz dodać tę informację w zakładce Dodaj do pamięci.",
-    "newQuestion": "Nowe pytanie",
     "suggest1": "Jakie decyzje podjęliśmy ostatnio?",
     "suggest2": "Dlaczego wybraliśmy ten stack?",
     "suggest3": "Jakie ograniczenia ma ten projekt?",
     "historyTitle": "Ostatnie rozmowy",
     "historyNew": "Nowa rozmowa",
     "historyEmpty": "Nie masz jeszcze żadnej rozmowy.",
-    "historyEmptyNote": "Zadaj pierwsze pytanie, a rozmowa zostanie tutaj i będziesz mógł do niej wrócić."
+    "historyEmptyNote": "Zadaj pierwsze pytanie, a rozmowa zostanie tutaj i będziesz mógł do niej wrócić.",
+    "suggest4": "Co zmieniło się ostatnio?"
   },
   "database": {
     "title": "Dodaj do pamięci",

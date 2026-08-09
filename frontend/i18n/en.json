@@ -174,14 +174,6 @@
       "archived": "Archived"
     },
     "askTitle": "What do you want to know?",
-    "askPlaceholder": "Ask about decisions, agreements or constraints in this project...",
-    "askHint": "Enter sends, Shift + Enter starts a new line",
-    "ask": "Ask",
-    "asking": "Looking",
-    "suggest1": "What did we decide recently?",
-    "suggest2": "Why did we choose this stack?",
-    "suggest3": "What constraints does this project have?",
-    "suggest4": "What changed recently?",
     "memoryLine": "Ariadne answers from {entries, plural, one {# entry} other {# entries}} recorded in this project.",
     "memoryLink": "See project memory",
     "decisions": "Recent decisions",
@@ -203,7 +195,6 @@
   "nav": {
     "project": "Project",
     "home": "Overview",
-    "assistant": "Ask",
     "memory": "Add to memory",
     "pending": "To approve",
     "settings": "Settings",
@@ -237,25 +228,21 @@
     }
   },
   "assistant": {
-    "title": "Ask Ariadne",
-    "empty": "Ask about the project's past. The answer is built only from recorded entries, and you will see which ones underneath it.",
     "placeholder": "What would you like to ask?",
     "ask": "Ask",
     "asking": "Looking",
-    "sources": "Based on",
     "nothingRecorded": "Nothing has been recorded about this yet.",
-    "lead": "Ariadne answers from the decisions, agreements and context recorded for this project.",
     "hint": "Enter sends, Shift + Enter starts a new line",
     "sourcesCount": "{count, plural, one {Based on # entry} other {Based on # entries}}",
     "nothingRecordedNote": "Ariadne only answers from recorded context, so it does not guess. You can add this under Add to memory.",
-    "newQuestion": "New question",
     "suggest1": "What did we decide recently?",
     "suggest2": "Why did we choose this stack?",
     "suggest3": "What constraints does this project have?",
     "historyTitle": "Recent conversations",
     "historyNew": "New conversation",
     "historyEmpty": "No conversations yet.",
-    "historyEmptyNote": "Ask your first question and the conversation stays here, so you can come back to it."
+    "historyEmptyNote": "Ask your first question and the conversation stays here, so you can come back to it.",
+    "suggest4": "What changed recently?"
   },
   "database": {
     "title": "Add to memory",

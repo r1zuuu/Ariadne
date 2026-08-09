@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
@@ -9,7 +9,6 @@ import { ConversationList } from "@/components/conversation-list";
 import { useFailure } from "@/components/failure";
 import { Collapse } from "@/components/motion";
 import { Card, EmptyState, Meta } from "@/components/ui";
-import { takePendingQuestion } from "@/lib/handoff";
 import {
   chatQuery,
   createConversation,
@@ -21,8 +20,12 @@ import {
   type Source,
 } from "@/lib/api";
 
-// Screen 05. Ask about the project's past and get an answer built only from
-// what was recorded.
+// The conversation with Ariadne: ask about the project's past, get an answer
+// built only from what was recorded. It used to be a screen of its own next to
+// the overview, which meant two doors onto one room - you typed a question on
+// one screen and were teleported to another to read the answer, with a second
+// heading and a second set of suggestions to keep in step. It is a component
+// now, and the overview is the only door.
 //
 // The conversation is saved as it goes, so closing the screen no longer throws
 // it away. The first answer creates the row (the title comes from the question),
@@ -64,7 +67,16 @@ function toTurns(messages: ConversationMessage[]): Turn[] {
   return turns;
 }
 
-export default function AssistantScreen() {
+export function Ask({
+  opening,
+  footnote,
+}: {
+  /** What stands above the field before the first question: the caller owns
+      that copy, because the screen around this owns what the place is for. */
+  opening?: ReactNode;
+  /** One quiet line under the field, same condition. */
+  footnote?: ReactNode;
+}) {
   const t = useTranslations("assistant");
   const failure = useFailure();
   const { activeProject } = useApp();
@@ -154,11 +166,9 @@ export default function AssistantScreen() {
   // question the dashboard had just handed over.
   const shownFor = useRef<string | null>(null);
 
-  // Without the reload that used to wipe this screen, switching projects must
-  // clear the transcript itself. An in-flight answer is safe - ask() closes
-  // over the id it started with. The handed-over question from the dashboard
-  // still runs itself here, so the handover reads as one action rather than
-  // as "now ask it again".
+  // Switching projects clears the transcript: an answer built from one
+  // project's entries has no meaning under another project's name. An in-flight
+  // answer is safe, since ask() closes over the id it started with.
   useEffect(() => {
     if (!projectId || shownFor.current === projectId) return;
     shownFor.current = projectId;
@@ -166,8 +176,6 @@ export default function AssistantScreen() {
     openId.current = null;
     setConversationId(null);
     refreshHistory(projectId);
-    const handed = takePendingQuestion();
-    if (handed) void ask(handed, projectId);
     // Only the project change should reset the screen: `ask` changes identity
     // with every turn.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,20 +204,23 @@ export default function AssistantScreen() {
   const empty = turns.length === 0;
 
   return (
-    <div className="mx-auto max-w-[760px]">
+    // Relative, because the shelf of past conversations hangs off the right of
+    // this block and lines itself up with the middle of it.
+    <div className="relative">
+      <ConversationShelf
+        conversations={history}
+        activeId={conversationId}
+        onOpen={(id) => void open(id)}
+        onNew={startNew}
+      />
+
+      <div className="mx-auto max-w-[760px]">
       {/* Until the first question, the field is the screen and sits in the
           middle of it. Once there is a transcript the group stops claiming the
           height, the answers push down from the top and the composer sticks to
           the bottom edge, which is where a conversation wants it. */}
       <div className={empty ? "flex screen-opening flex-col justify-center" : ""}>
-        {empty ? (
-          // The same block as the memory screen, down to the gap under the
-          // lead: without it the field sat straight against the sentence.
-          <div className="pb-7 text-center">
-            <h1 className="mx-auto max-w-[14ch] text-display text-ink">{t("title")}</h1>
-            <p className="mx-auto max-w-[62ch] pt-4 text-body text-ink-2">{t("lead")}</p>
-          </div>
-        ) : null}
+        {empty && opening ? <div className="pb-7">{opening}</div> : null}
 
         {!empty ? (
           // The transcript sits in the middle of the window rather than against
@@ -268,12 +279,15 @@ export default function AssistantScreen() {
             disabled={!projectId}
             autoFocus={empty}
             rows={empty ? 3 : 2}
-            suggestions={empty ? [t("suggest1"), t("suggest2"), t("suggest3")] : []}
+            suggestions={empty ? [t("suggest1"), t("suggest2"), t("suggest3"), t("suggest4")] : []}
           />
         </div>
+        {empty && footnote ? <div className="pt-5">{footnote}</div> : null}
       </div>
 
-        <div className="pt-8">
+        {/* The full list stays for windows too narrow for the shelf, and for
+            anyone reaching it by keyboard: a hover-only way in is no way in. */}
+        <div className="pt-8 min-[1180px]:hidden">
           <ConversationList
             conversations={history}
             activeId={conversationId}
@@ -288,9 +302,76 @@ export default function AssistantScreen() {
             }}
           />
         </div>
+      </div>
     </div>
   );
 }
+
+// Past conversations, on a shelf beside the question rather than in a block
+// under it. Under the field they sat in the way of the thing being written; out
+// here they are peripheral vision, which is what a way back should be.
+//
+// Narrow, with one line per conversation, and it widens under the pointer to
+// show the titles in full. Nothing else about it changes: no fade in, no
+// shuffling of what is on it, so the row you reached for is the row you get.
+//
+// Hidden below 1180px, where the margin beside a 760px column stops being wide
+// enough to hold anything; the full list under the composer covers that case.
+// It opens on focus as well as on hover, because a keyboard cannot hover and a
+// row you can reach but not read is not a way back.
+function ConversationShelf({
+  conversations,
+  activeId,
+  onOpen,
+  onNew,
+}: {
+  conversations: ConversationSummary[];
+  activeId: string | null;
+  onOpen: (id: string) => void;
+  onNew: () => void;
+}) {
+  const t = useTranslations("assistant");
+
+  if (!conversations.length) return null;
+
+  return (
+    <aside className="group absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 min-[1180px]:block">
+      <div className="w-[150px] rounded-card border border-transparent bg-transparent p-3 transition-[width,background-color,border-color,box-shadow] duration-enter ease-out-quint group-hover:w-[280px] group-hover:border-hairline group-hover:bg-elevated group-hover:shadow-lifted group-focus-within:w-[280px] group-focus-within:border-hairline group-focus-within:bg-elevated group-focus-within:shadow-lifted">
+        <p className="px-2 pb-2 text-label uppercase tracking-[0.12em] text-ink-3">
+          {t("historyTitle")}
+        </p>
+        <ul className="flex flex-col">
+          {conversations.slice(0, SHELF_LENGTH).map((conversation) => (
+            <li key={conversation.id}>
+              <button
+                type="button"
+                onClick={() => onOpen(conversation.id)}
+                aria-current={conversation.id === activeId ? "true" : undefined}
+                className={`block w-full truncate rounded-control px-2 py-[6px] text-left text-data transition-colors duration-state hover:bg-surface ${
+                  conversation.id === activeId ? "text-ink" : "text-ink-3 hover:text-ink-2"
+                }`}
+              >
+                {conversation.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+        {/* Only once the shelf is open: collapsed, it is a list of titles and
+            nothing else. */}
+        <button
+          type="button"
+          onClick={onNew}
+          className="hidden w-full rounded-control px-2 pt-3 text-left text-data text-thread underline underline-offset-2 group-hover:block group-focus-within:block"
+        >
+          {t("historyNew")}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+/** Five is what fits beside a question without becoming a second column. */
+const SHELF_LENGTH = 5;
 
 /** A [1] or [1, 3] the model wrote becomes clickable citation marks. */
 function CitationMark({ n, onCite }: { n: number; onCite: (n: number) => void }) {

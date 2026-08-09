@@ -18,7 +18,7 @@ import { resetTour } from "@/lib/first-run";
 // times. Data comes from AppProvider in the (shell) layout, so navigating
 // between screens neither refetches it nor remounts this frame.
 
-export type Section = "home" | "project" | "assistant" | "database" | "pending" | "settings";
+export type Section = "home" | "project" | "database" | "pending" | "settings";
 
 // `label` is not always the section name: "database" is what the screen has
 // always been called in the code and the URL, but "Dodaj kontekst" told a
@@ -42,13 +42,6 @@ const WORK_LINKS: NavLink[] = [
     href: "/project",
     needsProject: true,
     icon: <IconProject />,
-  },
-  {
-    section: "assistant",
-    label: "assistant",
-    href: "/assistant",
-    needsProject: true,
-    icon: <IconAsk />,
   },
   {
     section: "database",
@@ -398,14 +391,6 @@ function IconProject() {
     <svg {...stroke}>
       <rect x="2.5" y="3.5" width="13" height="11" rx="1.5" />
       <path d="M2.5 7h13M6 3.5v3.5" />
-    </svg>
-  );
-}
-
-function IconAsk() {
-  return (
-    <svg {...stroke}>
-      <path d="M15.5 9c0 3.1-2.9 5.6-6.5 5.6-.8 0-1.6-.1-2.3-.4L2.5 15.5l1.3-3.4A5.3 5.3 0 0 1 2.5 9C2.5 5.9 5.4 3.4 9 3.4s6.5 2.5 6.5 5.6Z" />
     </svg>
   );
 }
