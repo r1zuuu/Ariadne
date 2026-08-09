@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { Composer } from "@/components/composer";
+import { ConflictNotice } from "@/components/conflict-notice";
 import { ConversationList } from "@/components/conversation-list";
 import { useFailure } from "@/components/failure";
 import { FadeIn } from "@/components/motion";
@@ -216,7 +217,11 @@ export default function DatabaseScreen() {
                   </p>
                   <p className="pt-2 text-body leading-8 text-ink">{turn.reply}</p>
                   {turn.queued?.length ? (
-                    <Queued proposals={turn.queued} stillWaiting={stillWaiting} />
+                    <Queued
+                      proposals={turn.queued}
+                      stillWaiting={stillWaiting}
+                      onResolved={() => void refreshPending()}
+                    />
                   ) : (
                     <div className="pt-4">
                       <EmptyState title={t("nothingProposed")} note={t("nothingProposedNote")} />
@@ -249,15 +254,20 @@ export default function DatabaseScreen() {
   );
 }
 
-// What will be saved, exactly as it will be saved, with where it stands now.
-// This is the screen's promise: you see the text before it becomes memory, and
-// you can come back later and see whether it made it.
+// What was written, exactly as it was written, with where it stands now. This is
+// the screen's promise: you see the text that became memory, and you can come
+// back later and see what happened to it.
+//
+// A clash with an existing entry is answered here rather than left for the
+// queue, because here is where the person who wrote it is standing.
 function Queued({
   proposals,
   stillWaiting,
+  onResolved,
 }: {
   proposals: Proposal[];
   stillWaiting: Set<string> | null;
+  onResolved: () => void;
 }) {
   const t = useTranslations("database");
 
@@ -287,6 +297,13 @@ function Queued({
                   {proposal.content}
                 </p>
               </Card>
+              {proposal.conflicts?.length ? (
+                <ConflictNotice
+                  nodeId={proposal.nodeId}
+                  conflicts={proposal.conflicts}
+                  onResolved={onResolved}
+                />
+              ) : null}
             </li>
           );
         })}

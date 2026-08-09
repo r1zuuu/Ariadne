@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useLocale } from "@/app/locale-provider";
 import { useApp, type PendingFeed } from "@/components/app-provider";
 import { Collapse, enterTransition } from "@/components/motion";
+import { ConflictNotice } from "@/components/conflict-notice";
 import { EntryCard, headline } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
 import { Button, Card, EmptyState, Meta, PageHeader, Status } from "@/components/ui";
@@ -148,6 +149,15 @@ export default function PendingScreen() {
                               </>
                             }
                           />
+                          {/* Under the card rather than inside it: the clash is
+                              about two entries, and the card is one of them. */}
+                          {node.conflicts?.length ? (
+                            <ConflictNotice
+                              nodeId={node.id}
+                              conflicts={node.conflicts}
+                              onResolved={() => void refreshPending()}
+                            />
+                          ) : null}
                           </m.li>
                         ))}
                       </AnimatePresence>

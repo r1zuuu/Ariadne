@@ -148,6 +148,9 @@ export type Node = {
       entries recorded before this existed, and for a summary call that failed;
       the card falls back to the first sentence of the content. */
   summary: string;
+  /** Entries this one appears to contradict, unresolved. Ids only; the screens
+      that offer a decision get the text in `conflicts` alongside. */
+  conflictsWith: string[];
   status: NodeStatus;
   // 'coder' is the agent writing after a session; the other two are the person
   // in this window. The main screen only needs that distinction.
@@ -314,7 +317,25 @@ export type PendingAction = {
   projectName: string;
 };
 
-export type ReviewNode = Node & { supersededBy: string | null; projectName: string };
+/** The other side of a suspected clash, with enough text to judge it by. */
+export type ConflictEntry = Pick<Node, "id" | "type" | "content" | "summary" | "status"> & {
+  createdAt: string;
+};
+
+export type ReviewNode = Node & {
+  supersededBy: string | null;
+  projectName: string;
+  conflicts: ConflictEntry[];
+};
+
+/** Which entry stands: the new one, the one already recorded, or both. */
+export type ConflictVerdict = "new" | "old" | "both";
+
+export const resolveConflict = (nodeId: string, otherId: string, verdict: ConflictVerdict) =>
+  request<void>(`/nodes/${nodeId}/conflicts/resolve`, {
+    method: "POST",
+    body: { otherId, verdict },
+  });
 
 export const getPending = () =>
   request<{ pendingActions: PendingAction[]; nodesToReview: ReviewNode[] }>("/pending");
@@ -329,6 +350,8 @@ export type Proposal = {
   nodeId: string;
   content: string;
   pendingActionId?: string;
+  /** Only on a create, and only when the new entry clashes with something. */
+  conflicts?: ConflictEntry[];
 };
 
 // --- Conversations ---

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { hash as hashPassword, verify as verifyArgon2 } from "@node-rs/argon2";
-import { and, cosineDistance, desc, eq, gt, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, cosineDistance, desc, eq, gt, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "./db/client.js";
 import {
@@ -16,7 +16,7 @@ import {
   workspaces,
 } from "./db/schema.js";
 import { open, seal } from "./crypto.js";
-import { embed, summarize } from "./gemini.js";
+import { embed, findConflicts, summarize } from "./gemini.js";
 
 // Business logic lives here once; MCP tools and REST endpoints are thin
 // wrappers over these functions (plan section 2).
@@ -188,6 +188,63 @@ async function summarizeOrNothing(key: string, content: string): Promise<string>
   }
 }
 
+// How close an existing entry has to be before the model is asked whether it
+// clashes with the new one. Cosine similarity over normalized 768-dimension
+// vectors: below this the two are not even about the same thing, so paying for
+// a reading of the pair buys nothing.
+//
+// ponytail: one number for every project. If this turns out to be noisy on a
+// large archive, the fix is a per-project setting, not a cleverer formula.
+const CONFLICT_SIMILARITY = 0.7;
+const CONFLICT_CANDIDATES = 4;
+
+/**
+ * Entries the new one appears to contradict. Two stages, because neither works
+ * alone: the vector search narrows thousands of entries to a handful about the
+ * same subject, and the model decides which of those actually clash. A wrong
+ * answer here costs a person one dismissed suggestion, so a failure is silence.
+ */
+async function conflictsFor(input: {
+  key: string;
+  workspaceId: string;
+  projectId: string;
+  content: string;
+  embedding: number[];
+}): Promise<string[]> {
+  try {
+    const distance = cosineDistance(nodes.embedding, input.embedding);
+    const near = await db
+      .select({ id: nodes.id, content: nodes.content, similarity: sql<number>`1 - (${distance})` })
+      .from(nodes)
+      .where(
+        and(
+          eq(nodes.workspaceId, input.workspaceId),
+          eq(nodes.projectId, input.projectId),
+          // Only what still claims to be true. An archived entry was put away
+          // and a contradicted one has already lost an argument; neither can be
+          // contradicted again, so neither is worth a reading.
+          inArray(nodes.status, ["proposed", "confirmed"]),
+        ),
+      )
+      .orderBy(distance)
+      .limit(CONFLICT_CANDIDATES);
+
+    const candidates = near.filter((row) => row.similarity >= CONFLICT_SIMILARITY);
+    if (!candidates.length) return [];
+
+    const clashing = await findConflicts(
+      input.key,
+      input.content,
+      candidates.map((row) => row.content),
+    );
+    return clashing.map((i: number) => candidates[i].id);
+  } catch {
+    // A write is never held up by this: an entry with an undetected conflict is
+    // exactly what the archive did before the check existed.
+    return [];
+  }
+}
+
 export async function createNode(input: {
   userId: string;
   projectId: string;
@@ -196,7 +253,13 @@ export async function createNode(input: {
   anchors?: Anchor[];
   source: SourceMeta;
   replacesNodeId?: string;
-}): Promise<{ nodeId: string; status: "proposed"; contradictedNodeId?: string }> {
+}): Promise<{
+  nodeId: string;
+  status: "proposed" | "confirmed";
+  /** Entries the new one appears to contradict, for the screen that wrote it. */
+  conflictsWith: string[];
+  contradictedNodeId?: string;
+}> {
   // Validation gate (plan section 5), shared by both entry paths.
   assertUuid(input.userId, "userId");
   assertUuid(input.projectId, "projectId");
@@ -215,14 +278,21 @@ export async function createNode(input: {
   assertAnchors(anchors);
   const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
-  // Network calls stay outside the transaction, and side by side rather than
-  // one after the other: the summary is not built on the embedding, so making
-  // the writer wait for both in turn would be latency bought for nothing.
+  // Network calls stay outside the transaction. The embedding goes first
+  // because the conflict search needs the vector to find anything; the summary
+  // and the search then run side by side, since neither waits on the other.
   const key = await geminiKey(input.userId);
-  const [embedding, summary] = await Promise.all([
-    embed(key, content, "RETRIEVAL_DOCUMENT"),
+  const embedding = await embed(key, content, "RETRIEVAL_DOCUMENT");
+  const [summary, conflictsWith] = await Promise.all([
     summarizeOrNothing(key, content),
+    conflictsFor({ key, workspaceId, projectId: input.projectId, content, embedding }),
   ]);
+
+  // The queue exists because a coder writes while nobody is watching. A person
+  // writing in the app is watching, has just read the exact text on screen, and
+  // is the one who would approve it a moment later - so their own entries are
+  // settled as they are written. Anything from a coder still waits.
+  const byHand = input.source.channel !== "coder";
 
   return db.transaction(async (tx) => {
     const [node] = await tx
@@ -234,7 +304,10 @@ export async function createNode(input: {
         type: input.type,
         content,
         summary,
-        status: "proposed", // always forced, never taken from input
+        conflictsWith,
+        status: byHand ? "confirmed" : "proposed", // never taken from input
+        confirmedBy: byHand ? input.userId : null,
+        confirmedAt: byHand ? new Date() : null,
         source: input.source,
         embedding,
       })
@@ -267,7 +340,12 @@ export async function createNode(input: {
       );
     }
 
-    return { nodeId: node.id, status: "proposed", contradictedNodeId };
+    return {
+      nodeId: node.id,
+      status: byHand ? "confirmed" : "proposed",
+      conflictsWith,
+      contradictedNodeId,
+    };
   });
 }
 
@@ -309,6 +387,7 @@ const NODE_COLUMNS = {
   type: nodes.type,
   content: nodes.content,
   summary: nodes.summary,
+  conflictsWith: nodes.conflictsWith,
   status: nodes.status,
   source: nodes.source,
   supersededBy: nodes.supersededBy,
@@ -320,6 +399,57 @@ const NODE_COLUMNS = {
 // The users table is joined twice on a node (who wrote it, who confirmed it),
 // so the second one needs a name of its own.
 const confirmer = alias(users, "confirmer");
+
+/**
+ * The entries a row says it clashes with, as text a screen can show. A second
+ * query for the same reason anchors get one, and scoped to what the reader may
+ * see anyway.
+ *
+ * Ids pointing at an entry that has since been archived or contradicted are
+ * dropped rather than shown: the clash is over, one side simply lost it
+ * somewhere else.
+ */
+export async function conflictsOf(userId: string, ids: string[]): Promise<ConflictEntry[]> {
+  if (!ids.length) return [];
+  return db
+    .select({
+      id: nodes.id,
+      type: nodes.type,
+      content: nodes.content,
+      summary: nodes.summary,
+      status: nodes.status,
+      createdAt: nodes.createdAt,
+    })
+    .from(nodes)
+    .where(
+      and(
+        inArray(nodes.id, ids),
+        inArray(nodes.workspaceId, reachableWorkspaces(userId)),
+        inArray(nodes.status, ["proposed", "confirmed"]),
+      ),
+    );
+}
+
+async function attachConflicts<T extends { conflictsWith: string[] }>(
+  userId: string,
+  rows: T[],
+): Promise<(T & { conflicts: ConflictEntry[] })[]> {
+  const found = await conflictsOf(userId, [...new Set(rows.flatMap((row) => row.conflictsWith))]);
+  const byId = new Map(found.map((row) => [row.id, row]));
+  return rows.map((row) => ({
+    ...row,
+    conflicts: row.conflictsWith.map((id) => byId.get(id)).filter(Boolean) as ConflictEntry[],
+  }));
+}
+
+export type ConflictEntry = {
+  id: string;
+  type: string;
+  content: string;
+  summary: string;
+  status: string;
+  createdAt: Date;
+};
 
 // Anchors arrive in a second query instead of a join: a node can carry several,
 // and a join would repeat the node row per anchor for every caller to regroup.
@@ -687,7 +817,10 @@ export async function requestUpdate(input: {
   const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
 
   const payload: UpdatePayload = { content: input.content, anchors: input.anchors };
-  if (await hasAllPermission(input.userId)) {
+  // Same rule as a new entry written here: the queue is for what a coder does
+  // unattended, and "app_agent" is this app rewording a sentence its owner just
+  // typed and read back on screen.
+  if (input.requestedBy === "app_agent" || (await hasAllPermission(input.userId))) {
     await applyNodeUpdate(input.userId, workspaceId, input.nodeId, payload);
     return { applied: true };
   }
@@ -712,7 +845,8 @@ export async function requestDelete(input: {
 }): Promise<{ applied: true } | { applied: false; pendingActionId: string }> {
   const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
 
-  if (await hasAllPermission(input.userId)) {
+  // As above: asked for from inside the app, it happens now.
+  if (input.requestedBy === "app_agent" || (await hasAllPermission(input.userId))) {
     await archiveNodeById(workspaceId, input.nodeId); // never a physical DELETE
     return { applied: true };
   }
@@ -818,6 +952,62 @@ export async function confirmNode(input: { userId: string; nodeId: string }) {
   if (!confirmed) {
     throw new ServiceError("validation", "only a node with status proposed can be confirmed");
   }
+}
+
+/** Which of the two entries a person decided to keep, or neither answer. */
+export type ConflictVerdict = "new" | "old" | "both";
+
+/**
+ * Settles one suspected clash between two entries. Three answers and no fourth:
+ * the new one wins, the old one wins, or the model was wrong and both stand.
+ *
+ * The losing entry is contradicted rather than deleted, and it keeps a link to
+ * the one that beat it. That is the difference between an archive that forgot
+ * and an archive that changed its mind: "we no longer do X, we do Y" is the
+ * sentence somebody will need in six months.
+ */
+export async function resolveConflict(input: {
+  userId: string;
+  nodeId: string;
+  otherId: string;
+  verdict: ConflictVerdict;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.nodeId, "nodeId");
+  assertUuid(input.otherId, "otherId");
+  if (input.nodeId === input.otherId) {
+    throw new ServiceError("validation", "an entry cannot conflict with itself");
+  }
+  const workspaceId = await workspaceOfNode(input.userId, input.nodeId);
+
+  if (input.verdict === "new") {
+    await contradictNode({
+      userId: input.userId,
+      nodeId: input.otherId,
+      supersededBy: input.nodeId,
+    });
+  }
+  if (input.verdict === "old") {
+    await contradictNode({
+      userId: input.userId,
+      nodeId: input.nodeId,
+      supersededBy: input.otherId,
+    });
+  }
+
+  // The pair is settled whichever way it went, so the suspicion goes - from
+  // both entries, because either one may be carrying it. Left behind, the
+  // screens would keep asking a question that has been answered.
+  await Promise.all(
+    [input.nodeId, input.otherId].map((id, i) =>
+      db
+        .update(nodes)
+        .set({
+          conflictsWith: sql`array_remove(${nodes.conflictsWith}, ${i === 0 ? input.otherId : input.nodeId}::uuid)`,
+        })
+        .where(and(eq(nodes.id, id), eq(nodes.workspaceId, workspaceId))),
+    ),
+  );
 }
 
 export async function archiveNode(input: { userId: string; nodeId: string }) {
@@ -1857,6 +2047,7 @@ export async function getReviewFeed(userId: string) {
       // The feed is where a contradicted node is read, and the status only means
       // something next to the node that overruled it.
       supersededBy: nodes.supersededBy,
+      conflictsWith: nodes.conflictsWith,
       createdAt: nodes.createdAt,
       projectId: projects.id,
       projectName: projects.name,
@@ -1870,7 +2061,14 @@ export async function getReviewFeed(userId: string) {
     .where(
       and(
         inArray(nodes.workspaceId, reachableWorkspaces(userId)),
-        inArray(nodes.status, ["proposed", "contradicted"]),
+        or(
+          inArray(nodes.status, ["proposed", "contradicted"]),
+          // A settled entry with an unanswered clash still waits for a person.
+          // Written in the app it is confirmed on the spot and would otherwise
+          // have nowhere to raise its hand once that screen is closed, and this
+          // list is where everything that wants a decision belongs.
+          sql`array_length(${nodes.conflictsWith}, 1) > 0`,
+        ),
       ),
     )
     .orderBy(desc(nodes.createdAt))
@@ -1879,5 +2077,5 @@ export async function getReviewFeed(userId: string) {
   // ponytail: both lists capped at FEED_LIMIT with no paging. The screen is
   // explicitly ignorable, so a long tail is not worth a cursor yet; add one when
   // the count stops fitting on a screen.
-  return { pendingActions: queued, nodesToReview: unsettled };
+  return { pendingActions: queued, nodesToReview: await attachConflicts(userId, unsettled) };
 }

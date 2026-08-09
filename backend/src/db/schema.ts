@@ -154,6 +154,12 @@ export const nodes = pgTable(
     // both cases fall back to the entry's first sentence, so it is never a
     // reason to refuse a write. Never embedded: retrieval reads the real thing.
     summary: text("summary").notNull().default(""),
+    // Entries this one appears to contradict, found when it was written. A
+    // suspicion, not a verdict: the model proposes the pair and a person says
+    // which one stands, at which point this empties and superseded_by carries
+    // the answer. No foreign key, because an array cannot have one; readers
+    // drop ids that no longer point at a live entry.
+    conflictsWith: uuid("conflicts_with").array().notNull().default(sql`'{}'::uuid[]`),
     status: text("status").notNull().default("proposed"),
     source: jsonb("source").notNull().default(sql`'{}'::jsonb`),
     // Which node overruled this one. Set together with status 'contradicted';

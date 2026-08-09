@@ -266,28 +266,28 @@
     "thinking": "Reading the project's context...",
     "nothingProposed": "Nothing here needs changing.",
     "queuedNote": "Proposals are waiting.",
-    "queuedLink": "Review proposals",
+    "queuedLink": "See project memory",
     "action": {
       "update": "Entry correction",
       "delete": "To delete",
       "create": "New entry"
     },
-    "lead": "Describe a decision or an agreement. Ariadne prepares an entry for approval.",
+    "lead": "Describe a decision or an agreement. Ariadne records it straight away, because you are the one writing it.",
     "hint": "Enter sends, Shift + Enter starts a new line",
     "suggest1": "We switched the form library from X to Y.",
     "suggest2": "We are not using a backend; the app stays static.",
     "suggest3": "Case studies are postponed.",
     "nothingProposedNote": "Ariadne found nothing in this that needs recording or correcting.",
-    "willSave": "Will be saved",
+    "willSave": "Recorded",
     "awaiting": "Waiting for approval",
-    "toast": "The proposal was created and is waiting for approval.",
+    "toast": "Recorded in the project's memory.",
     "historyTitle": "Recently added context",
     "historyEmpty": "You have not added any context yet.",
     "historyEmptyNote": "Describe your first decision or change, and the whole run of it stays here.",
     "youWrote": "You wrote",
-    "ariadneProposed": "Ariadne proposed",
+    "ariadneProposed": "Ariadne recorded",
     "statusPending": "Waiting for approval",
-    "statusSaved": "Saved",
+    "statusSaved": "Recorded",
     "statusRejected": "Rejected",
     "historyNew": "New entry"
   },
@@ -476,5 +476,17 @@
     "joinCodeNote": "Paste the code somebody on the team sent you.",
     "join": "Join",
     "joined": "You are in the workspace."
+  },
+  "conflict": {
+    "title": "CONTRADICTION",
+    "lead": "This entry clashes with something already in memory. Both cannot be true at once, so say which one stands. The other does not disappear: it is marked as overruled and keeps a link to what replaced it.",
+    "keepNew": "The new one stands",
+    "keepOld": "The old one stands",
+    "keepBoth": "Both are true",
+    "done": {
+      "new": "The older entry is marked as overruled.",
+      "old": "The new entry is marked as overruled.",
+      "both": "Left as they were."
+    }
   }
 }

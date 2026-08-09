@@ -42,6 +42,7 @@ import {
   registerUser,
   rejectPending,
   removeMember,
+  resolveConflict,
   revokeInvite,
   searchNodes,
   setAllPermission,
@@ -474,6 +475,18 @@ export function createRestApp() {
   app.post("/nodes/:id/contradict", async (c) => {
     const { supersededBy } = await readBody(c, z.object({ supersededBy: z.string() }));
     await contradictNode({ userId: userId(c), nodeId: c.req.param("id"), supersededBy });
+    return c.body(null, 204);
+  });
+
+  // One route for the whole answer to a clash, rather than the app calling
+  // contradict and then a second thing to clear the flag: half of that pair
+  // failing leaves a question on screen that has already been answered.
+  app.post("/nodes/:id/conflicts/resolve", async (c) => {
+    const { otherId, verdict } = await readBody(
+      c,
+      z.object({ otherId: z.string(), verdict: z.enum(["new", "old", "both"]) }),
+    );
+    await resolveConflict({ userId: userId(c), nodeId: c.req.param("id"), otherId, verdict });
     return c.body(null, 204);
   });
 

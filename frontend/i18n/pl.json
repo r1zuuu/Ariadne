@@ -266,28 +266,28 @@
     "thinking": "Czytam kontekst projektu...",
     "nothingProposed": "Nic tu nie wymaga zmiany.",
     "queuedNote": "Propozycje czekają.",
-    "queuedLink": "Przejrzyj propozycje",
+    "queuedLink": "Zobacz pamięć projektu",
     "action": {
       "update": "Poprawka wpisu",
       "delete": "Do usunięcia",
       "create": "Nowy wpis"
     },
-    "lead": "Opisz decyzję albo ustalenie. Ariadne przygotuje wpis do zatwierdzenia.",
+    "lead": "Opisz decyzję albo ustalenie. Ariadne zapisze wpis od razu, bo piszesz go sam.",
     "hint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
     "suggest1": "Zmieniliśmy bibliotekę formularzy z X na Y.",
     "suggest2": "Nie używamy backendu, aplikacja zostaje statyczna.",
     "suggest3": "Case studies odkładamy na później.",
     "nothingProposedNote": "Ariadne nie znalazła w tej wypowiedzi nic, co trzeba zapisać albo poprawić.",
-    "willSave": "Zostanie zapisane",
+    "willSave": "Zapisane w pamięci",
     "awaiting": "Czeka na zatwierdzenie",
-    "toast": "Propozycja została utworzona i czeka na zatwierdzenie.",
+    "toast": "Zapisane w pamięci projektu.",
     "historyTitle": "Ostatnio dodany kontekst",
     "historyEmpty": "Nie dodałeś jeszcze żadnego kontekstu.",
     "historyEmptyNote": "Opisz pierwszą decyzję albo zmianę, a cały jej przebieg zostanie tutaj.",
     "youWrote": "Ty napisałeś",
-    "ariadneProposed": "Ariadne zaproponowała",
+    "ariadneProposed": "Ariadne zapisała",
     "statusPending": "Czeka na zatwierdzenie",
-    "statusSaved": "Zapisano",
+    "statusSaved": "Zapisane",
     "statusRejected": "Odrzucono",
     "historyNew": "Nowy wpis"
   },
@@ -476,5 +476,17 @@
     "joinCodeNote": "Wklej kod, który dostałeś od kogoś z zespołu.",
     "join": "Dołącz",
     "joined": "Jesteś w przestrzeni."
+  },
+  "conflict": {
+    "title": "SPRZECZNOŚĆ",
+    "lead": "Ten wpis kłóci się z tym, co już jest w pamięci. Oba nie mogą być prawdą naraz, więc powiedz, który zostaje. Ten odrzucony nie znika: dostaje status odwołanego i link do wpisu, który go zastąpił.",
+    "keepNew": "Zostaje nowy",
+    "keepOld": "Zostaje stary",
+    "keepBoth": "Oba są prawdziwe",
+    "done": {
+      "new": "Stary wpis oznaczony jako odwołany.",
+      "old": "Nowy wpis oznaczony jako odwołany.",
+      "both": "Zostawione bez zmian."
+    }
   }
 }

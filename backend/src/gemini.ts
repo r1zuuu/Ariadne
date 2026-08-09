@@ -144,6 +144,51 @@ const SUMMARY_RULES = [
  * is the guarantee, and a card whose lead line wraps to three rows is the thing
  * this feature exists to prevent.
  */
+const CONFLICT_RULES = [
+  "You are given one new entry in a project's record and a numbered list of entries already in it.",
+  "Name the numbers of the entries the new one contradicts: both cannot be true of the same project at the same time.",
+  "A contradiction is a direct clash of fact: three languages against one language, Postgres against MySQL, shipped against cancelled.",
+  "An entry that adds detail, narrows, gives a reason or talks about a different part of the project contradicts nothing.",
+  "An entry that repeats an existing one in other words contradicts nothing either.",
+  "When in doubt, name nothing: a false alarm costs a person a decision they did not need to make.",
+].join(" ");
+
+/**
+ * Which of the given entries the new one clashes with, by index. Similarity got
+ * these candidates through the door - it cannot tell "three languages" from
+ * "one language" apart from "three languages" and "translations live in JSON",
+ * because both pairs are about the same thing. This is the part that reads.
+ */
+export async function findConflicts(
+  key: string,
+  entry: string,
+  candidates: string[],
+): Promise<number[]> {
+  const { conflicts } = await generateJson<{ conflicts: number[] }>(
+    key,
+    {
+      system: CONFLICT_RULES,
+      user: [
+        "New entry:",
+        entry,
+        "",
+        "Already recorded:",
+        ...candidates.map((text, i) => `[${i + 1}] ${text}`),
+      ].join("\n"),
+    },
+    {
+      type: "object",
+      properties: { conflicts: { type: "array", items: { type: "integer" } } },
+      required: ["conflicts"],
+    },
+  );
+  // The model answers in the numbering it was given; anything outside it is a
+  // hallucinated reference and is dropped rather than guessed at.
+  return (conflicts ?? [])
+    .map((n) => n - 1)
+    .filter((i) => Number.isInteger(i) && i >= 0 && i < candidates.length);
+}
+
 export async function summarize(key: string, content: string): Promise<string> {
   const { summary } = await generateJson<{ summary: string }>(
     key,
