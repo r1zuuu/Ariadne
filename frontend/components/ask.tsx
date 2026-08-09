@@ -8,7 +8,8 @@ import { Composer } from "@/components/composer";
 import { ConversationList } from "@/components/conversation-list";
 import { useFailure } from "@/components/failure";
 import { Collapse } from "@/components/motion";
-import { Card, EmptyState, Meta } from "@/components/ui";
+import { lead } from "@/components/entry-card";
+import { EmptyState } from "@/components/ui";
 import {
   chatQuery,
   createConversation,
@@ -392,14 +393,7 @@ function CitationMark({ n, onCite }: { n: number; onCite: (n: number) => void })
 // way a reader expects citations to behave. The prose stays prose; the marks
 // are the only interactive thing inside it.
 function Answer({ turn }: { turn: Turn }) {
-  const t = useTranslations("assistant");
-  const [open, setOpen] = useState(false);
-  const [active, setActive] = useState<number | null>(null);
-
-  const cite = (n: number) => {
-    setOpen(true);
-    setActive(n);
-  };
+  const [opened, setOpened] = useState<number | null>(null);
 
   const parts = turn.answer.split(/(\[\d+(?:\s*,\s*\d+)*\])/g).map((part, i) => {
     const match = /^\[(\d+(?:\s*,\s*\d+)*)\]$/.exec(part);
@@ -407,7 +401,7 @@ function Answer({ turn }: { turn: Turn }) {
     return (
       <span key={i} className="whitespace-nowrap">
         {match[1].split(/\s*,\s*/).map((n) => (
-          <CitationMark key={n} n={Number(n)} onCite={cite} />
+          <CitationMark key={n} n={Number(n)} onCite={setOpened} />
         ))}
       </span>
     );
@@ -421,99 +415,107 @@ function Answer({ turn }: { turn: Turn }) {
           <span className="ml-[3px] inline-block h-[1.1em] w-[2px] translate-y-[2px] bg-ink-3" />
         ) : null}
       </p>
-      {turn.sources.length ? (
-        <Sources
+      {turn.done && turn.sources.length ? (
+        <Cited
           sources={turn.sources}
-          open={open}
-          onToggle={() => setOpen(!open)}
-          active={active}
-          countLabel={t("sourcesCount", { count: turn.sources.length })}
+          answer={turn.answer}
+          opened={opened}
+          onOpen={(n) => setOpened(opened === n ? null : n)}
         />
       ) : null}
     </>
   );
 }
 
-// Closed until asked for. The count is the trust signal and stays visible; the
-// entries themselves grow out of the answer, which is what says they belong to
-// it rather than being a separate panel.
-function Sources({
+/** The entry numbers the answer actually points at, in the order it uses them. */
+function citedIn(answer: string, count: number): number[] {
+  const found = [...answer.matchAll(/\[(\d+(?:\s*,\s*\d+)*)\]/g)]
+    .flatMap((match) => match[1].split(/\s*,\s*/).map(Number))
+    .filter((n) => n >= 1 && n <= count);
+  return [...new Set(found)];
+}
+
+// What the answer stood on, and nothing else. Retrieval hands over five entries
+// on every question; five cards under every answer said "this is about all of
+// them", which was both untrue and a screen of clutter. Only the entries the
+// answer cites are named here, one quiet line each, and the entry opens under
+// its own line for anyone who doubts it.
+//
+// Uncited entries are not hidden, they are simply not claimed: when the answer
+// cites nothing at all the line falls back to naming what was read, because an
+// answer with no traceable source at all is the one case worth admitting to.
+function Cited({
   sources,
-  open,
-  onToggle,
-  active,
-  countLabel,
+  answer,
+  opened,
+  onOpen,
 }: {
   sources: Source[];
-  open: boolean;
-  onToggle: () => void;
-  active: number | null;
-  countLabel: string;
+  answer: string;
+  /** Which entry is showing its full text, by citation number. */
+  opened: number | null;
+  onOpen: (n: number) => void;
 }) {
-  const tHome = useTranslations("home");
-  const tEntry = useTranslations("entry");
+  const t = useTranslations("assistant");
   const { locale } = useLocale();
   const stamp = (iso: string) =>
     new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(new Date(iso));
 
+  const cited = citedIn(answer, sources.length);
+  const shown = cited.length ? cited : sources.map((_, i) => i + 1);
+
   return (
     <div className="pt-4">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className="inline-flex items-center gap-3 rounded-control border border-hairline bg-surface px-4 py-[6px] text-data text-ink-2 transition-colors duration-state hover:border-edge/60 hover:text-ink"
-      >
-        <svg
-          width="11"
-          height="11"
-          viewBox="0 0 12 12"
-          fill="none"
-          aria-hidden="true"
-          className={`transition-transform duration-state ${open ? "rotate-90" : ""}`}
-        >
-          <path d="M4.5 2.5 8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.4" />
-        </svg>
-        {countLabel}
-      </button>
-
-      <Collapse open={open}>
-        <ol className="flex flex-col gap-2 pt-3">
-          {sources.map((source, i) => (
+      {cited.length ? null : (
+        <p className="pb-1 text-data text-ink-3">
+          {t("sourcesCount", { count: sources.length })}
+        </p>
+      )}
+      <ul className="flex flex-col">
+        {shown.map((n) => {
+          const source = sources[n - 1];
+          const isOpen = opened === n;
+          return (
             <li key={source.id}>
-              <Card
-                className={`p-4 transition-[border-color] duration-state ${
-                  active === i + 1 ? "border-aegean" : ""
-                }`}
+              <button
+                type="button"
+                onClick={() => onOpen(n)}
+                aria-expanded={isOpen}
+                className="flex w-full items-baseline gap-3 py-[5px] text-left transition-colors duration-state"
               >
-                <div className="flex items-start gap-3">
-                  {/* The same mark the answer points with. */}
-                  <span className="mt-[2px] inline-flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-label bg-aegean/20 px-[5px] text-[11px] font-medium leading-none text-aegean">
-                    {i + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <Meta
-                      items={[
-                        tEntry(`type.${source.type}`),
-                        stamp(source.createdAt),
-                        tHome(`status.${source.status}`),
-                      ]}
-                    />
-                    <p className="line-clamp-3 pt-2 text-small leading-6 text-ink-2">
-                      {source.content}
+                {/* The same mark the answer points with, so the eye can travel
+                    from the sentence to the entry it came from. */}
+                <span className="inline-flex h-[16px] min-w-[16px] shrink-0 items-center justify-center rounded-label bg-aegean/15 text-[10px] font-medium leading-none text-aegean">
+                  {n}
+                </span>
+                <span
+                  className={`min-w-0 flex-1 truncate text-data transition-colors duration-state ${
+                    isOpen ? "text-ink-2" : "text-ink-3 hover:text-ink-2"
+                  }`}
+                >
+                  {lead(source)}
+                </span>
+                <span className="shrink-0 text-data text-ink-3/70">{stamp(source.createdAt)}</span>
+              </button>
+
+              <Collapse open={isOpen}>
+                {/* The entry as recorded, set off by the thread rather than
+                    boxed: it belongs to the line above it. */}
+                <div className="border-l border-hairline py-2 pl-5">
+                  <p className="whitespace-pre-wrap text-small leading-6 text-ink-2">
+                    {source.content}
+                  </p>
+                  {source.anchors?.length ? (
+                    <p className="truncate pt-2 font-data text-data text-ink-3">
+                      {source.anchors.map((a) => a.path).join(" · ")}
                     </p>
-                    {source.anchors?.length ? (
-                      <p className="truncate pt-2 font-data text-data text-ink-3">
-                        {source.anchors.map((a) => a.path).join(" · ")}
-                      </p>
-                    ) : null}
-                  </div>
+                  ) : null}
                 </div>
-              </Card>
+              </Collapse>
             </li>
-          ))}
-        </ol>
-      </Collapse>
+          );
+        })}
+      </ul>
     </div>
   );
 }

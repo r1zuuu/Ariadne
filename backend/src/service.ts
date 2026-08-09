@@ -497,6 +497,9 @@ export async function searchNodes(input: {
       id: nodes.id,
       type: nodes.type,
       content: nodes.content,
+      // What a citation under an answer is labelled with: ten words beat the
+      // first 140 characters of a paragraph for saying which entry this is.
+      summary: nodes.summary,
       status: nodes.status,
       source: nodes.source,
       createdAt: nodes.createdAt,
