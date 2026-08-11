@@ -85,9 +85,11 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
         "Call this at the start of every session, before reading files or git history. " +
         "Returns who the user is, what this project is, the summary of the last session, " +
         "and an index of the decisions and notes already recorded here. Entries carry the " +
-        "author, which may be someone else on the team. The index holds headlines only: " +
-        "when one touches what you are about to do, call search_context to read the full " +
-        "entry before you act.",
+        "author, which may be someone else on the team. The index is a sample, not the " +
+        "archive: it says how many entries exist in total (index.total) against how many " +
+        "headlines it shows (index.showing), and lists which files have entries about them " +
+        "(index.by_file). Before you edit a file named there, or when a headline touches " +
+        "what you are about to do, call search_context and read the entry itself.",
       inputSchema: { repo_ref: repoRef },
     },
     ({ repo_ref }) => run(() => getBootContext({ userId, workspaceId, repoRef: repo_ref })),

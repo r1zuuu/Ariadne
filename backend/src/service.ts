@@ -1,6 +1,18 @@
 import { createHash, randomBytes } from "node:crypto";
 import { hash as hashPassword, verify as verifyArgon2 } from "@node-rs/argon2";
-import { and, cosineDistance, desc, eq, gt, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  cosineDistance,
+  countDistinct,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "./db/client.js";
 import {
@@ -56,6 +68,11 @@ const NODE_STATUSES = ["proposed", "confirmed", "contradicted", "archived"] as c
 const LIST_LIMIT = 50;
 const MAX_LIST_LIMIT = 100;
 const INDEX_SIZE = 10;
+// ponytail: the twenty files with the most entries. An archive spread over more
+// files than that has a tail this does not name, and the fix then is to pick the
+// files from what the session is actually touching rather than to raise the
+// number. Raising it only moves the wall, same as it would for INDEX_SIZE.
+const BY_FILE_SIZE = 20;
 const HEADLINE_LENGTH = 120;
 const CHANNELS = ["coder", "app_chat", "app_form"] as const;
 const ETAPY = ["prototyp", "produkcja", "utrzymanie"] as const;
@@ -661,12 +678,26 @@ export async function getBootContext(input: {
     .orderBy(desc(nodes.createdAt))
     .limit(1);
 
+  // What counts as "recorded here", asked three ways below: the newest headlines,
+  // how many there are in total, and which files they are about.
+  //
+  // Contradicted ones are out too, not just archived: a headline carries no
+  // status, so a superseded one would read as current and get acted on without
+  // ever being opened. Its replacement is in the index anyway.
+  const recorded = and(
+    eq(nodes.workspaceId, input.workspaceId),
+    eq(nodes.projectId, project.id),
+    inArray(nodes.type, ["decision", "note"]),
+    inArray(nodes.status, ["proposed", "confirmed"]),
+  );
+
   // Without this the graph is invisible: the boot payload looks complete, so the
   // coder never calls search_context and answers from the code instead.
-  // ponytail: newest 10 headlines. Past roughly a hundred nodes that is a random
-  // sample rather than an index - then pick by anchors matching the files in play,
-  // or cluster by topic.
-  const index = await db
+  //
+  // The count rides along on the same statement. It is what stops ten headlines
+  // from reading as the whole archive once there are two hundred entries, which
+  // is the failure the ten were supposed to fix in the first place.
+  const headlines = await db
     .select({
       node_id: nodes.id,
       type: nodes.type,
@@ -674,22 +705,29 @@ export async function getBootContext(input: {
       // Who recorded it. In a shared archive this is the difference between "I
       // decided that" and "someone else decided that and I am about to undo it".
       author: users.email,
+      total: sql<number>`count(*) over ()`.mapWith(Number),
     })
     .from(nodes)
     .leftJoin(users, eq(users.id, nodes.authorId))
-    .where(
-      and(
-        eq(nodes.workspaceId, input.workspaceId),
-        eq(nodes.projectId, project.id),
-        inArray(nodes.type, ["decision", "note"]),
-        // Contradicted ones are out too, not just archived: a headline carries no
-        // status, so a superseded one would read as current and get acted on
-        // without ever being opened. Its replacement is in the index anyway.
-        inArray(nodes.status, ["proposed", "confirmed"]),
-      ),
-    )
+    .where(recorded)
     .orderBy(desc(nodes.createdAt))
     .limit(INDEX_SIZE);
+
+  // The part that survives growth. Headlines go stale as a sample the moment the
+  // archive outgrows the limit, but "we have four entries about service.ts" stays
+  // true at any size, and it is the question a coder is about to answer anyway:
+  // it opens a file, sees the file named here, and searches before editing.
+  //
+  // Ordered by weight, then by path so that equal counts do not shuffle between
+  // sessions. A list rather than an object, because the order is the point.
+  const byFile = await db
+    .select({ path: codeAnchors.path, entries: countDistinct(nodes.id) })
+    .from(codeAnchors)
+    .innerJoin(nodes, eq(nodes.id, codeAnchors.nodeId))
+    .where(recorded)
+    .groupBy(codeAnchors.path)
+    .orderBy(desc(countDistinct(nodes.id)), codeAnchors.path)
+    .limit(BY_FILE_SIZE);
 
   return {
     profile: user.profile,
@@ -704,12 +742,19 @@ export async function getBootContext(input: {
       etap: project.etap,
     },
     last_summary: lastSummary ?? null,
-    // Headlines only. The coder reads a relevant one and calls search_context.
-    index: index.map(({ node_id, type, content }) => ({
-      node_id,
-      type,
-      headline: headline(content),
-    })),
+    // Headlines only, and an honest account of what they are a sample of. The
+    // coder reads a relevant one, or sees a file it is about to touch named in
+    // by_file, and calls search_context for the entry itself.
+    index: {
+      total: headlines[0]?.total ?? 0,
+      showing: headlines.length,
+      by_file: byFile,
+      headlines: headlines.map(({ node_id, type, content }) => ({
+        node_id,
+        type,
+        headline: headline(content),
+      })),
+    },
   };
 }
 
