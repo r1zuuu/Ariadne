@@ -6,6 +6,9 @@
 // Pass a password to make the account usable through POST /auth/login. Without
 // one, a fresh row gets a placeholder hash that no password can match.
 process.loadEnvFile("../.env");
+// Admin script: runs as the owner role, which the policies of migration 0008 do
+// not apply to. It writes an account's first rows, from outside any session.
+process.env.DATABASE_URL_APP = process.env.DATABASE_URL;
 
 const EMAIL = "stanislaw@rayzacher.pl";
 const PASSWORD = process.argv[2];

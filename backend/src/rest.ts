@@ -7,6 +7,7 @@ import { HTTPException } from "hono/http-exception";
 import { jwt, sign } from "hono/jwt";
 import * as z from "zod/v4";
 import { answerQuestion, proposeEdits } from "./chat.js";
+import { asUser } from "./db/client.js";
 import {
   type NodeStatus,
   type NodeType,
@@ -302,6 +303,18 @@ export function createRestApp() {
   }
   for (const prefix of ["/auth/*", ...PROTECTED_PREFIXES]) app.use(prefix, limit);
   for (const prefix of PROTECTED_PREFIXES) app.use(prefix, jwt({ secret, alg: JWT_ALG }));
+  // Below the token check, because before it there is nobody to run as. Every
+  // protected route runs inside one transaction with app.user_id set, which is
+  // what the policies of migration 0008 filter by; without this wrapper they see
+  // no identity and hand back nothing.
+  //
+  // The transaction ends when the handler returns. /chat/query returns a stream
+  // that keeps producing afterwards, and that is safe only because everything it
+  // reads from the database happens before the first chunk. A query added inside
+  // that stream would run on a closed transaction and say so loudly.
+  for (const prefix of PROTECTED_PREFIXES) {
+    app.use(prefix, (c, next) => asUser(c.get("jwtPayload").sub, next));
+  }
 
   // --- Public: auth (plan section 10) ---
 

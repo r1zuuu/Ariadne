@@ -7,6 +7,14 @@
 import assert from "node:assert/strict";
 
 process.loadEnvFile("../.env");
+// The app itself is driven through app.request(), which wraps every call in
+// asUser and so meets the policies of migration 0008 the way a real request
+// does. This handle is the owner role, for the assertions that read rows
+// directly and for the setup that has no session to belong to. The policies get
+// their own block at the end of this file, on a connection that is subject to them.
+const APP_URL = process.env.DATABASE_URL_APP;
+process.env.DATABASE_URL_APP = process.env.DATABASE_URL;
+if (!APP_URL) throw new Error("DATABASE_URL_APP is not set, so the policy block has nothing to test");
 
 const { db } = await import("../src/db/client.js");
 const { codeAnchors, nodes, pendingActions, projects, users, workspaces } = await import(
@@ -845,6 +853,76 @@ check(
   (await call(`/tokens/${listed.body[0].id}`, { method: "DELETE", token })).status,
   404,
 );
+
+// --- Row-level security (migration 0008), on a role the policies apply to ---
+//
+// Everything above ran as the owner, which Postgres exempts from every policy,
+// so none of it says whether the policies work. This block opens its own
+// connection as ariadne_app and asks the archive directly, with and without an
+// identity. It is the second lock: the checks above prove the service layer
+// scopes its queries, these prove the database refuses even when it does not.
+
+const { default: pg } = await import("pg");
+const appPool = new pg.Pool({ connectionString: APP_URL });
+const client = await appPool.connect();
+
+async function asRole(userId: string | null, statement: string, params: unknown[] = []) {
+  await client.query("BEGIN");
+  if (userId) await client.query("SELECT set_config('app.user_id', $1, true)", [userId]);
+  try {
+    return await client.query(statement, params);
+  } finally {
+    // Nothing here is meant to survive: the point is what the statement is
+    // allowed to see, not what it leaves behind.
+    await client.query("ROLLBACK");
+  }
+}
+
+const [mine] = await db.select({ id: users.id }).from(users).where(eq(users.email, MINE));
+const [theirs] = await db.select({ id: users.id }).from(users).where(eq(users.email, THEIRS));
+const [myWorkspace] = await db
+  .select({ id: workspaces.id })
+  .from(workspaces)
+  .where(eq(workspaces.ownerId, mine.id));
+
+const countNodes = "SELECT count(*)::int AS n FROM nodes WHERE project_id = $1";
+
+check(
+  "with no identity set, the archive answers with nothing",
+  (await asRole(null, countNodes, [projectId])).rows[0].n,
+  0,
+);
+check(
+  "as the member it belongs to, the same query finds rows",
+  (await asRole(mine.id, countNodes, [projectId])).rows[0].n > 0,
+  true,
+);
+check(
+  "as somebody outside the workspace, it finds none",
+  (await asRole(theirs.id, countNodes, [projectId])).rows[0].n,
+  0,
+);
+check(
+  "and an outsider cannot read the project row either",
+  (await asRole(theirs.id, "SELECT count(*)::int AS n FROM projects WHERE id = $1", [projectId]))
+    .rows[0].n,
+  0,
+);
+
+// Reading is half of it. Without a WITH CHECK an outsider could still write into
+// someone else's archive, which is worse than reading it.
+const smuggled = await asRole(
+  theirs.id,
+  "INSERT INTO projects (workspace_id, name, repo_ref) VALUES ($1, 'smuggled', 'github.com/x/y')",
+  [myWorkspace.id],
+).then(
+  () => "no error",
+  (error: { code?: string }) => error.code,
+);
+check("writing into another workspace is refused by the policy", smuggled, "42501");
+
+client.release();
+await appPool.end();
 
 await db.delete(users).where(inArray(users.email, [MINE, THEIRS]));
 console.log(`\n${passed} checks passed`);

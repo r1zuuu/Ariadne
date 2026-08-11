@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import type { HttpBindings } from "@hono/node-server";
 import { RESPONSE_ALREADY_SENT } from "@hono/node-server/utils/response";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { asUser } from "./db/client.js";
 import { createMcpServer } from "./mcp.js";
 import { createRestApp } from "./rest.js";
 import { type Actor, resolveActorByToken } from "./service.js";
@@ -57,8 +58,13 @@ app.all("/mcp", async (c) => {
   });
 
   try {
-    await server.connect(transport);
-    await transport.handleRequest(incoming, outgoing);
+    // Same wrapper the REST routes get: one transaction per call, carrying the
+    // identity the policies of migration 0008 read. The token was resolved above
+    // it, against a table those policies deliberately leave alone.
+    await asUser(actor.userId, async () => {
+      await server.connect(transport);
+      await transport.handleRequest(incoming, outgoing);
+    });
   } catch (error) {
     console.error("[mcp] request failed:", error);
     if (!outgoing.headersSent) return rpcError(500, "Internal server error");

@@ -2,6 +2,9 @@
 // POST /tokens; this stays for when there is no app running yet.
 // Run from backend/: npx tsx scripts/mint-token.ts <email> [label]
 process.loadEnvFile("../.env");
+// Admin script: runs as the owner role, which the policies of migration 0008 do
+// not apply to. Minting a token for an account is exactly that kind of job.
+process.env.DATABASE_URL_APP = process.env.DATABASE_URL;
 
 const [email, label = "local dev"] = process.argv.slice(2);
 if (!email) {

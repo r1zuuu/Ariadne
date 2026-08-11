@@ -2,6 +2,9 @@
 // queries, eyeball the ranking. Run from backend/: npx tsx scripts/verify-service.ts
 // Idempotent: recreates the verify user (cascade wipes old data) on each run.
 process.loadEnvFile("../.env");
+// Admin script: runs as the owner role, which the policies of migration 0008 do
+// not apply to. It calls the service layer directly, with no request to scope by.
+process.env.DATABASE_URL_APP = process.env.DATABASE_URL;
 
 const { db } = await import("../src/db/client.js");
 const { memberships, nodes, users, projects, workspaces } = await import("../src/db/schema.js");
@@ -81,6 +84,10 @@ const boot = await service.getBootContext({
 console.log(`  profile: ${boot.profile.slice(0, 60)}`);
 console.log(`  project: ${boot.project.name} (${boot.project.stack.slice(0, 40)})`);
 console.log(`  last summary: ${boot.last_summary?.content.slice(0, 70)}`);
+// The index is a sample and has to say so, otherwise ten headlines read as the
+// whole archive. by_file is the part that stays useful as the archive grows.
+console.log(`  index: ${boot.index.showing} of ${boot.index.total} entries`);
+console.log(`  by file: ${boot.index.by_file.map((f) => `${f.path} (${f.entries})`).join(", ")}`);
 
 console.log("\n=== lifecycle smoke");
 const search = await service.searchNodes({ userId: user.id, projectId: project.id, query: "hono", k: 1 });
