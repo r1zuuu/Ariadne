@@ -70,6 +70,18 @@ ekranem i mieszka na przegladzie (sekcja 11).
   Instrukcja postawienia tego na serwerze siedzi w setup.md, poza gitem, bo
   trzyma adresy i hasla.
 
+  Hosting przestawiony z VPS-a na uslugi zarzadzane (Render plus Neon, oba za
+  zero). Wymusilo to trzy drobiazgi w kodzie: skrypty build i start, czyli
+  kompilacja przez tsc zamiast tsx w locie, engines na Node 22 oraz trasa
+  /healthz. Ta ostatnia jest jedyna, ktora nie dotyka bazy, i to nie jest
+  kosmetyka: Render usypia darmowa usluge po pietnastu minutach, wiec potrzebny
+  jest budzik, a Neon rozlicza godziny rozbudzonej bazy, wiec budzik pukajacy w
+  cokolwiek innego zjadlby jej miesieczny limit w polowie miesiaca. Osobna
+  pulapka, opisana w setup.md: role aplikacyjnej nie wolno zakladac z panelu
+  Neona, bo takie role dostaja neon_superuser wraz z BYPASSRLS i cicho przechodza
+  przez wszystkie polityki z migracji 0008. Musi powstac z SQL, czyli tak, jak
+  robi to migracja.
+
 Jedna decyzja czeka na usera:
 1. Logowanie przez Google: zaprojektowane na ekranie 01, ale nie ma go ani w sekcji 10, ani w backendzie, ani w kodzie frontu (grep po "google" trafia tylko w skrypt do fontow). Rekomendacja: zapisac w sekcji 14 jako swiadomie odlozone, bo OAuth w Tauri to loopback albo deep link plus endpoint providera, a konto na haslo dziala.
 
@@ -595,7 +607,7 @@ zadnego przeplywu.
 - MCP: oficjalne SDK @modelcontextprotocol/sdk, transport streamable HTTP.
 - Hasla: argon2id. Tokeny MCP: 32 bajty losowe, w bazie sha256.
 - Tauri 2 + Next.js static export. Graf: react-force-graph.
-- Deploy backendu: Docker Compose na VPS (postgres + backend), migracje Drizzle.
+- Deploy: backend na Render, baza na Neon, oba na darmowym planie. Migracje Drizzle ida z laptopa po polaczeniu bezposrednim, nie z serwera. Docker Compose na VPS byl planem do 11.08.2026 i odpadl: Oracle Always Free nie wydal maszyny ARM ("Out of capacity"), a firewall, systemd i Caddy to godzina konfiguracji za efekt, ktory obie uslugi zarzadzane daja bez niej. Docker zostaje tam, gdzie byl przydatny, czyli jako lokalna baza deweloperska.
 
 ## 13. Kolejnosc budowy z kryteriami "gotowe gdy"
 
