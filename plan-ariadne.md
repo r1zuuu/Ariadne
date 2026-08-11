@@ -61,6 +61,15 @@ ekranem i mieszka na przegladzie (sekcja 11).
   jednym klikiem na gotowym juz superseded_by. Do tego status z kanalu (sekcja 4)
   i scalenie ekranu 5 z ekranem 3 (sekcja 11).
 
+- Krok 5g, branch feature/rls-and-boot-index, 11.08.2026. Dwie rzeczy wyciagniete
+  z kroku 6 przed hostingiem. Row-Level Security: druga rola w bazie, polityki na
+  pieciu tabelach archiwum, tozsamosc wstrzykiwana na transakcje zadania, wiec
+  zapomniany where-clause nie jest juz wyciekiem. Spis tresci w boot contextcie
+  przestal klamac, ze jest kompletem: mowi ile wpisow jest naprawde i o ktorych
+  plikach, zamiast pokazywac dziesiec najnowszych i milczec o reszcie.
+  Instrukcja postawienia tego na serwerze siedzi w setup.md, poza gitem, bo
+  trzyma adresy i hasla.
+
 Jedna decyzja czeka na usera:
 1. Logowanie przez Google: zaprojektowane na ekranie 01, ale nie ma go ani w sekcji 10, ani w backendzie, ani w kodzie frontu (grep po "google" trafia tylko w skrypt do fontow). Rekomendacja: zapisac w sekcji 14 jako swiadomie odlozone, bo OAuth w Tauri to loopback albo deep link plus endpoint providera, a konto na haslo dziala.
 
@@ -310,7 +319,16 @@ Wniosek ogolny, wazniejszy od samego fixa: proza w CLAUDE.md to prosba, ktora mo
 
 Fix: get_project_context zwraca index, czyli naglowki wszystkich decision i note (bez tresci). Model widzi ze cos jest i o czym, po tresc siega przez search_context. Naglowek to pierwsza linia content uciete do 120 znakow, bez nowej kolumny w schemacie.
 
-Sufit tego rozwiazania (oznaczony `ponytail:` w service.ts): dziesiec najnowszych naglowkow. Przy okolo stu wezlach przestaje to byc spis tresci, a staje sie losowa probka i problem wraca w gorszej formie, bo index bedzie wygladal na komplet. Wtedy: wybor po anchors pasujacych do plikow w biezacej rozmowie, albo klastrowanie tematyczne. Nie zwiekszac samego limitu, to tylko przesuwa sciane.
+Sufit tego rozwiazania: dziesiec najnowszych naglowkow. Przy okolo stu wezlach przestaje to byc spis tresci, a staje sie losowa probka i problem wraca w gorszej formie, bo index bedzie wygladal na komplet. Zdjety 11.08.2026, branch feature/rls-and-boot-index, bez zwiekszania limitu (zwiekszenie tylko przesuwa sciane). Index nie jest juz tablica, tylko obiektem z czterema polami:
+
+- `total`: ile wpisow jest naprawde, liczone `count(*) over ()` na tym samym zapytaniu, wiec za darmo,
+- `showing`: ile naglowkow ponizej. Roznica miedzy tymi dwoma liczbami jest calym fixem, bo zamienia "to jest archiwum" w "to jest probka",
+- `by_file`: agregat po `code_anchors.path`, dwadziescia plikow z najwieksza liczba wpisow. To jest ta czesc, ktora nie starzeje sie z rozmiarem archiwum. "O service.ts mamy cztery wpisy" jest prawda przy stu i przy tysiacu wezlow, a coder i tak zaraz otworzy jakis plik,
+- `headlines`: to, co bylo.
+
+Wybrana zostala wiec pierwsza z dwoch sciezek zapisanych wyzej (anchors), tylko jako agregat calego projektu, a nie dopasowanie do biezacej rozmowy: boot context jest wolany na starcie sesji, kiedy nie ma jeszcze zadnej rozmowy, po ktorej mozna dopasowywac. Klastrowanie tematyczne odpada na tym etapie, bo to wywolanie modelu przy kazdym starcie sesji.
+
+Nowy sufit, oznaczony `ponytail:` przy `BY_FILE_SIZE`: dwadziescia plikow. Archiwum rozlane na wiecej ma ogon, ktorego ta lista nie nazwie, i wtedy wlasciwym ruchem jest wybor plikow po tym, czego sesja dotyka, a nie podniesienie liczby.
 
 Snippet generowany przy setupie (user wybiera codera, dostaje plik docelowy i tresc). Wersja dla CLAUDE.md:
 
@@ -681,7 +699,17 @@ Krok 5f. Streszczenia, wlasny klucz Gemini, sprzecznosci. ZROBIONE 2026-08-09, b
 - Znalezione przez klikanie, nie przez czytanie kodu: wpis napisany w panelu wracal do wlasnego autora jako "do zatwierdzenia" (stad status z kanalu), a piec kart zrodel pod kazda odpowiedzia twierdzilo, ze odpowiedz dotyczy wszystkich pieciu wpisow.
 - Prompt streszczenia poprawiany dwa razy, oba razy z powodu widocznego dopiero na wyniku: proszony o zdanie model pisal zdanie podrzedne, na ktore nie mial miejsca, a twardy limit ucinal je w polowie ("...ze wzgledu na"); regula jezyka nazywajaca polski z nazwy byla czytana jako preferencja polskiego i tytulowala angielskie wpisy po polsku. Teraz prosi o fraze i nie nazywa zadnego jezyka.
 
-Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezycie, Row-Level Security, hook konca sesji dla Claude Code, obsluga coderow bez MCP (cienkie CLI).
+Krok 5g. Row-Level Security i sufit spisu tresci. ZROBIONE 2026-08-11, branch feature/rls-and-boot-index.
+- Wyciagniete z kroku 6 przed hostingiem, bo obie rzeczy psuja sie dokladnie wtedy, gdy produkt zaczyna dzialac: RLS przy drugim zespole w bazie, spis tresci przy setnym wezle w projekcie.
+- Gotowe gdy: polaczenie rola aplikacyjna bez ustawionej tozsamosci nie widzi zadnego wpisu, z cudza tozsamoscia nie widzi cudzego projektu, a proba zapisu do cudzej przestrzeni konczy sie bledem bazy, nie samym 404 z warstwy serwisowej.
+- Spelnione: verify-rest.ts 164 sprawdzenia (bylo 159), z czego piec ostatnich chodzi po bazie jako `ariadne_app`, czyli rola, ktorej polityki dotycza. Migracja 0008 na prawdziwej bazie.
+- Dwie role zamiast jednej, bo Postgres nie stosuje polityk do wlasciciela tabel. `DATABASE_URL` zostaje wlascicielem i nalezy do migracji oraz skryptow administracyjnych, ktore maja widziec wszystko; `DATABASE_URL_APP` to rola serwera. Rola powstaje w migracji bez prawa logowania, haslo dostaje recznie raz (setup.md), wiec przebieg migracji nigdy nie otwiera po cichu nowej drogi do bazy.
+- Tozsamosc idzie do bazy przez `set_config('app.user_id', ..., true)` w transakcji na zadanie, a `db` w client.ts jest proxy nad AsyncLocalStorage, wiec zadna z okolo szesciudziesieciu funkcji w service.ts nie musiala sie uczyc przekazywac transakcji. Brak ustawionej tozsamosci polityki czytaja jako "zero wierszy", nigdy jako "wszystko": odwrotna domyslnosc zamienialaby kazde zapomniane owiniecie w ciche pelne czytanie archiwum.
+- Polityki obejmuja projects, nodes, code_anchors, pending_actions i conversations. Swiadomie poza nimi zostaja users, workspaces, memberships, invites i api_tokens: kazda z tych tabel jest czytana, zanim jest po kim scope'owac (logowanie po mailu, zaproszenie po kodzie, token po hashu), a polityki na archiwum sa napisane w terminach memberships, wiec polityka na niej samej bylaby rekurencja.
+- Znalezione po drodze: `??=` przy nadpisywaniu `DATABASE_URL_APP` w skryptach administracyjnych nie dziala, bo .env te zmienna juz ma. Skrypt seedujacy szedl wiec jako rola pod politykami i wywracal sie na WITH CHECK. Twarde przypisanie, nie uprzejme.
+- Sufit spisu tresci: opisany przy sekcji 6.
+
+Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezycie, hook konca sesji dla Claude Code, obsluga coderow bez MCP (cienkie CLI).
 
 Dlaczego to jest prawdopodobnie wlasciwy produkt, a wersja jednoosobowa prototypem: solo Ariadne konkuruje z wlasna pamiecia usera, ktory polowe decyzji z zeszlego tygodnia i tak pamieta. W zespole ta konkurencja znika, bo decyzja kolegi z wtorku nie jest w polowie zapamietana, ona jest calkowicie niewidzialna. CLAUDE.md w repo trzyma reguly, nie powody, i nikt go nie aktualizuje po rozmowie na Slacku. Do tego kazda osoba ma wlasnego agenta, a kazdy agent startuje od zera: piec osob to piec agentow codziennie odgadujacych ten sam kontekst. Oszczednosc mnozy sie przez liczbe ludzi.
 
@@ -706,7 +734,7 @@ Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym
 - Mapowanie codebase (AST, call graph): nigdy, to inny projekt (Graphify).
 - Graph RAG, typy krawedzi, tabela edges: krok 6.
 - Ocena wagi decyzji (blaha vs nosna) i auto-awans statusow: krok 6.
-- Row-Level Security: krok 6. Scope stoi na warstwie serwisowej i na bloku cross-workspace w verify-rest.ts. Przy zespolach to przestaje byc "miloby bylo", wiec jest to pierwsza pozycja kroku 6, nie dowolna.
+- Row-Level Security: ZROBIONE 11.08.2026, patrz krok 5g. Scope stoi teraz na dwoch zamkach: warstwa serwisowa filtruje, a baza odmawia niezaleznie od tego, czy filtr byl. Zapomniany where-clause przestal byc wyciekiem.
 - Historia wersji tresci wezla: gdy okaze sie potrzebna.
 - Coderzy bez MCP: gdy zajdzie potrzeba.
 - Wlasny klucz Gemini per user: ZROBIONE 09.08.2026, patrz krok 5f. Kolejnosc jest taka: klucz konta, a gdy go nie ma, klucz serwera z .env. Bez zadnego z nich zapis wpisu i oba czaty zwracaja no_gemini_key, a aplikacja tlumaczy to na zdanie z odnosnikiem do ustawien.
