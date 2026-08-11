@@ -4,8 +4,13 @@
   "description": "Ariadne backend: memory layer for LLM coders",
   "scripts": {
     "dev": "tsx --env-file=../.env src/index.ts",
+    "build": "tsc",
+    "start": "node dist/src/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.12",

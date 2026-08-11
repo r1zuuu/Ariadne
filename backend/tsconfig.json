@@ -5,7 +5,8 @@
     "moduleResolution": "NodeNext",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node"],
+    "outDir": "dist"
   },
   "include": ["src", "scripts", "drizzle.config.ts"]
 }

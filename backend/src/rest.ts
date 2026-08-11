@@ -316,6 +316,16 @@ export function createRestApp() {
     app.use(prefix, (c, next) => asUser(c.get("jwtPayload").sub, next));
   }
 
+  // --- Health ---
+
+  // What an uptime pinger hits, and deliberately the one route that never opens a
+  // database connection. Managed Postgres bills by the hour its compute is awake
+  // and puts itself to sleep after a few idle minutes, so a ping that read one row
+  // every ten minutes would keep it awake around the clock and spend the month's
+  // quota by the middle of it. Outside PROTECTED_PREFIXES on purpose: a pinger
+  // carries no token, and this answers before there is anyone to be.
+  app.get("/healthz", (c) => c.text("ok"));
+
   // --- Public: auth (plan section 10) ---
 
   app.post("/auth/register", async (c) => {
