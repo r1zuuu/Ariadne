@@ -133,6 +133,13 @@
         "prototyp": "Prototype - still being built, nobody uses it yet",
         "produkcja": "Released - people are using it and it works",
         "utrzymanie": "Maintenance - no new features, fixes only"
+      },
+      "limits": {
+        "fromFile": "Load from a file",
+        "note": "Already have this in CONVENTIONS.md or .cursorrules? Load it instead of retyping.",
+        "tooBig": "That file is larger than {kb} KB. Paste just the rules from it.",
+        "unreadable": "That file could not be read. Pick a text file.",
+        "empty": "That file is empty."
       }
     },
     "agent": {
@@ -157,7 +164,8 @@
       "tokenWhat": "This is your token. Give it to the agent as an Authorization: Bearer header.",
       "tokenWhere": "Copy it now. Once you leave this screen you will not see it again.",
       "whereToRun": "Run this command inside this project's repository, not in some other directory. A coder reports the address of the repository it is standing in, and this project is filed under:",
-      "mustMatch": "If the two do not match, the coder is told the repository is unknown. You can change the project's address at any time on its card."
+      "mustMatch": "If the two do not match, the coder is told the repository is unknown. You can change the project's address at any time on its card.",
+      "onceOnly": "You run this command once per machine, not once per project. It covers all of your projects at once. A second attempt answers \"already exists in user config\", which means everything is connected already."
     },
     "key": {
       "title": "Your Gemini key",

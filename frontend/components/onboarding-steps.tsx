@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRef, useState } from "react";
 import { CommandBlock } from "./command-block";
 import { Button, Field, Label } from "./ui";
 import { GEMINI_KEY_CONSOLE, serverUrl, type GeminiKeySource } from "@/lib/api";
@@ -240,15 +241,94 @@ export function ProjectStep({
           ))}
         </div>
       </Field>
-      <Field
-        id="ograniczenia"
-        label={t("label.limits")}
-        placeholder={t("hint.limits")}
-        value={card.ograniczenia}
-        onChange={(e) => onChange({ ograniczenia: e.target.value })}
-        note={t("optional")}
-      />
+      <Field id="ograniczenia" label={t("label.limits")}>
+        <GuardrailsField
+          value={card.ograniczenia}
+          onChange={(ograniczenia) => onChange({ ograniczenia })}
+        />
+      </Field>
       </div>
+    </div>
+  );
+}
+
+// The whole request body caps at 64 KB on the server, and the rest of the card
+// travels in the same one. Half of that is a generous ceiling for a rules file
+// and leaves room for everything else; anything larger is a document, not a set
+// of constraints, and belongs in the repository the coder is already reading.
+const MAX_GUARDRAILS_BYTES = 32 * 1024;
+
+/**
+ * Type the constraints, or hand over the file they are already written in.
+ *
+ * The file is read here and its text goes into the same field, so nothing is
+ * uploaded and nothing is stored anywhere new: what the coder reads is the same
+ * paragraph either way. Plenty of teams keep this as a CONVENTIONS.md or a
+ * guardrails file already, and retyping it is how it ends up out of date.
+ */
+function GuardrailsField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const t = useTranslations("onboarding.project");
+  const [error, setError] = useState<string | null>(null);
+  const picker = useRef<HTMLInputElement>(null);
+
+  const load = async (file: File | undefined) => {
+    setError(null);
+    if (!file) return;
+    if (file.size > MAX_GUARDRAILS_BYTES) {
+      setError(t("limits.tooBig", { kb: String(Math.round(MAX_GUARDRAILS_BYTES / 1024)) }));
+      return;
+    }
+    let text: string;
+    try {
+      text = (await file.text()).trim();
+    } catch {
+      setError(t("limits.unreadable"));
+      return;
+    }
+    if (!text) {
+      setError(t("limits.empty"));
+      return;
+    }
+    // Added to what is there rather than over it: someone who typed two lines
+    // and then remembered the file meant both.
+    const existing = value.trim();
+    onChange(existing ? `${existing}\n\n${text}` : text);
+    // Cleared so picking the same file twice, after an edit, still fires change.
+    if (picker.current) picker.current.value = "";
+  };
+
+  return (
+    <div className="py-3">
+      <textarea
+        id="ograniczenia"
+        rows={4}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={t("hint.limits")}
+        className="w-full resize-y bg-transparent text-body leading-7 text-ink outline-none placeholder:text-ink-3/70"
+      />
+      <div className="flex flex-wrap items-center gap-4 pt-2">
+        <Button type="button" variant="secondary" onClick={() => picker.current?.click()}>
+          {t("limits.fromFile")}
+        </Button>
+        <p className="text-small text-ink-3">{t("limits.note")}</p>
+      </div>
+      {/* Hidden because the native control cannot be styled and says "no file
+          chosen" forever; the button above is the whole interface. */}
+      <input
+        ref={picker}
+        type="file"
+        accept=".md,.txt,.mdc,.cursorrules,text/plain,text/markdown"
+        hidden
+        onChange={(e) => void load(e.target.files?.[0])}
+      />
+      {error ? <p className="pt-3 text-small text-iron">{error}</p> : null}
     </div>
   );
 }
@@ -297,12 +377,21 @@ export function AgentStep({
         </Field>
       </div>
 
-      {/* The single most common way this goes wrong, said before the command
-          rather than after it fails. A coder reports the directory it was
-          started in; if that is not this project's address, the archive it
-          finds is a different one or none at all. */}
+      {/* Two things that only become wrong later, said before the command
+          rather than after it fails.
+
+          The first is that --scope user registers this once for the whole
+          machine. Standing inside a per-project wizard, the command reads as
+          something to repeat for every project, and the second attempt answers
+          "already exists in user config" - which looks like a refusal to have
+          more than one project, and is in fact the opposite.
+
+          The second is the address: a coder reports the directory it was
+          started in, and if that is not this project's, the archive it finds is
+          a different one or none at all. */}
       <div className="mt-7 rounded-control border border-edge/60 bg-plaster-sunk p-5">
-        <p className="max-w-[68ch] text-small text-ink">{t("whereToRun")}</p>
+        <p className="max-w-[68ch] text-small text-ink">{t("onceOnly")}</p>
+        <p className="max-w-[68ch] pt-3 text-small text-ink">{t("whereToRun")}</p>
         <p className="pt-3 font-mono text-data text-ink-2">{repoRef}</p>
         <p className="max-w-[68ch] pt-3 text-small text-ink-2">{t("mustMatch")}</p>
       </div>
