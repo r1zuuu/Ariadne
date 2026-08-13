@@ -53,8 +53,8 @@ export default function OnboardingScreen() {
   const [profile, setProfile] = useState("");
   const [card, setCard] = useState<Card>(EMPTY_CARD);
   const [geminiKey, setGeminiKey] = useState("");
-  // What the account has before this run. "server" means the instance carries a
-  // key of its own, and the step says so instead of asking for one twice.
+  // Whether the account already carries a working key, in which case step 2
+  // takes an empty field. There is no server-wide key to fall back on.
   const [keySource, setKeySource] = useState<GeminiKeySource>("none");
   const [agent, setAgent] = useState<Agent>("claude-code");
   const [token, setToken] = useState<string | null>(null);
@@ -118,11 +118,20 @@ export default function OnboardingScreen() {
       }
 
       if (step === 2) {
-        // An empty field is a skip, not a failure: the step is optional and the
-        // server may already have a key. A wrong one stops here, because the
-        // one moment this is fixable cheaply is while it is still on screen.
-        if (geminiKey.trim()) {
-          await saveGeminiKey(geminiKey.trim());
+        const typed = geminiKey.trim();
+        // Empty is only allowed when the account already has a working key, which
+        // is what this same field saved on an earlier run. Otherwise the way on
+        // is closed: the wall exists either way, and here it comes with the
+        // sentence that explains it and the link that fixes it.
+        if (!typed && keySource !== "user") {
+          setFieldError(t("key.requiredError"));
+          return;
+        }
+        // A wrong key stops here too, because the one moment this is fixable
+        // cheaply is while it is still on screen. saveGeminiKey proves it works
+        // with a one-word embedding before it stores anything.
+        if (typed) {
+          await saveGeminiKey(typed);
           setKeySource("user");
           setGeminiKey("");
         }
@@ -253,11 +262,11 @@ export default function OnboardingScreen() {
                   {t("back")}
                 </Button>
               ) : null}
-              {step < 4 ? (
-                <Button variant="quiet" className="ml-auto" onClick={() => router.push("/home")} disabled={busy}>
-                  {t("skip")}
-                </Button>
-              ) : null}
+              {/* No way out of the wizard any more. It used to drop straight to
+                  /home, which since the key became mandatory would land someone
+                  on a screen where every action refuses, with the explanation
+                  two steps behind them. The invite link under step 3 is still
+                  there for the one person this wizard is genuinely not for. */}
             </div>
 
             {/* Somebody invited into a team has no project of their own, and

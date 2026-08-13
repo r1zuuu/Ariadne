@@ -180,18 +180,18 @@ export async function geminiKey(userId: string): Promise<string> {
   // edited) is treated as absent rather than fatal: the fallback still works
   // and settings will show the account as having none.
   const own = user?.sealed ? open(user.sealed) : null;
-  const key = own || process.env.GEMINI_API_KEY;
-  if (!key) {
-    throw new ServiceError(
-      "no_gemini_key",
-      "no Gemini key: add one in settings, or set GEMINI_API_KEY on the server",
-    );
+  // No server-wide fallback, deliberately. Every call to Google is paid for by
+  // the account that asked for it: an instance key would be spent by whoever
+  // registered last, on every entry written and every question asked, with
+  // nothing between an open sign-up form and the person holding the bill.
+  if (!own) {
+    throw new ServiceError("no_gemini_key", "no Gemini key: add one in settings");
   }
-  return key;
+  return own;
 }
 
-/** Where the key in use comes from, for a settings screen that tells the truth. */
-export type GeminiKeySource = "user" | "server" | "none";
+/** Whether this account can pay for a call to Google, for a screen that says so. */
+export type GeminiKeySource = "user" | "none";
 
 /**
  * The summary is decoration over the entry, so it never decides whether the
@@ -1355,15 +1355,11 @@ export async function getAccount(userId: string) {
     .from(users)
     .where(eq(users.id, userId));
   if (!user) throw new ServiceError("not_found", "user not found");
-  // The key itself never leaves the server. What the screen needs is which of
-  // the three states the account is in, and "user" means one that still opens:
-  // a row sealed with a secret that has since changed is as good as none.
-  const source: GeminiKeySource =
-    user.geminiKey && open(user.geminiKey)
-      ? "user"
-      : process.env.GEMINI_API_KEY
-        ? "server"
-        : "none";
+  // The key itself never leaves the server; whether there is a working one does.
+  // "user" means one that still opens: a row sealed with a secret that has since
+  // changed is as good as none, and saying otherwise would send someone hunting
+  // for a fault in Google's console instead of pasting a new key.
+  const source: GeminiKeySource = user.geminiKey && open(user.geminiKey) ? "user" : "none";
   // The hash itself must not leave the server; whether there is one must, or the
   // settings screen offers a "change password" form to an account that has none.
   const { geminiKey: _sealed, passwordHash, ...account } = user;
@@ -1404,7 +1400,7 @@ export async function clearGeminiKey(userId: string) {
     .where(eq(users.id, userId))
     .returning({ id: users.id });
   if (!updated) throw new ServiceError("not_found", "user not found");
-  return { geminiKey: (process.env.GEMINI_API_KEY ? "server" : "none") as GeminiKeySource };
+  return { geminiKey: "none" as GeminiKeySource };
 }
 
 export async function updateProfile(input: { userId: string; profile: string }) {

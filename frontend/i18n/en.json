@@ -66,7 +66,6 @@
     },
     "next": "Next",
     "back": "Back",
-    "skip": "Skip setup",
     "finish": "Start",
     "profile": {
       "title": "How you work",
@@ -151,13 +150,14 @@
     "key": {
       "title": "Your Gemini key",
       "lead": {
-        "none": "Ariadne uses Gemini for two things: turning entries into vectors so they can be searched, and writing the answers to your questions. Without a key neither works, and the chat goes quiet without saying why.",
-        "server": "The server already has a key, so you can skip this step. Add your own if you would rather your requests were billed to you.",
+        "none": "Ariadne uses Gemini for two things: turning entries into vectors so they can be searched, and writing the answers to your questions. Every request is billed to your own Google account, which is why a key is required to go on.",
         "user": "This account already has a key. Type a new one to replace it."
       },
       "hint": "AIza...",
-      "optional": "You can skip this and add the key later in settings.",
-      "where": "Where to get a key"
+      "where": "Where to get a key",
+      "required": "A key is required. Requests to Gemini are paid for by the account that makes them, so without one you cannot write or search an entry.",
+      "keptIfEmpty": "Leave it empty to keep the key you already have.",
+      "requiredError": "Paste a Gemini key to go on."
     }
   },
   "common": {
@@ -405,8 +405,7 @@
     "gemini": "Gemini key",
     "geminiState": {
       "user": "Ariadne embeds and answers on your key. Requests from this account are billed to you at Google.",
-      "server": "Ariadne runs on the server's key. Add your own if you would rather pay for your own requests.",
-      "none": "There is no key at all, so recording entries and both chats do not work. Add one to turn them on."
+      "none": "There is no key, so writing entries, searching and both chats do not work. Add one to turn them on."
     },
     "geminiLabel": "Your key",
     "geminiHint": "AIza...",
