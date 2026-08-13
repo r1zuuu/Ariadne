@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "Ariadne",
-    "nameGreek": "Ἀριάδνη",
     "window": {
       "minimize": "Zwiń okno",
       "maximize": "Powiększ okno",
@@ -45,7 +44,6 @@
     "haveAccount": "Masz już konto?",
     "or": "albo",
     "continueWith": "Dalej przez {provider}",
-    "providerBusy": "Czekam na przeglądarkę",
     "providerHint": "Dokończ logowanie w oknie przeglądarki, które się otworzyło.",
     "providerCancel": "Anuluj"
   },
@@ -288,7 +286,6 @@
     "sending": "Przygotowuję",
     "thinking": "Czytam kontekst projektu...",
     "nothingProposed": "Nic tu nie wymaga zmiany.",
-    "queuedNote": "Propozycje czekają.",
     "queuedLink": "Zobacz pamięć projektu",
     "action": {
       "update": "Poprawka wpisu",
@@ -299,7 +296,6 @@
     "hint": "Enter wysyła, Shift + Enter przechodzi do nowej linii",
     "nothingProposedNote": "Ariadne nie znalazła w tej wypowiedzi nic, co trzeba zapisać albo poprawić.",
     "willSave": "Zapisane w pamięci",
-    "awaiting": "Czeka na zatwierdzenie",
     "toast": "Zapisane w pamięci projektu.",
     "historyTitle": "Ostatnio dodany kontekst",
     "historyEmpty": "Nie dodałeś jeszcze żadnego kontekstu.",
@@ -308,7 +304,6 @@
     "ariadneProposed": "Ariadne zapisała",
     "statusPending": "Czeka na zatwierdzenie",
     "statusSaved": "Zapisane",
-    "statusRejected": "Odrzucono",
     "historyNew": "Nowy wpis"
   },
   "pending": {
@@ -498,9 +493,6 @@
     "neverUsed": "nigdy nie użyty",
     "tokenRevoked": "Token odwołany.",
     "create": "Utwórz",
-    "workspaceCreated": "Przestrzeń utworzona.",
-    "joinCode": "Mam kod zaproszenia",
-    "joinCodeNote": "Wklej kod, który dostałeś od kogoś z zespołu.",
     "join": "Dołącz",
     "joined": "Jesteś w przestrzeni.",
     "passwordViaProvider": "To konto loguje się przez Google albo GitHub, więc nie ma hasła do zmiany.",

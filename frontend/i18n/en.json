@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "Ariadne",
-    "nameGreek": "Ἀριάδνη",
     "window": {
       "minimize": "Minimise the window",
       "maximize": "Maximise the window",
@@ -45,7 +44,6 @@
     "haveAccount": "Already have an account?",
     "or": "or",
     "continueWith": "Continue with {provider}",
-    "providerBusy": "Waiting for the browser",
     "providerHint": "Finish signing in in the browser window that just opened.",
     "providerCancel": "Cancel"
   },
@@ -288,7 +286,6 @@
     "sending": "Preparing",
     "thinking": "Reading the project's context...",
     "nothingProposed": "Nothing here needs changing.",
-    "queuedNote": "Proposals are waiting.",
     "queuedLink": "See project memory",
     "action": {
       "update": "Entry correction",
@@ -299,7 +296,6 @@
     "hint": "Enter sends, Shift + Enter starts a new line",
     "nothingProposedNote": "Ariadne found nothing in this that needs recording or correcting.",
     "willSave": "Recorded",
-    "awaiting": "Waiting for approval",
     "toast": "Recorded in the project's memory.",
     "historyTitle": "Recently added context",
     "historyEmpty": "You have not added any context yet.",
@@ -308,7 +304,6 @@
     "ariadneProposed": "Ariadne recorded",
     "statusPending": "Waiting for approval",
     "statusSaved": "Recorded",
-    "statusRejected": "Rejected",
     "historyNew": "New entry"
   },
   "pending": {
@@ -498,9 +493,6 @@
     "neverUsed": "never used",
     "tokenRevoked": "Token revoked.",
     "create": "Create",
-    "workspaceCreated": "Workspace created.",
-    "joinCode": "I have an invitation code",
-    "joinCodeNote": "Paste the code somebody on the team sent you.",
     "join": "Join",
     "joined": "You are in the workspace.",
     "passwordViaProvider": "This account signs in through Google or GitHub, so it has no password to change.",
