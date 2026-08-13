@@ -1524,6 +1524,15 @@ export async function listWorkspaces(userId: string) {
       memberCount: sql<number>`(
         SELECT count(*)::int FROM memberships m WHERE m.workspace_id = ${workspaces.id}
       )`,
+      // Who else is in here, so a screen can say "this project is shared, with
+      // these people" without a request per workspace. Addresses because that is
+      // the only name an account has: sign-in asks a provider for an email and a
+      // profile, never a picture, so there are no avatars to show.
+      members: sql<string[]>`(
+        SELECT coalesce(json_agg(u.email ORDER BY u.email), '[]'::json)
+        FROM memberships m JOIN users u ON u.id = m.user_id
+        WHERE m.workspace_id = ${workspaces.id}
+      )`,
       createdAt: workspaces.createdAt,
     })
     .from(memberships)

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useApp } from "@/components/app-provider";
+import { MemberMarks, useProjectPlacement } from "@/components/project-marks";
 import { enterTransition } from "@/components/motion";
 import { TitleBar } from "@/components/title-bar";
 import { clearToken, type Project } from "@/lib/api";
@@ -283,7 +284,8 @@ function NavList({
 function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Project | null }) {
   const t = useTranslations("nav");
   const tProject = useTranslations("project");
-  const { setActiveProject } = useApp();
+  const { setActiveProject, workspaces } = useApp();
+  const placement = useProjectPlacement(active);
 
   if (!active) {
     return (
@@ -306,8 +308,18 @@ function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Pr
           <span className="block truncate text-left text-small font-medium text-ink">
             {active.name}
           </span>
-          <span className="block truncate text-left text-data text-ink-3">
+          {/* The stage used to be alone here. Which archive the project sits in
+              matters more the moment there are two of them, and whether anyone
+              else can read it matters always. */}
+          <span className="flex items-center gap-2 truncate text-left text-data text-ink-3">
             {tProject(`etap.${active.etap}`)}
+            {placement.workspace && (placement.shared || placement.showWorkspace) ? (
+              <>
+                <span aria-hidden="true">/</span>
+                <span className="truncate">{placement.workspace.name}</span>
+                {placement.shared ? <MemberMarks emails={placement.workspace.members} max={2} /> : null}
+              </>
+            ) : null}
           </span>
         </span>
         <span className="grid h-[34px] w-full place-items-center rounded-control bg-surface text-data font-medium text-thread lg:hidden">
@@ -340,7 +352,17 @@ function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Pr
                 project.id === active.id ? "text-ink" : "text-ink-2"
               }`}
             >
-              <span className="min-w-0 truncate">{project.name}</span>
+              <span className="min-w-0">
+                <span className="block truncate">{project.name}</span>
+                {/* Two projects can carry the same name in two archives, and one
+                    repository can sit in both. Without the archive named here
+                    the list offers a choice between two identical rows. */}
+                {workspaces.length > 1 ? (
+                  <span className="block truncate pt-0.5 text-data text-ink-3">
+                    {project.workspaceName}
+                  </span>
+                ) : null}
+              </span>
               {project.pendingCount ? (
                 <span className="shrink-0 text-data tabular text-ochre">
                   {project.pendingCount}

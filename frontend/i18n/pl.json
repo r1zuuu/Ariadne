@@ -165,7 +165,9 @@
       "tokenWhere": "Skopiuj go teraz. Po opuszczeniu tego ekranu nie zobaczysz go ponownie.",
       "whereToRun": "Uruchom to polecenie w katalogu repozytorium tego projektu, nie w dowolnym innym. Coder melduje Ariadne adres repozytorium, w którym stoi, a ten projekt jest zapisany pod adresem:",
       "mustMatch": "Jeśli te dwa adresy się nie zgodzą, coder dostanie odpowiedź, że nie zna takiego repozytorium. Adres projektu zmienisz w każdej chwili w jego karcie.",
-      "onceOnly": "To polecenie wpisujesz raz na komputer, nie raz na projekt. Obejmuje wszystkie Twoje projekty naraz. Przy drugim podejściu Claude Code odpowie \"already exists in user config\" i to znaczy, że wszystko jest już podłączone."
+      "onceOnly": "To polecenie wpisujesz raz na komputer, nie raz na projekt. Obejmuje wszystkie Twoje projekty naraz. Przy drugim podejściu Claude Code odpowie \"already exists in user config\" i to znaczy, że wszystko jest już podłączone.",
+      "joinedArchive": "Token, który właśnie powstał, sięga archiwum \"{name}\", czyli tego, do którego dołączyłeś. Wpisy Twojego codera zobaczy cały zespół.",
+      "joinedWhereToRun": "Uruchamiaj codera w katalogu repozytorium tego projektu, o którym chcesz pisać. Adresy projektów zespołu znajdziesz w aplikacji, w karcie każdego z nich."
     },
     "key": {
       "title": "Klucz do Gemini",
@@ -178,6 +180,17 @@
       "required": "Klucz jest wymagany. Zapytania do Gemini opłaca konto, które je wysyła, więc bez klucza nie zapiszesz ani nie wyszukasz wpisu.",
       "keptIfEmpty": "Zostaw puste, żeby zachować obecny klucz.",
       "requiredError": "Wklej klucz do Gemini, żeby przejść dalej."
+    },
+    "join": {
+      "title": "Dołącz do zespołu",
+      "lead": "Wklej kod zaproszenia, który dostałeś. Trafisz do cudzego archiwum razem z jego projektami, więc nie musisz zakładać własnego.",
+      "hint": "kod-zaproszenia",
+      "note": "Kod jest przypisany do Twojego adresu. Zaproszenie wystawione na kogoś innego nie zadziała.",
+      "back": "Wolę jednak założyć własny projekt",
+      "error": {
+        "empty": "Wklej kod zaproszenia.",
+        "bad": "Ten kod nie działa. Sprawdź, czy jest cały i czy wystawiono go na Twój adres."
+      }
     }
   },
   "common": {
@@ -402,6 +415,12 @@
       "cancel": "Zostaw",
       "ownerOnly": "Tylko właściciel przestrzeni może usunąć projekt.",
       "failed": "Nie udało się usunąć projektu. Spróbuj jeszcze raz."
+    },
+    "sharedIn": "wspólne w {name}",
+    "duplicate": {
+      "title": "To repozytorium jest w dwóch archiwach",
+      "body": "Adres {repo} należy też do: {where}. Coder wybiera archiwum po tokenie, którym się łączy, więc trafi tylko w jedno z nich i nie powie ci w które.",
+      "fix": "Zostaw ten adres w jednym projekcie, a w drugim zmień go albo usuń projekt. Jeśli chcesz pisać do zespołu, wygeneruj w ustawieniach token dla wspólnego archiwum i podmień go w konfiguracji codera."
     }
   },
   "entry": {

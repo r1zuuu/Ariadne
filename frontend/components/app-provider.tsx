@@ -20,10 +20,12 @@ import {
   ApiError,
   getPending,
   listProjects,
+  listWorkspaces,
   readToken,
   type PendingAction,
   type Project,
   type ReviewNode,
+  type Workspace,
 } from "@/lib/api";
 
 // One owner for the data every screen shares: the project list, the active
@@ -46,6 +48,13 @@ type AppContextValue = {
   pendingFeed: PendingFeed | null;
   pendingCount: number;
   refreshPending: () => Promise<void>;
+  /**
+   * The archives this account can reach. Needed wherever a project has to say
+   * which one it belongs to and who else is in it: a shared project used to look
+   * exactly like a private one, which is how an entry ends up in a drawer nobody
+   * else opens.
+   */
+  workspaces: Workspace[];
   server: ServerState;
 };
 
@@ -62,6 +71,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pendingFeed, setPendingFeed] = useState<PendingFeed | null>(null);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [server, setServer] = useState<ServerState>("checking");
 
   const refreshProjects = useCallback(async () => {
@@ -107,6 +117,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     void refreshProjects();
     void refreshPending();
+    // Membership changes when an invitation is accepted, which is rare and never
+    // silent, so this is read once rather than kept in step with every refresh.
+    void listWorkspaces()
+      .then(setWorkspaces)
+      .catch(() => {});
   }, [refreshProjects, refreshPending, router]);
 
   const setActiveProject = useCallback((id: string) => {
@@ -125,9 +140,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? pendingFeed.pendingActions.length + pendingFeed.nodesToReview.length
         : 0,
       refreshPending,
+      workspaces,
       server,
     }),
-    [projects, activeId, setActiveProject, refreshProjects, pendingFeed, refreshPending, server],
+    [
+      projects,
+      activeId,
+      setActiveProject,
+      refreshProjects,
+      pendingFeed,
+      refreshPending,
+      workspaces,
+      server,
+    ],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

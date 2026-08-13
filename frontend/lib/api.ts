@@ -316,6 +316,9 @@ export type Workspace = {
   role: "owner" | "member";
   isOwner: boolean;
   memberCount: number;
+  /** Every member's address, including yours. There are no avatars to show:
+   *  sign-in asks a provider for an email and a profile, never a picture. */
+  members: string[];
   createdAt: string;
 };
 

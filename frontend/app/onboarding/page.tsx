@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   AgentStep,
+  JoinStep,
   KeyStep,
   PROFILE_QUESTIONS,
   ProfileStep,
@@ -20,6 +21,7 @@ import { TitleBar } from "@/components/title-bar";
 import { Banner, Button } from "@/components/ui";
 import {
   ApiError,
+  acceptInvite,
   createProject,
   getAccount,
   listProjects,
@@ -61,6 +63,8 @@ type Wizard = {
   answers: Answers;
   profile: string;
   card: Card;
+  joining: boolean;
+  joined: { id: string; name: string } | null;
   agent: Agent;
   token: string | null;
 };
@@ -91,6 +95,13 @@ export default function OnboardingScreen() {
   // Whether the account already carries a working key, in which case step 2
   // takes an empty field. There is no server-wide key to fall back on.
   const [keySource, setKeySource] = useState<GeminiKeySource>("none");
+  // Step 3 has two answers, not one. Somebody arriving on an invitation has no
+  // project of their own to describe, and the wizard used to make them invent
+  // one - which lands in their private archive, carrying the same repository
+  // address as the team's copy, and their coder then writes to the wrong one.
+  const [joining, setJoining] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+  const [joined, setJoined] = useState<{ id: string; name: string } | null>(null);
   const [agent, setAgent] = useState<Agent>("claude-code");
   const [token, setToken] = useState<string | null>(null);
   const [tokenFailed, setTokenFailed] = useState(false);
@@ -122,6 +133,8 @@ export default function OnboardingScreen() {
       setAnswers(saved.answers);
       setProfile(saved.profile);
       setCard(saved.card);
+      setJoining(saved.joining);
+      setJoined(saved.joined);
       setAgent(saved.agent);
       setToken(saved.token);
     }
@@ -144,19 +157,22 @@ export default function OnboardingScreen() {
 
   useEffect(() => {
     if (!restored) return;
-    const record: Wizard = { step, profileIndex, answers, profile, card, agent, token };
+    const record: Wizard = { step, profileIndex, answers, profile, card, joining, joined, agent, token };
     try {
       localStorage.setItem(WIZARD_KEY, JSON.stringify(record));
     } catch {
       // A full or blocked store costs the resume and nothing else; the wizard
       // itself keeps working exactly as it did before any of this.
     }
-  }, [restored, step, profileIndex, answers, profile, card, agent, token]);
+  }, [restored, step, profileIndex, answers, profile, card, joining, joined, agent, token]);
 
-  const mint = async () => {
+  // The token is bound to one archive, and without saying which it goes to the
+  // private one. For somebody who just joined a team that is the wrong archive
+  // and nothing says so: their coder would write where the team cannot read.
+  const mint = async (workspaceId?: string) => {
     setTokenFailed(false);
     try {
-      const minted = await mintToken(agent);
+      const minted = await mintToken(agent, workspaceId);
       setToken(minted.token);
     } catch {
       setTokenFailed(true);
@@ -209,6 +225,22 @@ export default function OnboardingScreen() {
         return;
       }
 
+      if (step === 3 && joining) {
+        const code = inviteCode.trim();
+        if (!code) {
+          setFieldError(t("join.error.empty"));
+          return;
+        }
+        // No project is created on this path. The team's projects arrive with
+        // the membership, and inventing a private copy of one is exactly the
+        // mistake this branch exists to prevent.
+        const workspace = await acceptInvite(code);
+        setJoined(workspace);
+        await mint(workspace.id);
+        setStep(4);
+        return;
+      }
+
       if (step === 3) {
         if (!card.name.trim()) {
           setFieldError(t("project.error.name"));
@@ -238,6 +270,10 @@ export default function OnboardingScreen() {
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === "validation" && step === 2) {
         setFieldError(caught.message);
+      } else if (caught instanceof ApiError && step === 3 && joining) {
+        setFieldError(
+          caught.status === 404 || caught.status === 401 ? t("join.error.bad") : caught.message,
+        );
       } else if (caught instanceof ApiError && caught.code === "validation" && step === 3) {
         setFieldError(/repo_ref/.test(caught.message) ? t("project.error.repoTaken") : caught.message);
       } else {
@@ -311,20 +347,50 @@ export default function OnboardingScreen() {
                 onChange={setGeminiKey}
               />
             ) : step === 3 ? (
-              <ProjectStep
-                card={card}
-                error={fieldError}
-                heading={t("project.title")}
-                onChange={(patch) => setCard({ ...card, ...patch })}
-              />
+              joining ? (
+                <JoinStep
+                  code={inviteCode}
+                  error={fieldError}
+                  onCode={setInviteCode}
+                  onBack={() => {
+                    setJoining(false);
+                    setFieldError(null);
+                  }}
+                />
+              ) : (
+                <>
+                  <ProjectStep
+                    card={card}
+                    error={fieldError}
+                    heading={t("project.title")}
+                    onChange={(patch) => setCard({ ...card, ...patch })}
+                  />
+                  {/* A choice, not a way out. It used to be a link to settings
+                      below the actions, which reads as "give up on this screen",
+                      so the ordinary path was to invent a project instead. */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setJoining(true);
+                      setFieldError(null);
+                    }}
+                    className="mt-6 rounded-control text-small text-thread underline underline-offset-2"
+                  >
+                    {t("project.joinInstead")}
+                  </button>
+                </>
+              )
             ) : (
               <AgentStep
                 agent={agent}
                 token={token}
                 failed={tokenFailed}
-                repoRef={effectiveRepoRef(card)}
+                // Somebody who joined has no project of their own; the address
+                // that matters is whichever of the team's projects they open.
+                repoRef={joined ? null : effectiveRepoRef(card)}
+                joinedWorkspace={joined?.name ?? null}
                 onAgent={setAgent}
-                onRegenerate={() => void mint()}
+                onRegenerate={() => void mint(joined?.id)}
               />
             )}
 
@@ -347,26 +413,6 @@ export default function OnboardingScreen() {
                   there for the one person this wizard is genuinely not for. */}
             </div>
 
-            {/* Somebody invited into a team has no project of their own, and
-                this wizard is what a fresh account sees first. Without a way
-                out of it the invitation ends here, on a form asking them to
-                start a project they were never going to start. */}
-            {step === 3 ? (
-              <button
-                type="button"
-                // Walking out counts as ending the run. A record left behind
-                // here would resume a wizard nobody meant to return to, and
-                // would keep suppressing the "already onboarded" redirect for
-                // good.
-                onClick={() => {
-                  localStorage.removeItem(WIZARD_KEY);
-                  router.push("/settings");
-                }}
-                className="pb-8 text-small text-thread underline underline-offset-2"
-              >
-                {t("project.joinInstead")}
-              </button>
-            ) : null}
           </div>
 
           {/* Hidden below the two-column breakpoint rather than stacked: on a
