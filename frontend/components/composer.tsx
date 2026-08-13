@@ -1,5 +1,6 @@
 "use client";
 
+import { m } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui";
 
@@ -94,28 +95,51 @@ export function Composer({
         </div>
       </div>
 
-      {/* Questions, not chips: each suggestion reads as a line you could have
-          written, marked by the thread taking it up on hover.
+      {/* Four ways in, for somebody looking at an empty field with nothing to
+          ask yet. They were a bulleted list in two ragged columns and read as
+          fine print under the composer rather than as things to press.
 
-          A grid, not wrapped centring. Four centred lines of different lengths
-          made two rows that shared no edge with each other and none with the
-          composer above them. */}
+          Each one repeats the composer's own gesture: a thread drawn taut up
+          the left edge, the same 2px terracotta bar that appears there on focus.
+          That is what makes these read as part of the same object rather than
+          as a list that happens to sit under it. */}
       {suggestions.length ? (
-        <ul className="mx-auto grid max-w-[620px] grid-cols-1 gap-x-8 gap-y-1 pt-4 sm:grid-cols-2">
-          {suggestions.map((suggestion) => (
+        <ul className="mx-auto grid max-w-[680px] gap-3 pt-6 sm:grid-cols-2">
+          {suggestions.map((suggestion, index) => (
             <li key={suggestion}>
-              <button
+              <m.button
                 type="button"
                 disabled={disabled || busy}
                 onClick={() => send(suggestion)}
-                className="group inline-flex items-center gap-2 py-2 text-small text-ink-2 transition-colors duration-state hover:text-ink disabled:opacity-40"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.99 }}
+                className="group relative flex h-full w-full items-center gap-3 overflow-hidden rounded-card border border-edge/50 bg-surface px-5 py-4 text-left text-small text-ink-2 transition-colors duration-state hover:border-edge hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <span
                   aria-hidden="true"
-                  className="h-[5px] w-[5px] rounded-pill bg-edge/70 transition-colors duration-state group-hover:bg-thread"
+                  className="absolute bottom-[10px] left-0 top-[10px] w-[2px] origin-top scale-y-0 bg-thread transition-transform duration-enter ease-out-quint group-hover:scale-y-100"
                 />
-                {suggestion}
-              </button>
+                <span className="min-w-0 flex-1">{suggestion}</span>
+                {/* Points where pressing it takes you, and only leans that way
+                    once the pointer is on it. */}
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  className="shrink-0 text-ink-3 transition-[color,transform] duration-state ease-out-quint group-hover:translate-x-[3px] group-hover:text-thread"
+                >
+                  <path d="M3 7h8M7.5 3.5 11 7l-3.5 3.5" />
+                </svg>
+              </m.button>
             </li>
           ))}
         </ul>
