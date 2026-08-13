@@ -82,7 +82,7 @@
       },
       "q3": {
         "label": "WORK STYLE",
-        "hint": "Explain the decisions, not just the code. The simplest thing that works wins.",
+        "hint": "Explain decisions, not just code",
         "question": "How do you want to work?"
       },
       "q4": {
