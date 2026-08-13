@@ -173,10 +173,14 @@ export function effectiveRepoRef(card: Pick<Card, "name" | "repoRef">): string {
 export function ProjectStep({
   card,
   error,
+  heading,
   onChange,
 }: {
   card: Card;
   error: string | null;
+  /** The caller's words: this form asks the same questions on day one and a
+   *  year in, and only the sentence above them differs. */
+  heading: string;
   onChange: (patch: Partial<Card>) => void;
 }) {
   const t = useTranslations("onboarding.project");
@@ -184,7 +188,7 @@ export function ProjectStep({
 
   return (
     <div>
-      <h1 className="text-title">{t("title")}</h1>
+      <h1 className="text-title">{heading}</h1>
       <p className="max-w-[64ch] pt-5 text-body text-ink-2">{t("repoLead")}</p>
       <div className="mt-7 divide-y divide-hairline border-y border-hairline">
       <Field

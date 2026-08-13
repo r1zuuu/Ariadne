@@ -231,7 +231,8 @@
     "needsProject": "Najpierw wybierz projekt",
     "noProject": "Brak projektu",
     "hideNav": "Ukryj menu",
-    "showNav": "Pokaż menu"
+    "showNav": "Pokaż menu",
+    "newProject": "Nowy projekt"
   },
   "tour": {
     "step": "krok {current} z {total}",
@@ -378,6 +379,18 @@
       "prototyp": "Prototyp - dopiero powstaje, nikt jeszcze z niego nie korzysta",
       "produkcja": "Wydany - jest już u użytkowników i działa",
       "utrzymanie": "Utrzymanie - nowe funkcje nie powstają, zostają poprawki"
+    },
+    "create": {
+      "title": "Nowy projekt",
+      "create": "Załóż projekt",
+      "creating": "Zakładam...",
+      "cancel": "Anuluj",
+      "created": "Projekt założony",
+      "error": {
+        "name": "Projekt musi mieć nazwę.",
+        "repoTaken": "Masz już projekt dla tego repozytorium.",
+        "failed": "Nie udało się założyć projektu. Spróbuj jeszcze raz."
+      }
     }
   },
   "entry": {

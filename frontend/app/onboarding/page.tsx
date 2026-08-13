@@ -314,6 +314,7 @@ export default function OnboardingScreen() {
               <ProjectStep
                 card={card}
                 error={fieldError}
+                heading={t("project.title")}
                 onChange={(patch) => setCard({ ...card, ...patch })}
               />
             ) : (

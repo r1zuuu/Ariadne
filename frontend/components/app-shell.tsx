@@ -293,20 +293,11 @@ function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Pr
     );
   }
 
-  // One project is not a choice, so it reads as a heading instead of a control.
-  if (projects.length < 2) {
-    return (
-      <div className="rounded-control px-4 py-3 lg:bg-surface lg:shadow-card">
-        <p className="truncate text-small font-medium text-ink max-lg:hidden">{active.name}</p>
-        <p className="truncate text-data text-ink-3 max-lg:hidden">
-          {tProject(`etap.${active.etap}`)}
-        </p>
-        <p className="grid h-[34px] w-full place-items-center rounded-control bg-surface text-data font-medium text-thread lg:hidden">
-          {active.name.slice(0, 2).toUpperCase()}
-        </p>
-      </div>
-    );
-  }
+  // This used to read as a plain heading below two projects, on the grounds that
+  // one project is not a choice. It is a control now regardless of the count,
+  // because the list is also the only way to reach a second project: creating
+  // one lived in the onboarding wizard, which turns away every account that
+  // already has one, so an archive could never hold more than a single project.
 
   return (
     <details className="group relative">
@@ -358,6 +349,18 @@ function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Pr
             </button>
           </li>
         ))}
+        <li className="mt-1 border-t border-hairline pt-1">
+          <Link
+            href="/project/new"
+            onClick={(event) => event.currentTarget.closest("details")?.removeAttribute("open")}
+            className="flex w-full items-center gap-3 rounded-control px-4 py-3 text-left text-small text-thread transition-colors duration-state hover:bg-surface-2"
+          >
+            <svg {...stroke} aria-hidden="true">
+              <path d="M9 4v10M4 9h10" />
+            </svg>
+            {t("newProject")}
+          </Link>
+        </li>
       </ul>
     </details>
   );

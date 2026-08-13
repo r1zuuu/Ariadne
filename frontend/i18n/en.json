@@ -231,7 +231,8 @@
     "needsProject": "Choose a project first",
     "noProject": "No project",
     "hideNav": "Hide menu",
-    "showNav": "Show menu"
+    "showNav": "Show menu",
+    "newProject": "New project"
   },
   "tour": {
     "step": "step {current} of {total}",
@@ -378,6 +379,18 @@
       "prototyp": "Prototype - still being built, nobody uses it yet",
       "produkcja": "Released - people are using it and it works",
       "utrzymanie": "Maintenance - no new features, fixes only"
+    },
+    "create": {
+      "title": "New project",
+      "create": "Create project",
+      "creating": "Creating...",
+      "cancel": "Cancel",
+      "created": "Project created",
+      "error": {
+        "name": "A project needs a name.",
+        "repoTaken": "You already have a project for this repository.",
+        "failed": "The project could not be created. Try again."
+      }
     }
   },
   "entry": {
