@@ -82,6 +82,9 @@ export async function* answerQuestion(input: {
     projectId: input.projectId,
     query: input.question,
     k: RETRIEVED,
+    // The app's own agent answers a person who is looking at the screen and can
+    // see an entry's status next to it, so it reads the archive as the app does.
+    channel: "app",
   });
 
   yield { type: "sources", sources: found };
@@ -144,6 +147,7 @@ export async function proposeEdits(input: {
     projectId: input.projectId,
     query: input.message,
     k: RETRIEVED,
+    channel: "app",
   });
 
   const answer = await generateJson<{ reply: string; proposals: Proposal[] }>(

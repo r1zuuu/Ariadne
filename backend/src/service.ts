@@ -296,6 +296,16 @@ export async function createNode(input: {
   assertAnchors(anchors);
   const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
+  // Written from the app, or written by a coder on an account that has said it
+  // does not want to be asked. all_permission already meant that for edits and
+  // deletions; it means it for new entries too, which is the only reading under
+  // which the review screen is a gate rather than a list.
+  //
+  // Nobody watches which tools a coder calls mid-session, so the default has to
+  // be that nothing it writes counts until a person has seen it.
+  const settled =
+    input.source.channel !== "coder" || (await hasAllPermission(input.userId));
+
   // Network calls stay outside the transaction. The embedding goes first
   // because the conflict search needs the vector to find anything; the summary
   // and the search then run side by side, since neither waits on the other.
@@ -309,8 +319,8 @@ export async function createNode(input: {
   // The queue exists because a coder writes while nobody is watching. A person
   // writing in the app is watching, has just read the exact text on screen, and
   // is the one who would approve it a moment later - so their own entries are
-  // settled as they are written. Anything from a coder still waits.
-  const byHand = input.source.channel !== "coder";
+  // settled as they are written. A coder's wait, unless the account has said
+  // once and for all that it would rather not be asked.
 
   return db.transaction(async (tx) => {
     const [node] = await tx
@@ -323,9 +333,9 @@ export async function createNode(input: {
         content,
         summary,
         conflictsWith,
-        status: byHand ? "confirmed" : "proposed", // never taken from input
-        confirmedBy: byHand ? input.userId : null,
-        confirmedAt: byHand ? new Date() : null,
+        status: settled ? "confirmed" : "proposed", // never taken from input
+        confirmedBy: settled ? input.userId : null,
+        confirmedAt: settled ? new Date() : null,
         source: input.source,
         embedding,
       })
@@ -360,7 +370,7 @@ export async function createNode(input: {
 
     return {
       nodeId: node.id,
-      status: byHand ? "confirmed" : "proposed",
+      status: settled ? "confirmed" : "proposed",
       conflictsWith,
       contradictedNodeId,
     };
@@ -512,11 +522,21 @@ async function attachAnchors<T extends { id: string }>(rows: T[]) {
   }));
 }
 
+/**
+ * Semantic search over one project's archive.
+ *
+ * `channel` says who is asking, and it changes what comes back. Not a filter for
+ * tidiness: a coder reading its own unapproved proposals is the approval screen
+ * being decorative, since whatever it wrote a minute ago comes back as settled
+ * project knowledge in the next breath. Required rather than defaulted, so a new
+ * call site has to say which side it is on instead of inheriting the loose one.
+ */
 export async function searchNodes(input: {
   userId: string;
   projectId: string;
   query: string;
   k?: number;
+  channel: "coder" | "app";
 }) {
   assertUuid(input.userId, "userId");
   assertUuid(input.projectId, "projectId");
@@ -534,6 +554,7 @@ export async function searchNodes(input: {
 
   const queryVector = await embed(await geminiKey(input.userId), input.query, "RETRIEVAL_QUERY");
   const distance = cosineDistance(nodes.embedding, queryVector);
+  const toCoder = input.channel === "coder";
 
   // Metadata filters BEFORE similarity: they narrow, vectors rank (plan section 7).
   const found = await db
@@ -547,7 +568,10 @@ export async function searchNodes(input: {
       status: nodes.status,
       source: nodes.source,
       createdAt: nodes.createdAt,
-      author: users.email,
+      // An address is for the person reading the review screen, who knows their
+      // teammates. A coder has no use for one and every result it reads becomes
+      // part of a prompt, so the team's addresses stay out of it.
+      author: toCoder ? sql<null>`null` : users.email,
       similarity: sql<number>`1 - (${distance})`,
     })
     .from(nodes)
@@ -559,6 +583,15 @@ export async function searchNodes(input: {
         eq(nodes.workspaceId, workspaceId),
         eq(nodes.projectId, input.projectId),
         ne(nodes.status, "archived"),
+        // Everything a coder gets back has been through a person, either because
+        // someone approved it or because the account turned that requirement off
+        // and its entries are written settled.
+        toCoder ? eq(nodes.status, "confirmed") : undefined,
+        // A session summary is a note about a working session, useful to a person
+        // asking what happened last week and noise to a coder asking which ORM
+        // this project uses. The boot index already leaves them out; this is the
+        // same rule, applied where it was missed.
+        toCoder ? inArray(nodes.type, ["decision", "note"]) : undefined,
       ),
     )
     .orderBy(distance)
@@ -715,7 +748,11 @@ export async function getBootContext(input: {
     eq(nodes.workspaceId, input.workspaceId),
     eq(nodes.projectId, project.id),
     inArray(nodes.type, ["decision", "note"]),
-    inArray(nodes.status, ["proposed", "confirmed"]),
+    // Confirmed only. This used to include proposals, which meant a coder opened
+    // every session already believing whatever the last one wrote, before anyone
+    // had looked at it - and a headline carries no status, so there was nothing
+    // in the payload to tell it apart from a settled decision.
+    eq(nodes.status, "confirmed"),
   );
 
   // Without this the graph is invisible: the boot payload looks complete, so the
