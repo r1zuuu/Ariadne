@@ -382,6 +382,32 @@ export function normalizeRepoRef(raw: string): string {
 
 // Takes a workspace, not a user: the same repo can be recorded in two workspaces
 // a person belongs to, and a coder's token says which archive it is speaking to.
+/**
+ * Removes a project and everything filed under it. Irreversible, and there is no
+ * archive of the archive: the entries, their anchors, the review queue and the
+ * chats about it all go with it.
+ *
+ * The database does the removing. projects -> nodes -> code_anchors and
+ * pending_actions are all ON DELETE CASCADE, conversations hang off the project
+ * directly, and nodes.superseded_by is SET NULL, so one statement leaves nothing
+ * behind and nothing dangling. Writing the same sweep by hand here would be a
+ * second description of the same rule, and the one that drifts.
+ *
+ * Only the workspace's owner, matching removeMember: a member writes to a shared
+ * archive, and destroying one is not writing to it.
+ */
+export async function deleteProject(input: { userId: string; projectId: string }) {
+  const workspaceId = await workspaceOfProject(input.userId, input.projectId);
+  if ((await assertMember(input.userId, workspaceId)) !== "owner") {
+    throw new ServiceError("unauthorized", "only the workspace owner deletes a project");
+  }
+  const [gone] = await db
+    .delete(projects)
+    .where(eq(projects.id, input.projectId))
+    .returning({ id: projects.id });
+  if (!gone) throw new ServiceError("not_found", "project not found for this user");
+}
+
 export async function resolveProjectByRepoRef(workspaceId: string, repoRef: string) {
   assertUuid(workspaceId, "workspaceId");
   const normalized = normalizeRepoRef(repoRef);

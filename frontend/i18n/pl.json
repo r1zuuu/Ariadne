@@ -347,7 +347,6 @@
       "produkcja": "Wydany",
       "utrzymanie": "Utrzymanie"
     },
-    "repoFixed": "Nie do zmiany: po tym adresie agent rozpoznaje projekt.",
     "save": "Zapisz zmiany",
     "saving": "Zapisuję",
     "saved": "Zapisane",
@@ -391,6 +390,18 @@
         "repoTaken": "Masz już projekt dla tego repozytorium.",
         "failed": "Nie udało się założyć projektu. Spróbuj jeszcze raz."
       }
+    },
+    "repoWarning": "Po tym adresie coder odnajduje ten projekt. Zmiana znaczy, że coder pracujący w starym repozytorium przestanie go widzieć.",
+    "delete": {
+      "open": "Usuń ten projekt",
+      "title": "Usunięcie projektu",
+      "warning": "Zniknie ten projekt razem z całym archiwum: {count} wpisów, ich kotwice, kolejka do zatwierdzenia i rozmowy. Nie da się tego cofnąć ani odzyskać.",
+      "confirmLabel": "Wpisz {name}, żeby potwierdzić",
+      "confirm": "Usuń bezpowrotnie",
+      "deleting": "Usuwam...",
+      "cancel": "Zostaw",
+      "ownerOnly": "Tylko właściciel przestrzeni może usunąć projekt.",
+      "failed": "Nie udało się usunąć projektu. Spróbuj jeszcze raz."
     }
   },
   "entry": {

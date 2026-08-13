@@ -27,6 +27,7 @@ import {
   createWorkspace,
   deleteApiToken,
   deleteConversation,
+  deleteProject,
   editNode,
   getAccount,
   getConversation,
@@ -546,6 +547,13 @@ export function createRestApp() {
   app.post("/projects", async (c) => {
     const { workspaceId, ...card } = await readBody(c, newProjectSchema);
     return c.json(await createProject({ userId: userId(c), workspaceId, card }), 201);
+  });
+
+  // No soft delete and no undo. The confirmation is the app's job; by the time
+  // this is called the decision has been made.
+  app.delete("/projects/:id", async (c) => {
+    await deleteProject({ userId: userId(c), projectId: c.req.param("id") });
+    return c.body(null, 204);
   });
 
   app.put("/projects/:id", async (c) => {

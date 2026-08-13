@@ -347,7 +347,6 @@
       "produkcja": "Released",
       "utrzymanie": "Maintenance"
     },
-    "repoFixed": "Fixed: this is the address an agent recognises the project by.",
     "save": "Save changes",
     "saving": "Saving",
     "saved": "Saved",
@@ -391,6 +390,18 @@
         "repoTaken": "You already have a project for this repository.",
         "failed": "The project could not be created. Try again."
       }
+    },
+    "repoWarning": "This is the address a coder finds this project by. Changing it means a coder working in the old repository stops seeing it.",
+    "delete": {
+      "open": "Delete this project",
+      "title": "Deleting the project",
+      "warning": "This project goes, and the whole archive with it: {count} entries, their anchors, the review queue and the chats. It cannot be undone or recovered.",
+      "confirmLabel": "Type {name} to confirm",
+      "confirm": "Delete permanently",
+      "deleting": "Deleting...",
+      "cancel": "Keep it",
+      "ownerOnly": "Only the workspace owner can delete a project.",
+      "failed": "The project could not be deleted. Try again."
     }
   },
   "entry": {
