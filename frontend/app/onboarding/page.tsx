@@ -151,7 +151,15 @@ export default function OnboardingScreen() {
         .catch(() => {});
     }
     void getAccount()
-      .then((account) => setKeySource(account.geminiKey))
+      .then((account) => {
+        setKeySource(account.geminiKey);
+        // A stored key is the mark of an account that has already finished this
+        // wizard: step 2 cannot be passed without one. Reaching step 1 again
+        // would re-ask for a profile and overwrite the written one with whatever
+        // is typed, so an account that has been here goes to the project form
+        // instead. Not while a run is in progress, since it holds a key too.
+        if (!saved && account.geminiKey === "user") router.replace("/project/new");
+      })
       .catch(() => {});
   }, [router]);
 

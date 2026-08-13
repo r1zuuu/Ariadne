@@ -137,6 +137,23 @@ function reachableWorkspaces(userId: string) {
     .where(eq(memberships.userId, userId));
 }
 
+/**
+ * The caller's own account is gone.
+ *
+ * Every site below arrives with a userId taken from a verified token, so a
+ * missing row cannot mean "look somewhere else" - it means the account this
+ * session names no longer exists. Reported as an authentication failure because
+ * that is what it is, and because 404 leaves the dead session in place: the app
+ * only drops a token on 401, so every screen fails, nothing logs out, and the
+ * copy blames a server that answered perfectly well.
+ */
+function noSuchAccount(): ServiceError {
+  return new ServiceError(
+    "unauthorized",
+    "this session belongs to an account that no longer exists; sign in again",
+  );
+}
+
 async function assertMember(userId: string, workspaceId: string): Promise<"owner" | "member"> {
   assertUuid(userId, "userId");
   assertUuid(workspaceId, "workspaceId");
@@ -721,7 +738,7 @@ export async function getBootContext(input: {
     .select({ profile: users.profile })
     .from(users)
     .where(eq(users.id, input.userId));
-  if (!user) throw new ServiceError("not_found", "user not found");
+  if (!user) throw noSuchAccount();
 
   const [lastSummary] = await db
     .select({ content: nodes.content, createdAt: nodes.createdAt, author: users.email })
@@ -844,7 +861,7 @@ async function hasAllPermission(userId: string): Promise<boolean> {
     .select({ allPermission: users.allPermission })
     .from(users)
     .where(eq(users.id, userId));
-  if (!user) throw new ServiceError("not_found", "user not found");
+  if (!user) throw noSuchAccount();
   return user.allPermission;
 }
 
@@ -1344,7 +1361,7 @@ export async function changePassword(input: {
     .select({ passwordHash: users.passwordHash })
     .from(users)
     .where(eq(users.id, input.userId));
-  if (!user) throw new ServiceError("not_found", "user not found");
+  if (!user) throw noSuchAccount();
   // Here, unlike login, the caller is already holding this account's token, so
   // there is nobody to leak anything to and the accurate message is the useful
   // one. Setting a first password from this screen would be a different feature:
@@ -1417,7 +1434,7 @@ export async function getAccount(userId: string) {
     })
     .from(users)
     .where(eq(users.id, userId));
-  if (!user) throw new ServiceError("not_found", "user not found");
+  if (!user) throw noSuchAccount();
   // The key itself never leaves the server; whether there is a working one does.
   // "user" means one that still opens: a row sealed with a secret that has since
   // changed is as good as none, and saying otherwise would send someone hunting
@@ -1451,7 +1468,7 @@ export async function setGeminiKey(input: { userId: string; key: string }) {
     .set({ geminiKey: seal(key) })
     .where(eq(users.id, input.userId))
     .returning({ id: users.id });
-  if (!updated) throw new ServiceError("not_found", "user not found");
+  if (!updated) throw noSuchAccount();
   return { geminiKey: "user" as GeminiKeySource };
 }
 
@@ -1462,7 +1479,7 @@ export async function clearGeminiKey(userId: string) {
     .set({ geminiKey: null })
     .where(eq(users.id, userId))
     .returning({ id: users.id });
-  if (!updated) throw new ServiceError("not_found", "user not found");
+  if (!updated) throw noSuchAccount();
   return { geminiKey: "none" as GeminiKeySource };
 }
 
@@ -1482,7 +1499,7 @@ export async function updateProfile(input: { userId: string; profile: string }) 
     .set({ profile })
     .where(eq(users.id, input.userId))
     .returning({ profile: users.profile });
-  if (!updated) throw new ServiceError("not_found", "user not found");
+  if (!updated) throw noSuchAccount();
   return updated;
 }
 
@@ -1493,7 +1510,7 @@ export async function setAllPermission(input: { userId: string; allPermission: b
     .set({ allPermission: input.allPermission })
     .where(eq(users.id, input.userId))
     .returning({ allPermission: users.allPermission });
-  if (!updated) throw new ServiceError("not_found", "user not found");
+  if (!updated) throw noSuchAccount();
   return updated;
 }
 
@@ -1699,7 +1716,7 @@ export async function acceptInvite(input: { userId: string; code: string }) {
     .select({ email: users.email })
     .from(users)
     .where(eq(users.id, input.userId));
-  if (!user) throw new ServiceError("not_found", "user not found");
+  if (!user) throw noSuchAccount();
 
   return db.transaction(async (tx) => {
     // The single use is the update itself: a second acceptance finds no row with
