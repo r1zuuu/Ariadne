@@ -1,6 +1,7 @@
 "use client";
 
 import { m, useReducedMotion } from "motion/react";
+import { StepMarker } from "@/components/step-marker";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -76,26 +77,11 @@ export default function TourScreen() {
               const reached = index <= step;
               const current = index === step;
               return (
-                <li key={name} className="flex h-5 items-center gap-4">
+                <li key={name} className="flex h-6 items-center gap-3">
                   {/* Knots on a thread, round like the wizard's. Opaque fill on
                       both states, because the thread runs behind the markers and
                       a hollow one would have a line through it. */}
-                  <span className="relative grid h-[18px] w-[18px] shrink-0 place-items-center">
-                    {current ? (
-                      <m.span
-                        aria-hidden="true"
-                        className="absolute inset-0 rounded-pill border border-thread/50"
-                        initial={still ? false : { scale: 0.6, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={still ? { duration: 0 } : { duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                      />
-                    ) : null}
-                    <span
-                      className={`block h-[9px] w-[9px] rounded-pill transition-colors duration-state ease-out-quint ${
-                        reached ? "bg-thread" : "border border-edge bg-plaster"
-                      }`}
-                    />
-                  </span>
+                  <StepMarker state={current ? "current" : reached ? "done" : "upcoming"} />
                   <span
                     className={`whitespace-nowrap text-label uppercase tracking-[0.12em] ${
                       reached ? "text-ink" : "text-ink-3"

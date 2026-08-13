@@ -1,6 +1,7 @@
 "use client";
 
 import { m, useReducedMotion } from "motion/react";
+import { StepMarker } from "./step-marker";
 import { useTranslations } from "next-intl";
 
 // The signature, first of its three places, as a band across the top of the
@@ -61,34 +62,10 @@ export function ThreadProgress({ step }: { step: number }) {
                 ) : null}
 
                 <span className="flex items-center gap-3">
-                  <span className="relative grid h-[18px] w-[18px] shrink-0 place-items-center">
-                    {/* The ring belongs to the step you are on and nothing else.
-                        Drawn outside the knot so the knot keeps its size and the
-                        row keeps its rhythm. */}
-                    {current ? (
-                      <m.span
-                        aria-hidden="true"
-                        className="absolute inset-0 rounded-pill border border-thread/50"
-                        initial={still ? false : { scale: 0.6, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.3, ease: EASE_THREAD }}
-                      />
-                    ) : null}
-                    <m.span
-                      className={`block h-[9px] w-[9px] rounded-pill ${
-                        reached ? "bg-thread" : "border border-edge bg-transparent"
-                      }`}
-                      initial={false}
-                      // Waits for the segment before it to finish drawing, so the
-                      // line arriving and the knot tying are one movement.
-                      animate={{ scale: done || current ? 1 : 0.85 }}
-                      transition={
-                        still
-                          ? { duration: 0 }
-                          : { duration: 0.24, ease: EASE_THREAD, delay: current && step > 1 ? 0.34 : 0 }
-                      }
-                    />
-                  </span>
+                  <StepMarker
+                    ground="plaster-sunk"
+                    state={done ? "done" : current ? "current" : "upcoming"}
+                  />
                   <span
                     className={`text-label uppercase tracking-[0.12em] transition-colors duration-state ${
                       reached ? "text-ink" : "text-ink-3"
