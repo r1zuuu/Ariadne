@@ -46,7 +46,7 @@ export function ProfileStep({
           value={answers[key]}
           onChange={(e) => onAnswer(key, e.target.value)}
           placeholder={t(`${key}.hint`)}
-          className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread"
+          className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-aegean"
         />
         <p className="pt-4 text-small text-ink-3">{t("optionalAnswer")}</p>
       </div>
@@ -68,7 +68,7 @@ export function ProfileStep({
           maxLength={4000}
           value={profile}
           onChange={(e) => onProfile(e.target.value)}
-          className="w-full resize-y rounded-control border border-edge bg-plaster-raised px-5 py-4 text-body text-ink outline-none transition-colors duration-state focus:border-thread"
+          className="w-full resize-y rounded-control border border-edge bg-plaster-raised px-5 py-4 text-body text-ink outline-none transition-colors duration-state focus:border-aegean"
           style={{ maxWidth: "68ch" }}
         />
       </div>
@@ -113,7 +113,7 @@ export function KeyStep({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={t("hint")}
-        className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread"
+        className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-aegean"
       />
       {error ? <p className="max-w-[62ch] pt-4 text-small text-iron">{error}</p> : null}
       <p className="max-w-[62ch] pt-4 text-small text-ink-3">
@@ -373,7 +373,7 @@ export function JoinStep({
         value={code}
         onChange={(e) => onCode(e.target.value)}
         placeholder={t("hint")}
-        className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 font-mono text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread"
+        className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 font-mono text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-aegean"
       />
       {error ? <p className="max-w-[62ch] pt-4 text-small text-iron">{error}</p> : null}
       <p className="max-w-[62ch] pt-4 text-small text-ink-3">{t("note")}</p>

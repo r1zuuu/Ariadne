@@ -313,7 +313,9 @@ export default function OnboardingScreen() {
     step <= 2 || joining
       ? {
           title: t("profile.previewTitle"),
-          note: t("profile.note"),
+          // The same sentence used to sit here and under the field itself, a
+          // hand's width apart on one screen. It belongs under the field, which
+          // is where the eye already is.
           empty: t("profile.previewEmpty"),
           entries: PROFILE_QUESTIONS.map((key) => ({
             label: t(`profile.${key}.label`),
