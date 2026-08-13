@@ -123,7 +123,12 @@
         "repoTaken": "You already have a project for this repository."
       },
       "previewTitle": "PROJECT CARD",
-      "previewEmpty": "The card grows as you fill it in. The agent reads it on every question about this project."
+      "previewEmpty": "The card grows as you fill it in. The agent reads it on every question about this project.",
+      "repoLead": "The repository address is the field that matters most here. Your coder finds this project by that, not by its name: started inside the repository it reads the address and asks Ariadne about that one. Enter what `git remote get-url origin` prints.",
+      "repoNote": {
+        "set": "The repository you run your coder in has to carry this same address. github.com/you/project, https://... and git@... all count as the same one.",
+        "fallback": "Left empty, so the project will be filed as {ref}. A coder finds it only if you hand it that exact string, because it cannot read it from any directory."
+      }
     },
     "agent": {
       "title": "Connect your agent",
@@ -145,7 +150,9 @@
         "other": "Other"
       },
       "tokenWhat": "This is your token. Give it to the agent as an Authorization: Bearer header.",
-      "tokenWhere": "Copy it now. Once you leave this screen you will not see it again."
+      "tokenWhere": "Copy it now. Once you leave this screen you will not see it again.",
+      "whereToRun": "Run this command inside this project's repository, not in some other directory. A coder reports the address of the repository it is standing in, and this project is filed under:",
+      "mustMatch": "If the two do not match, the coder is told the repository is unknown. You can change the project's address at any time on its card."
     },
     "key": {
       "title": "Your Gemini key",

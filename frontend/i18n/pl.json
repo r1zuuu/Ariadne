@@ -123,7 +123,12 @@
         "repoTaken": "Masz już projekt dla tego repozytorium."
       },
       "previewTitle": "KARTA PROJEKTU",
-      "previewEmpty": "Karta rośnie w miarę wypełniania. Agent czyta ją przy każdym pytaniu o ten projekt."
+      "previewEmpty": "Karta rośnie w miarę wypełniania. Agent czyta ją przy każdym pytaniu o ten projekt.",
+      "repoLead": "Adres repozytorium jest tu najważniejszym polem. Po nim, a nie po nazwie, Twój coder odnajduje ten projekt: uruchomiony w katalogu repozytorium odczytuje jego adres i pyta Ariadne właśnie o niego. Wpisz to samo, co pokazuje `git remote get-url origin`.",
+      "repoNote": {
+        "set": "Ten sam adres musi mieć repozytorium, w którym uruchomisz codera. Zapis w rodzaju github.com/ty/projekt, https://... i git@... są traktowane jako ten sam adres.",
+        "fallback": "Zostawiasz puste, więc projekt zostanie zapisany jako {ref}. Coder odnajdzie go tylko wtedy, gdy podasz mu dokładnie ten ciąg, bo nie odczyta go z żadnego katalogu."
+      }
     },
     "agent": {
       "title": "Podłącz agenta",
@@ -145,7 +150,9 @@
         "other": "Inny"
       },
       "tokenWhat": "To jest twój token. Podaj go agentowi jako nagłówek Authorization: Bearer.",
-      "tokenWhere": "Skopiuj go teraz. Po opuszczeniu tego ekranu nie zobaczysz go ponownie."
+      "tokenWhere": "Skopiuj go teraz. Po opuszczeniu tego ekranu nie zobaczysz go ponownie.",
+      "whereToRun": "Uruchom to polecenie w katalogu repozytorium tego projektu, nie w dowolnym innym. Coder melduje Ariadne adres repozytorium, w którym stoi, a ten projekt jest zapisany pod adresem:",
+      "mustMatch": "Jeśli te dwa adresy się nie zgodzą, coder dostanie odpowiedź, że nie zna takiego repozytorium. Adres projektu zmienisz w każdej chwili w jego karcie."
     },
     "key": {
       "title": "Klucz do Gemini",

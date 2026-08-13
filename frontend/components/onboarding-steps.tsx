@@ -140,8 +140,35 @@ export type Card = {
 
 const ETAPY = ["prototyp", "produkcja", "utrzymanie"] as const;
 
+/** Used when the repository field is left empty, and by the screen that says so. */
+export function slug(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "projekt"
+  );
+}
+
+/**
+ * What the backend will actually store, and therefore the only string a coder
+ * can use to find this project. Shown on screen, because the day it is wrong is
+ * the day nothing works and there is nothing on any screen to compare against.
+ */
+export function effectiveRepoRef(card: Pick<Card, "name" | "repoRef">): string {
+  return card.repoRef.trim() || `local/${slug(card.name)}`;
+}
+
 // Step 2. Only the name is required, and the fields say so themselves rather
 // than leaving it to an asterisk nobody reads.
+//
+// The repository field is the one with consequences beyond this screen. It is
+// the address a coder reports from the directory it runs in, and the archive is
+// found by matching the two: the project's name plays no part in it. Left empty
+// it becomes local/<name>, which works, but only for a coder that was told that
+// exact string. All of which is invisible unless the screen says it, so it does.
 export function ProjectStep({
   card,
   error,
@@ -152,10 +179,12 @@ export function ProjectStep({
   onChange: (patch: Partial<Card>) => void;
 }) {
   const t = useTranslations("onboarding.project");
+  const typed = card.repoRef.trim();
 
   return (
     <div>
       <h1 className="text-title">{t("title")}</h1>
+      <p className="max-w-[64ch] pt-5 text-body text-ink-2">{t("repoLead")}</p>
       <div className="mt-7 divide-y divide-hairline border-y border-hairline">
       <Field
         id="name"
@@ -173,7 +202,13 @@ export function ProjectStep({
         placeholder={t("hint.repo")}
         value={card.repoRef}
         onChange={(e) => onChange({ repoRef: e.target.value })}
-        note={t("optional")}
+        // Not "optional" any more. Empty is allowed, but it is a choice with a
+        // consequence, and the note names the string that choice produces.
+        note={
+          typed
+            ? t("repoNote.set")
+            : t("repoNote.fallback", { ref: effectiveRepoRef(card) })
+        }
       />
       <Field
         id="stack"
@@ -219,12 +254,15 @@ export function AgentStep({
   agent,
   token,
   failed,
+  repoRef,
   onAgent,
   onRegenerate,
 }: {
   agent: Agent;
   token: string | null;
   failed: boolean;
+  /** What the project was filed under, which is what the coder has to send back. */
+  repoRef: string;
   onAgent: (agent: Agent) => void;
   onRegenerate: () => void;
 }) {
@@ -252,6 +290,16 @@ export function AgentStep({
             ))}
           </div>
         </Field>
+      </div>
+
+      {/* The single most common way this goes wrong, said before the command
+          rather than after it fails. A coder reports the directory it was
+          started in; if that is not this project's address, the archive it
+          finds is a different one or none at all. */}
+      <div className="mt-7 rounded-control border border-edge/60 bg-plaster-sunk p-5">
+        <p className="max-w-[68ch] text-small text-ink">{t("whereToRun")}</p>
+        <p className="pt-3 font-mono text-data text-ink-2">{repoRef}</p>
+        <p className="max-w-[68ch] pt-3 text-small text-ink-2">{t("mustMatch")}</p>
       </div>
 
       <div className="pt-6">

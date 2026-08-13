@@ -9,6 +9,7 @@ import {
   PROFILE_QUESTIONS,
   ProfileStep,
   ProjectStep,
+  effectiveRepoRef,
   type Agent,
   type Answers,
   type Card,
@@ -147,8 +148,10 @@ export default function OnboardingScreen() {
         await createProject({
           name: card.name.trim(),
           // The backend requires a repo_ref and a project without a repository is
-          // a real case, so the name stands in until there is one.
-          repoRef: card.repoRef.trim() || `local/${slug(card.name)}`,
+          // a real case, so the name stands in until there is one. Same helper the
+          // step used to show this value, so the screen cannot promise one string
+          // and the archive hold another.
+          repoRef: effectiveRepoRef(card),
           stack: card.stack.trim(),
           etap: card.etap,
           ograniczenia: card.ograniczenia.trim(),
@@ -245,6 +248,7 @@ export default function OnboardingScreen() {
                 agent={agent}
                 token={token}
                 failed={tokenFailed}
+                repoRef={effectiveRepoRef(card)}
                 onAgent={setAgent}
                 onRegenerate={() => void mint()}
               />
@@ -308,15 +312,4 @@ function assemble(answers: Answers): string {
     .filter(Boolean)
     .map((sentence) => (/[.!?]$/.test(sentence) ? sentence : `${sentence}.`))
     .join(" ");
-}
-
-function slug(name: string): string {
-  return (
-    name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "projekt"
-  );
 }
