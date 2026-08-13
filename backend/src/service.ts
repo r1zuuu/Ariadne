@@ -22,6 +22,7 @@ import {
   invites,
   memberships,
   nodes,
+  oauthAccounts,
   pendingActions,
   projects,
   users,
@@ -1164,27 +1165,103 @@ export async function registerUser(input: {
   // @node-rs/argon2 defaults to argon2id with the OWASP-recommended cost
   // (19 MiB, 2 iterations), so there is nothing to tune here.
   const passwordHash = await hashPassword(input.password);
+  return db.transaction((tx) => openAccount(tx, email, passwordHash));
+}
+
+/**
+ * An account and the private workspace that comes with it, in one transaction.
+ * Both ways in need this - the form and the two providers - and a second copy is
+ * how one of them ends up with a user who belongs to no workspace at all.
+ *
+ * passwordHash is null for an account that arrived through a provider: there is
+ * no password to hash and nothing for login() to accept until someone sets one.
+ */
+async function openAccount(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  email: string,
+  passwordHash: string | null,
+): Promise<{ userId: string; workspaceId: string }> {
+  const [user] = await tx
+    .insert(users)
+    .values({ email, passwordHash })
+    // The caller's check races; this is what actually keeps the address unique.
+    .onConflictDoNothing({ target: users.email })
+    .returning({ id: users.id });
+  if (!user) throw new ServiceError("validation", "email already registered");
+
+  // A private workspace right away, so working alone is a workspace of one and
+  // nothing downstream needs a branch for "no workspace yet". Named after the
+  // address because there is nothing else to name it after at this point.
+  const [workspace] = await tx
+    .insert(workspaces)
+    .values({ name: email, ownerId: user.id })
+    .returning({ id: workspaces.id });
+  await tx
+    .insert(memberships)
+    .values({ workspaceId: workspace.id, userId: user.id, role: "owner" });
+
+  return { userId: user.id, workspaceId: workspace.id };
+}
+
+/**
+ * Sign-in through Google or GitHub, from the identity the provider vouched for
+ * (oauth.ts did the talking). Three cases, in the order they are tried:
+ *
+ * 1. This provider account is already known - the ordinary repeat sign-in.
+ * 2. The address belongs to an existing account - link the provider to it, so
+ *    "sign in with Google" on the address you registered with lands in your own
+ *    archive rather than a second, empty one.
+ * 3. Neither - open a new account with no password.
+ *
+ * Case 2 is the one with teeth. Linking on an unverified address would mean
+ * anyone able to name your email at a provider that never checked it inherits
+ * your archive, so an unverified address is refused rather than linked.
+ */
+export async function signInWithProvider(input: {
+  provider: string;
+  providerUserId: string;
+  email: string;
+  emailVerified: boolean;
+}): Promise<{ userId: string; created: boolean }> {
+  const email = normalizeEmail(input.email);
+  if (!EMAIL_RE.test(email)) {
+    throw new ServiceError("validation", "the provider returned an address that is not an address");
+  }
+
+  const [known] = await db
+    .select({ userId: oauthAccounts.userId })
+    .from(oauthAccounts)
+    .where(
+      and(
+        eq(oauthAccounts.provider, input.provider),
+        eq(oauthAccounts.providerUserId, input.providerUserId),
+      ),
+    );
+  if (known) return { userId: known.userId, created: false };
+
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+  if (existing) {
+    if (!input.emailVerified) {
+      throw new ServiceError(
+        "unauthorized",
+        `an account already uses ${email}, and ${input.provider} has not confirmed that address belongs to you. Sign in with your password instead.`,
+      );
+    }
+    await db
+      .insert(oauthAccounts)
+      .values({ provider: input.provider, providerUserId: input.providerUserId, userId: existing.id })
+      // Two browser tabs finishing the same link at once: the row is already
+      // there and says the same thing, which is not a failure.
+      .onConflictDoNothing();
+    return { userId: existing.id, created: false };
+  }
+
   return db.transaction(async (tx) => {
-    const [user] = await tx
-      .insert(users)
-      .values({ email, passwordHash })
-      // The check above races; this is what actually keeps the address unique.
-      .onConflictDoNothing({ target: users.email })
-      .returning({ id: users.id });
-    if (!user) throw new ServiceError("validation", "email already registered");
-
-    // A private workspace right away, so working alone is a workspace of one and
-    // nothing downstream needs a branch for "no workspace yet". Named after the
-    // address because there is nothing else to name it after at this point.
-    const [workspace] = await tx
-      .insert(workspaces)
-      .values({ name: email, ownerId: user.id })
-      .returning({ id: workspaces.id });
+    const { userId } = await openAccount(tx, email, null);
     await tx
-      .insert(memberships)
-      .values({ workspaceId: workspace.id, userId: user.id, role: "owner" });
-
-    return { userId: user.id, workspaceId: workspace.id };
+      .insert(oauthAccounts)
+      .values({ provider: input.provider, providerUserId: input.providerUserId, userId });
+    return { userId, created: true };
   });
 }
 
@@ -1205,6 +1282,16 @@ export async function changePassword(input: {
     .from(users)
     .where(eq(users.id, input.userId));
   if (!user) throw new ServiceError("not_found", "user not found");
+  // Here, unlike login, the caller is already holding this account's token, so
+  // there is nobody to leak anything to and the accurate message is the useful
+  // one. Setting a first password from this screen would be a different feature:
+  // it must not ask for a current one, and this route always does.
+  if (!user.passwordHash) {
+    throw new ServiceError(
+      "validation",
+      "this account signs in with Google or GitHub and has no password to change",
+    );
+  }
   if (!(await verifyPassword(user.passwordHash, input.currentPassword))) {
     throw new ServiceError("unauthorized", "current password is not correct");
   }
@@ -1244,6 +1331,11 @@ export async function login(input: {
   // branch on the difference and turn the login form into an enumeration endpoint.
   const rejected = new ServiceError("unauthorized", "invalid email or password");
   if (!user) throw rejected;
+  // An account that only ever arrived through a provider has no hash to check
+  // against. Same message as a wrong password on purpose: "this address exists
+  // but signs in with Google" is an answer to a question nobody authenticated
+  // asked, and it tells a stranger which addresses are worth a phishing page.
+  if (!user.passwordHash) throw rejected;
   if (!(await verifyPassword(user.passwordHash, input.password))) throw rejected;
   return { userId: user.id };
 }
@@ -1257,6 +1349,7 @@ export async function getAccount(userId: string) {
       profile: users.profile,
       allPermission: users.allPermission,
       geminiKey: users.geminiKey,
+      passwordHash: users.passwordHash,
       createdAt: users.createdAt,
     })
     .from(users)
@@ -1271,8 +1364,10 @@ export async function getAccount(userId: string) {
       : process.env.GEMINI_API_KEY
         ? "server"
         : "none";
-  const { geminiKey: _sealed, ...account } = user;
-  return { ...account, geminiKey: source };
+  // The hash itself must not leave the server; whether there is one must, or the
+  // settings screen offers a "change password" form to an account that has none.
+  const { geminiKey: _sealed, passwordHash, ...account } = user;
+  return { ...account, geminiKey: source, hasPassword: !!passwordHash };
 }
 
 /**
