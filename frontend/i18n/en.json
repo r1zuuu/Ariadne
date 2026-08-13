@@ -40,13 +40,21 @@
       "emailTaken": "An account already uses this address. Enter it with your password.",
       "emailShape": "That does not look like an email address. Check it.",
       "passwordShort": "The password needs at least 8 characters.",
-      "passwordMismatch": "Both passwords have to match."
+      "passwordMismatch": "Both passwords have to match.",
+      "provider": "Signing in with {provider} did not finish. Try again.",
+      "providerTimeout": "{provider} did not answer in time. Try again.",
+      "providerCancelled": "Signing in with {provider} was cancelled."
     },
     "lead": "Pick your projects back up where you left them.",
     "leadRegister": "A few minutes and Ariadne starts remembering for you.",
     "tagline": "Your thread through the project's context.",
     "noAccount": "No account yet?",
-    "haveAccount": "Already have an account?"
+    "haveAccount": "Already have an account?",
+    "or": "or",
+    "continueWith": "Continue with {provider}",
+    "providerBusy": "Waiting for the browser",
+    "providerHint": "Finish signing in in the browser window that just opened.",
+    "providerCancel": "Cancel"
   },
   "onboarding": {
     "step": "step {current} of {total}",
@@ -462,7 +470,8 @@
     "joinCode": "I have an invitation code",
     "joinCodeNote": "Paste the code somebody on the team sent you.",
     "join": "Join",
-    "joined": "You are in the workspace."
+    "joined": "You are in the workspace.",
+    "passwordViaProvider": "This account signs in through Google or GitHub, so it has no password to change."
   },
   "conflict": {
     "title": "CONTRADICTION",

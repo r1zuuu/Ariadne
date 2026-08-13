@@ -116,6 +116,8 @@ export type Account = {
   profile: string;
   allPermission: boolean;
   geminiKey: GeminiKeySource;
+  /** False on an account that only ever signed in through Google or GitHub. */
+  hasPassword: boolean;
   createdAt: string;
 };
 
@@ -170,6 +172,59 @@ export const login = (email: string, password: string) =>
 
 export const register = (email: string, password: string) =>
   request<{ token: string }>("/auth/register", { method: "POST", body: { email, password }, auth: false });
+
+// --- Signing in through Google and GitHub ---
+
+export type Provider = "google" | "github";
+
+/**
+ * Which buttons the entry screen may show. A server without GitHub credentials
+ * leaves that one out, so the screen never offers a way in that only fails.
+ */
+export const authProviders = () =>
+  request<{ providers: Provider[] }>("/auth/providers", { auth: false }).then((r) => r.providers);
+
+// How long to keep asking before giving up on a browser tab the person probably
+// abandoned. The server forgets the result at five minutes; stopping earlier
+// only means this window stops spinning while that is still true.
+const HANDOFF_TIMEOUT_MS = 3 * 60 * 1000;
+const HANDOFF_POLL_MS = 1500;
+
+/**
+ * The whole provider sign-in, from this window's point of view.
+ *
+ * The browser cannot hand a token back to the window that opened it, so the app
+ * invents a one-time id, sends the browser off with it, and asks the server for
+ * whatever ends up under that id. Nothing is stored on this side until a token
+ * actually arrives.
+ */
+export async function signInWithProvider(provider: Provider, signal: AbortSignal): Promise<string> {
+  // 32 bytes of the platform CSPRNG, base64url so it survives a query string
+  // untouched. Only this window and the server ever see it.
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const handoff = btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+
+  // Same mechanism the settings and onboarding screens already use for external
+  // links: Tauri sends _blank to the system browser, and in dev it is a tab.
+  window.open(`${BASE}/auth/${provider}/start?handoff=${handoff}`, "_blank");
+
+  const deadline = Date.now() + HANDOFF_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    if (signal.aborted) throw new Error("cancelled");
+    await new Promise((resolve) => setTimeout(resolve, HANDOFF_POLL_MS));
+    // 204 while the shelf is empty, which request() gives back as undefined.
+    const result = await request<{ token?: string; error?: string } | undefined>(
+      `/auth/handoff/${handoff}`,
+      { auth: false },
+    );
+    if (result?.token) return result.token;
+    if (result?.error) throw new ApiError("rejected", 401, "unauthorized", result.error);
+  }
+  throw new ApiError("rejected", 408, "timeout", "sign-in timed out");
+}
 
 export const getAccount = () => request<Account>("/me");
 

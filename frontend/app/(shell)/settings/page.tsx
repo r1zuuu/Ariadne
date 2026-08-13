@@ -165,7 +165,7 @@ function AccountSection({
         </div>
       </Card>
 
-      <PasswordCard toast={toast} />
+      <PasswordCard toast={toast} hasPassword={account.hasPassword} />
 
       <div className="flex flex-wrap items-center gap-4 pt-6">
         <p className="text-small font-medium text-ink">{t("language")}</p>
@@ -194,7 +194,7 @@ function AccountSection({
   );
 }
 
-function PasswordCard({ toast }: { toast: Toast }) {
+function PasswordCard({ toast, hasPassword }: { toast: Toast; hasPassword: boolean }) {
   const t = useTranslations("settings");
   const failure = useFailure();
 
@@ -218,6 +218,18 @@ function PasswordCard({ toast }: { toast: Toast }) {
       setSaving(false);
     }
   };
+
+  // An account that only ever arrived through Google or GitHub has no password,
+  // so a form asking for the current one has no correct answer. Saying why beats
+  // hiding the section: its absence would read as a missing feature.
+  if (!hasPassword) {
+    return (
+      <Card as="section" className="mt-5 p-6">
+        <p className="text-small font-medium text-ink">{t("password")}</p>
+        <p className="pt-2 text-small text-ink-2">{t("passwordViaProvider")}</p>
+      </Card>
+    );
+  }
 
   return (
     <Card as="section" className="mt-5 p-6">

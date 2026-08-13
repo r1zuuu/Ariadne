@@ -17,7 +17,10 @@ import {
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(), // argon2id
+  // Null on an account that only ever arrived through Google or GitHub. Password
+  // sign-in stayed, so the two are alternatives on one account rather than two
+  // kinds of account: whoever has both can use either.
+  passwordHash: text("password_hash"), // argon2id
   profile: text("profile").notNull().default(""), // who the user is, how they like to work
   allPermission: boolean("all_permission").notNull().default(false),
   // The person's own key to Google's API, sealed with AES-GCM (see crypto.ts):
@@ -26,6 +29,33 @@ export const users = pgTable("users", {
   geminiKey: text("gemini_key"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Which external identity opens which account. A row per provider rather than a
+// pair of columns on users, because one person may hold a password, a Google
+// account and a GitHub account that all lead to the same archive.
+//
+// The primary key is the pair, not the id the provider hands out: those ids are
+// only unique within a provider, and Google's numeric subject could collide with
+// GitHub's. Nothing here stores a token - the access token is used once during
+// the callback to read an address and then thrown away.
+export const oauthAccounts = pgTable(
+  "oauth_accounts",
+  {
+    provider: text("provider").notNull(), // 'google' | 'github'
+    providerUserId: text("provider_user_id").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.provider, t.providerUserId] }),
+    // "which providers does this account have" is what the settings screen asks,
+    // and the primary key leads with the wrong column for it.
+    index("oauth_accounts_by_user").on(t.userId),
+    check("oauth_accounts_provider_check", sql`${t.provider} IN ('google','github')`),
+  ],
+);
 
 // Who owns an archive. Every user gets a private one at registration, so working
 // alone is a workspace of one and the code has no second path for it.

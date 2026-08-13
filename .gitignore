@@ -1,4 +1,7 @@
 node_modules/
 .env
+# The backend address is baked in at build time, so this file differs per
+# machine: the laptop points at localhost, the release build at Render.
+.env*.local
 dist/
 setup.md

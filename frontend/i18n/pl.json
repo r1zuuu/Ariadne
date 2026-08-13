@@ -40,13 +40,21 @@
       "emailTaken": "Na ten adres jest już konto. Wejdź na nie hasłem.",
       "emailShape": "To nie wygląda na adres e-mail. Sprawdź go.",
       "passwordShort": "Hasło musi mieć co najmniej 8 znaków.",
-      "passwordMismatch": "Oba hasła muszą być takie same."
+      "passwordMismatch": "Oba hasła muszą być takie same.",
+      "provider": "Logowanie przez {provider} nie doszło do skutku. Spróbuj jeszcze raz.",
+      "providerTimeout": "{provider} nie odpowiedział na czas. Spróbuj jeszcze raz.",
+      "providerCancelled": "Logowanie przez {provider} zostało anulowane."
     },
     "lead": "Wróć do kontekstu swoich projektów.",
     "leadRegister": "Kilka minut i Ariadne zacznie pamiętać za Ciebie.",
     "tagline": "Twoja nić przez kontekst projektu.",
     "noAccount": "Nie masz jeszcze konta?",
-    "haveAccount": "Masz już konto?"
+    "haveAccount": "Masz już konto?",
+    "or": "albo",
+    "continueWith": "Dalej przez {provider}",
+    "providerBusy": "Czekam na przeglądarkę",
+    "providerHint": "Dokończ logowanie w oknie przeglądarki, które się otworzyło.",
+    "providerCancel": "Anuluj"
   },
   "onboarding": {
     "step": "krok {current} z {total}",
@@ -462,7 +470,8 @@
     "joinCode": "Mam kod zaproszenia",
     "joinCodeNote": "Wklej kod, który dostałeś od kogoś z zespołu.",
     "join": "Dołącz",
-    "joined": "Jesteś w przestrzeni."
+    "joined": "Jesteś w przestrzeni.",
+    "passwordViaProvider": "To konto loguje się przez Google albo GitHub, więc nie ma hasła do zmiany."
   },
   "conflict": {
     "title": "SPRZECZNOŚĆ",
