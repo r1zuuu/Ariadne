@@ -74,15 +74,28 @@ export default function TourScreen() {
 
             {STEPS.map((name, index) => {
               const reached = index <= step;
+              const current = index === step;
               return (
                 <li key={name} className="flex h-5 items-center gap-4">
-                  {/* Opaque fill on both states, because the thread runs behind
-                      the markers and a hollow one would have a line through it. */}
-                  <span
-                    className={`block h-[10px] w-[10px] shrink-0 transition-colors duration-state ease-out-quint ${
-                      reached ? "bg-thread" : "border border-edge bg-plaster"
-                    }`}
-                  />
+                  {/* Knots on a thread, round like the wizard's. Opaque fill on
+                      both states, because the thread runs behind the markers and
+                      a hollow one would have a line through it. */}
+                  <span className="relative grid h-[18px] w-[18px] shrink-0 place-items-center">
+                    {current ? (
+                      <m.span
+                        aria-hidden="true"
+                        className="absolute inset-0 rounded-pill border border-thread/50"
+                        initial={still ? false : { scale: 0.6, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={still ? { duration: 0 } : { duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      />
+                    ) : null}
+                    <span
+                      className={`block h-[9px] w-[9px] rounded-pill transition-colors duration-state ease-out-quint ${
+                        reached ? "bg-thread" : "border border-edge bg-plaster"
+                      }`}
+                    />
+                  </span>
                   <span
                     className={`whitespace-nowrap text-label uppercase tracking-[0.12em] ${
                       reached ? "text-ink" : "text-ink-3"
