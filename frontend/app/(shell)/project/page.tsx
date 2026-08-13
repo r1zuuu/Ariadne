@@ -250,9 +250,11 @@ function EditCard({
           onChange={set("etap")}
           className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-thread focus:ring-2 focus:ring-thread/15"
         >
+          {/* The full sentence here, the one word on the badge above: this is
+              where the choice is made and the badge is only read back. */}
           {["prototyp", "produkcja", "utrzymanie"].map((stage) => (
             <option key={stage} value={stage}>
-              {t(`etap.${stage}`)}
+              {t(`etapChoice.${stage}`)}
             </option>
           ))}
         </select>

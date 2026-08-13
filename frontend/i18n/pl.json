@@ -111,9 +111,9 @@
         "limits": "Czego w tym projekcie nie robimy"
       },
       "etap": {
-        "prototyp": "prototyp",
-        "produkcja": "produkcja",
-        "utrzymanie": "utrzymanie"
+        "prototyp": "Prototyp",
+        "produkcja": "Wydany",
+        "utrzymanie": "Utrzymanie"
       },
       "joinInstead": "Dołączasz do cudzego zespołu? Mam kod zaproszenia",
       "required": "wymagane",
@@ -128,6 +128,11 @@
       "repoNote": {
         "set": "Ten sam adres musi mieć repozytorium, w którym uruchomisz codera. Zapis w rodzaju github.com/ty/projekt, https://... i git@... są traktowane jako ten sam adres.",
         "fallback": "Zostawiasz puste, więc projekt zostanie zapisany jako {ref}. Coder odnajdzie go tylko wtedy, gdy podasz mu dokładnie ten ciąg, bo nie odczyta go z żadnego katalogu."
+      },
+      "etapChoice": {
+        "prototyp": "Prototyp - dopiero powstaje, nikt jeszcze z niego nie korzysta",
+        "produkcja": "Wydany - jest już u użytkowników i działa",
+        "utrzymanie": "Utrzymanie - nowe funkcje nie powstają, zostają poprawki"
       }
     },
     "agent": {
@@ -330,7 +335,7 @@
     },
     "etap": {
       "prototyp": "Prototyp",
-      "produkcja": "Produkcja",
+      "produkcja": "Wydany",
       "utrzymanie": "Utrzymanie"
     },
     "repoFixed": "Nie do zmiany: po tym adresie agent rozpoznaje projekt.",
@@ -360,7 +365,12 @@
     "noProject": "Nie masz jeszcze projektu",
     "noProjectNote": "Załóż projekt na ekranie przeglądu, a jego karta pojawi się tutaj.",
     "graphError": "Mapa się nie wczytała",
-    "graphErrorNote": "Serwer nie odpowiedział na zapytanie o mapę. Wpisy są bezpieczne, spróbuj ponownie."
+    "graphErrorNote": "Serwer nie odpowiedział na zapytanie o mapę. Wpisy są bezpieczne, spróbuj ponownie.",
+    "etapChoice": {
+      "prototyp": "Prototyp - dopiero powstaje, nikt jeszcze z niego nie korzysta",
+      "produkcja": "Wydany - jest już u użytkowników i działa",
+      "utrzymanie": "Utrzymanie - nowe funkcje nie powstają, zostają poprawki"
+    }
   },
   "entry": {
     "type": {

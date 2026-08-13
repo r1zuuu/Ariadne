@@ -219,7 +219,12 @@ export function ProjectStep({
         note={t("optional")}
       />
       <Field id="etap" label={t("label.etap")}>
-        <div role="radiogroup" aria-labelledby="etap" className="flex flex-wrap gap-6 py-3">
+        {/* One per line rather than three across. The options used to be single
+            words - "produkcja" reads as "being produced" as easily as "live",
+            and "utrzymanie" says nothing at all to someone who has not met the
+            term - so each now carries the sentence that distinguishes it, and
+            three sentences side by side is not a row. */}
+        <div role="radiogroup" aria-labelledby="etap" className="flex flex-col gap-3 py-3">
           {ETAPY.map((etap) => (
             <label key={etap} className="flex cursor-pointer items-center gap-3 text-body">
               <input
@@ -230,7 +235,7 @@ export function ProjectStep({
                 onChange={() => onChange({ etap })}
                 className="accent-thread"
               />
-              {t(`etap.${etap}`)}
+              {t(`etapChoice.${etap}`)}
             </label>
           ))}
         </div>

@@ -111,9 +111,9 @@
         "limits": "What this project deliberately does not do"
       },
       "etap": {
-        "prototyp": "prototype",
-        "produkcja": "production",
-        "utrzymanie": "maintenance"
+        "prototyp": "Prototype",
+        "produkcja": "Released",
+        "utrzymanie": "Maintenance"
       },
       "joinInstead": "Joining somebody else's team? I have an invitation code",
       "required": "required",
@@ -128,6 +128,11 @@
       "repoNote": {
         "set": "The repository you run your coder in has to carry this same address. github.com/you/project, https://... and git@... all count as the same one.",
         "fallback": "Left empty, so the project will be filed as {ref}. A coder finds it only if you hand it that exact string, because it cannot read it from any directory."
+      },
+      "etapChoice": {
+        "prototyp": "Prototype - still being built, nobody uses it yet",
+        "produkcja": "Released - people are using it and it works",
+        "utrzymanie": "Maintenance - no new features, fixes only"
       }
     },
     "agent": {
@@ -330,7 +335,7 @@
     },
     "etap": {
       "prototyp": "Prototype",
-      "produkcja": "Production",
+      "produkcja": "Released",
       "utrzymanie": "Maintenance"
     },
     "repoFixed": "Fixed: this is the address an agent recognises the project by.",
@@ -360,7 +365,12 @@
     "noProject": "You have no project yet",
     "noProjectNote": "Create a project on the overview screen and its card will appear here.",
     "graphError": "The map did not load",
-    "graphErrorNote": "The server did not answer the map request. Your entries are safe; try again."
+    "graphErrorNote": "The server did not answer the map request. Your entries are safe; try again.",
+    "etapChoice": {
+      "prototyp": "Prototype - still being built, nobody uses it yet",
+      "produkcja": "Released - people are using it and it works",
+      "utrzymanie": "Maintenance - no new features, fixes only"
+    }
   },
   "entry": {
     "type": {
