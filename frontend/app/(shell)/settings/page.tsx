@@ -12,6 +12,7 @@ import {
   Card,
   EmptyState,
   Input,
+  Label,
   Meta,
   PageHeader,
   SectionHeader,
@@ -22,25 +23,17 @@ import {
   ApiError,
   changePassword,
   clearGeminiKey,
-  createInvite,
-  createWorkspace,
   deleteToken,
   GEMINI_KEY_CONSOLE,
   getAccount,
-  listInvites,
-  listMembers,
   listTokens,
   listWorkspaces,
   mintToken,
-  removeMember,
-  revokeInvite,
   saveGeminiKey,
   saveProfile,
   setAllPermission,
   type Account,
   type ApiToken,
-  type Invite,
-  type Member,
   type Workspace,
 } from "@/lib/api";
 
@@ -105,7 +98,6 @@ export default function SettingsScreen() {
           <GeminiSection account={account} onSaved={setAccount} toast={toast} />
           <PermissionSection account={account} onSaved={setAccount} toast={toast} />
           <TokensSection toast={toast} />
-          <TeamSection account={account} toast={toast} />
         </>
       )}
     </div>
@@ -298,6 +290,11 @@ function GeminiSection({
   const [busy, setBusy] = useState(false);
 
   const source = account.geminiKey;
+  // A stored key is a settled thing, not a blank waiting to be filled. The field
+  // used to stand open with its placeholder whether or not an account had one,
+  // so the screen looked the same before and after saving and read as an
+  // invitation to type the key again. Editing is a mode you enter.
+  const [editing, setEditing] = useState(false);
 
   const run = async (action: () => Promise<{ geminiKey: Account["geminiKey"] }>, done: string) => {
     setBusy(true);
@@ -306,6 +303,7 @@ function GeminiSection({
       const saved = await action();
       onSaved({ ...account, geminiKey: saved.geminiKey });
       setKey("");
+      setEditing(false);
       toast(done);
     } catch (caught) {
       // In the field rather than in a toast: the key is what was wrong, and a
@@ -316,6 +314,8 @@ function GeminiSection({
     }
   };
 
+  const stored = source === "user" && !editing;
+
   return (
     <section className="mt-8 border-t border-hairline pt-7">
       <SectionHeader title={t("gemini")} />
@@ -323,51 +323,85 @@ function GeminiSection({
       <Card className="p-6">
         <p className="max-w-[62ch] text-small text-ink-2">{t(`geminiState.${source}`)}</p>
 
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void run(() => saveGeminiKey(key.trim()), t("geminiSaved"));
-          }}
-          className="pt-5"
-        >
-          <Input
-            id="settings-gemini-key"
-            type="password"
-            autoComplete="off"
-            spellCheck={false}
-            label={t("geminiLabel")}
-            placeholder={t("geminiHint")}
-            note={t("geminiNote")}
-            error={error ?? undefined}
-            value={key}
-            onChange={(event) => setKey(event.target.value)}
-          />
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-4">
-            <a
-              href={GEMINI_KEY_CONSOLE}
-              target="_blank"
-              rel="noreferrer"
-              className="text-small text-thread underline underline-offset-2"
-            >
-              {t("geminiWhere")}
-            </a>
+        {stored ? (
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-5">
+            <div className="min-w-0">
+              <Label htmlFor="settings-gemini-state">{t("geminiLabel")}</Label>
+              {/* Dots, not the key. It never comes back from the server and the
+                  point of this row is that something is there, not what. */}
+              <p id="settings-gemini-state" className="flex items-center gap-3 pt-2">
+                <span aria-hidden="true" className="font-mono text-body text-ink-3">
+                  ••••••••••••••••
+                </span>
+                <span className="text-small text-laurel">{t("geminiStored")}</span>
+              </p>
+            </div>
             <div className="flex gap-3">
-              {source === "user" ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  disabled={busy}
-                  onClick={() => void run(clearGeminiKey, t("geminiRemoved"))}
-                >
-                  {t("geminiRemove")}
-                </Button>
-              ) : null}
-              <Button type="submit" loading={busy} disabled={!key.trim()}>
-                {busy ? t("geminiChecking") : t("save")}
+              <Button type="button" variant="secondary" onClick={() => setEditing(true)}>
+                {t("geminiReplace")}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={busy}
+                onClick={() => void run(clearGeminiKey, t("geminiRemoved"))}
+              >
+                {t("geminiRemove")}
               </Button>
             </div>
           </div>
-        </form>
+        ) : (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void run(() => saveGeminiKey(key.trim()), t("geminiSaved"));
+            }}
+            className="pt-5"
+          >
+            <Input
+              id="settings-gemini-key"
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              autoFocus={editing}
+              label={t("geminiLabel")}
+              placeholder={t("geminiHint")}
+              note={t("geminiNote")}
+              error={error ?? undefined}
+              value={key}
+              onChange={(event) => setKey(event.target.value)}
+            />
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-4">
+              <a
+                href={GEMINI_KEY_CONSOLE}
+                target="_blank"
+                rel="noreferrer"
+                className="text-small text-thread underline underline-offset-2"
+              >
+                {t("geminiWhere")}
+              </a>
+              <div className="flex gap-3">
+                {editing ? (
+                  <Button
+                    type="button"
+                    variant="quiet"
+                    disabled={busy}
+                    onClick={() => {
+                      setEditing(false);
+                      setKey("");
+                      setError(null);
+                    }}
+                  >
+                    {t("cancel")}
+                  </Button>
+                ) : null}
+                <Button type="submit" loading={busy} disabled={!key.trim()}>
+                  {busy ? t("geminiChecking") : t("save")}
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
       </Card>
     </section>
   );
@@ -573,284 +607,3 @@ function TokensSection({ toast }: { toast: Toast }) {
 
 // --- Team: who else reads this archive ---
 
-function TeamSection({ account, toast }: { account: Account; toast: Toast }) {
-  const t = useTranslations("settings");
-  const failure = useFailure();
-  const { refreshProjects, refreshPending } = useApp();
-
-  const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [members, setMembers] = useState<Member[]>([]);
-  const [invites, setInvites] = useState<Invite[]>([]);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [working, setWorking] = useState<string | null>(null);
-
-  const load = useCallback(() => {
-    void listWorkspaces()
-      .then((rows) => {
-        setWorkspaces(rows);
-        setOpenId((current) => (rows.some((w) => w.id === current) ? current : (rows[0]?.id ?? null)));
-      })
-      .catch(() => setWorkspaces([]));
-  }, []);
-
-  useEffect(load, [load]);
-
-  const loadOpen = useCallback(() => {
-    if (!openId) return;
-    void listMembers(openId).then(setMembers).catch(() => setMembers([]));
-    void listInvites(openId).then(setInvites).catch(() => setInvites([]));
-  }, [openId]);
-
-  useEffect(loadOpen, [loadOpen]);
-
-  const act = async (key: string, run: () => Promise<void>, done: string) => {
-    setWorking(key);
-    try {
-      await run();
-      toast(done);
-    } catch (error) {
-      toast(failure(error), "error");
-    } finally {
-      setWorking(null);
-    }
-  };
-
-  const open = workspaces?.find((w) => w.id === openId) ?? null;
-
-  return (
-    <section className="mt-8 border-t border-hairline pt-7">
-      <SectionHeader title={t("team")} />
-      <p className="pb-5 text-small text-ink-2">{t("teamLead")}</p>
-
-      {workspaces === null ? (
-        <p className="text-body text-ink-3">{t("loading")}</p>
-      ) : (
-        <>
-          {/* One chip per archive, and only when there is a choice: a single
-              workspace rendered as a big filled button was the loudest thing
-              in the section and clicking it did nothing. Selected is a quiet
-              thread fill, not a CTA - choosing is not acting. */}
-          {workspaces.length > 1 ? (
-            <ul className="flex flex-wrap gap-2 pb-5">
-              {workspaces.map((workspace) => {
-                const selected = workspace.id === openId;
-                return (
-                  <li key={workspace.id}>
-                    <button
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => setOpenId(workspace.id)}
-                      className={`h-[36px] rounded-control border px-5 text-small font-medium transition-colors duration-state ${
-                        selected
-                          ? "border-thread/40 bg-thread-soft text-thread-lift"
-                          : "border-edge/60 bg-surface text-ink-2 hover:bg-plaster-sunk hover:text-ink"
-                      }`}
-                    >
-                      {workspace.name}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-
-          {open ? (
-            <>
-              <div className="pb-2">
-                <Meta
-                  items={[
-                    open.name,
-                    open.isOwner ? t("roles.owner") : t("roles.member"),
-                    t("memberCount", { count: open.memberCount }),
-                  ]}
-                />
-              </div>
-
-              <ul className="divide-y divide-hairline pb-6">
-                {members.map((member) => {
-                  const self = member.userId === account.id;
-                  return (
-                    <li
-                      key={member.userId}
-                      className="flex flex-wrap items-center justify-between gap-4 py-4"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-body text-ink">
-                          {member.email}
-                          {self ? ` ${t("you")}` : ""}
-                        </p>
-                        <div className="pt-1">
-                          <Meta items={[t(`roles.${member.role}`)]} />
-                        </div>
-                      </div>
-                      {/* The owner cannot be removed and cannot walk out, so the
-                          button is simply absent rather than shown and refused. */}
-                      {member.role !== "owner" && (self || open.isOwner) ? (
-                        <Button
-                          variant="quiet"
-                          loading={working === member.userId}
-                          onClick={() =>
-                            act(
-                              member.userId,
-                              async () => {
-                                await removeMember(open.id, member.userId);
-                                if (self) load();
-                                else loadOpen();
-                              },
-                              self ? t("left") : t("removed"),
-                            )
-                          }
-                        >
-                          {self ? t("leave") : t("remove")}
-                        </Button>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-
-              <Card className="flex flex-wrap items-end gap-5 p-6">
-                <div className="min-w-[220px] flex-1">
-                  <Input
-                    id="settings-invite-email"
-                    type="email"
-                    label={t("inviteEmail")}
-                    note={t("inviteEmailNote")}
-                    placeholder={t("inviteEmailPlaceholder")}
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                  />
-                </div>
-                <Button
-                  loading={working === "invite"}
-                  onClick={() =>
-                    act(
-                      "invite",
-                      async () => {
-                        await createInvite(open.id, email.trim() || null);
-                        setEmail("");
-                        loadOpen();
-                      },
-                      t("inviteCreated"),
-                    )
-                  }
-                >
-                  {t("createInvite")}
-                </Button>
-              </Card>
-
-              {invites.length ? (
-                <ul className="pt-5">
-                  {invites.map((invite) => (
-                    <li key={invite.id} className="border-b border-hairline py-4">
-                      <CommandBlock
-                        command={invite.code}
-                        what={invite.email ? t("inviteFor", { at: invite.email }) : t("inviteOpen")}
-                        where={t("inviteWhere")}
-                        copyLabel={t("copyCode")}
-                      />
-                      <div className="flex items-center justify-between gap-4 pt-3">
-                        <Meta
-                          items={[
-                            t("inviteExpires", {
-                              at: new Date(invite.expiresAt).toLocaleDateString(),
-                            }),
-                          ]}
-                        />
-                        <Button
-                          variant="quiet"
-                          loading={working === invite.id}
-                          onClick={() =>
-                            act(
-                              invite.id,
-                              async () => {
-                                await revokeInvite(invite.id);
-                                loadOpen();
-                              },
-                              t("inviteRevoked"),
-                            )
-                          }
-                        >
-                          {t("revoke")}
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </>
-          ) : null}
-
-          <div className="grid gap-5 pt-8 sm:grid-cols-2">
-            <Card className="p-6">
-              <Input
-                id="settings-workspace-name"
-                label={t("newWorkspace")}
-                note={t("newWorkspaceNote")}
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-              <div className="flex justify-end pt-5">
-                <Button
-                  variant="secondary"
-                  disabled={!name.trim()}
-                  loading={working === "create"}
-                  onClick={() =>
-                    act(
-                      "create",
-                      async () => {
-                        const created = await createWorkspace(name.trim());
-                        setName("");
-                        setOpenId(created.id);
-                        load();
-                      },
-                      t("workspaceCreated"),
-                    )
-                  }
-                >
-                  {t("create")}
-                </Button>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <Input
-                id="settings-join-code"
-                label={t("joinCode")}
-                note={t("joinCodeNote")}
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-              />
-              <div className="flex justify-end pt-5">
-                <Button
-                  variant="secondary"
-                  disabled={!code.trim()}
-                  loading={working === "join"}
-                  onClick={() =>
-                    act(
-                      "join",
-                      async () => {
-                        await acceptInvite(code.trim());
-                        setCode("");
-                        // Joining changed what the account can see; the shared
-                        // context re-reads it in place, no reload needed.
-                        load();
-                        await Promise.all([refreshProjects(), refreshPending()]);
-                      },
-                      t("joined"),
-                    )
-                  }
-                >
-                  {t("join")}
-                </Button>
-              </div>
-            </Card>
-          </div>
-        </>
-      )}
-    </section>
-  );
-}

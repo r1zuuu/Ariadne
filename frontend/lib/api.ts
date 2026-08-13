@@ -370,6 +370,25 @@ export const createInvite = (workspaceId: string, email: string | null) =>
 
 export const revokeInvite = (id: string) => request<void>(`/invites/${id}`, { method: "DELETE" });
 
+/** Invitations written to this account and still open, newest first. */
+export type MyInvite = {
+  id: string;
+  /** Only ever a code written to this address, so accepting needs no retyping. */
+  code: string;
+  workspaceId: string;
+  workspaceName: string;
+  /** Null once the account that wrote it is gone; the invitation still stands. */
+  invitedBy: string | null;
+  expiresAt: string;
+  createdAt: string;
+};
+
+export const myInvites = () => request<MyInvite[]>("/me/invites");
+
+/** Saying no. Mine to refuse because it carries my address. */
+export const declineInvite = (id: string) =>
+  request<void>(`/invites/${id}/decline`, { method: "POST" });
+
 export const acceptInvite = (code: string) =>
   request<{ id: string; name: string }>(`/invites/${encodeURIComponent(code)}/accept`, {
     method: "POST",
@@ -398,6 +417,9 @@ export type PendingAction = {
   /** What is stored today, so the screen can show the change against it. */
   nodeContent: string;
   projectName: string;
+  /** Which archive it belongs to. The server has always sent this; the type
+   *  dropped it, so the queue could not say whose work an item was about. */
+  workspaceName: string;
 };
 
 /** The other side of a suspected clash, with enough text to judge it by. */
@@ -408,6 +430,7 @@ export type ConflictEntry = Pick<Node, "id" | "type" | "content" | "summary" | "
 export type ReviewNode = Node & {
   supersededBy: string | null;
   projectName: string;
+  workspaceName: string;
   conflicts: ConflictEntry[];
 };
 
