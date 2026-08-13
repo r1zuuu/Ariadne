@@ -184,6 +184,11 @@ export type Provider = "google" | "github";
  * Which buttons the entry screen may show. A server without GitHub credentials
  * leaves that one out, so the screen never offers a way in that only fails.
  */
+// No undo and no copy: the entries, their anchors, the review queue and the
+// chats under this project go with it. The screen asks for the name first.
+export const deleteProject = (id: string) =>
+  request<void>(`/projects/${id}`, { method: "DELETE" });
+
 export const authProviders = () =>
   request<{ providers: Provider[] }>("/auth/providers", { auth: false }).then((r) => r.providers);
 
@@ -241,8 +246,13 @@ export const createProject = (card: { name: string; repoRef: string } & Partial<
 
 type ProjectCard = { opis: string; stack: string; etap: string; ograniczenia: string };
 
-export const updateProject = (id: string, card: Partial<ProjectCard & { name: string }>) =>
-  request<Project>(`/projects/${id}`, { method: "PUT", body: card });
+// repoRef is in here now. The server always accepted it - it normalises the
+// value and answers a collision with its own message - and leaving it out of the
+// type was what made a mistyped address permanent.
+export const updateProject = (
+  id: string,
+  card: Partial<ProjectCard & { name: string; repoRef: string }>,
+) => request<Project>(`/projects/${id}`, { method: "PUT", body: card });
 
 // `sort` picks the question being asked: "created" is newest thought first,
 // "updated" is what has been touched lately, which is a different list once

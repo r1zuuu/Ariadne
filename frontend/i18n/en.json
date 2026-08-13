@@ -82,7 +82,7 @@
       },
       "q3": {
         "label": "WORK STYLE",
-        "hint": "Explain the decisions, not just the code. The simplest thing that works wins.",
+        "hint": "Explain decisions, not just code",
         "question": "How do you want to work?"
       },
       "q4": {
@@ -111,9 +111,9 @@
         "limits": "What this project deliberately does not do"
       },
       "etap": {
-        "prototyp": "prototype",
-        "produkcja": "production",
-        "utrzymanie": "maintenance"
+        "prototyp": "Prototype",
+        "produkcja": "Released",
+        "utrzymanie": "Maintenance"
       },
       "joinInstead": "Joining somebody else's team? I have an invitation code",
       "required": "required",
@@ -123,7 +123,24 @@
         "repoTaken": "You already have a project for this repository."
       },
       "previewTitle": "PROJECT CARD",
-      "previewEmpty": "The card grows as you fill it in. The agent reads it on every question about this project."
+      "previewEmpty": "The card grows as you fill it in. The agent reads it on every question about this project.",
+      "repoLead": "The repository address is the field that matters most here. Your coder finds this project by that, not by its name: started inside the repository it reads the address and asks Ariadne about that one. Enter what `git remote get-url origin` prints.",
+      "repoNote": {
+        "set": "The repository you run your coder in has to carry this same address. github.com/you/project, https://... and git@... all count as the same one.",
+        "fallback": "Left empty, so the project will be filed as {ref}. A coder finds it only if you hand it that exact string, because it cannot read it from any directory."
+      },
+      "etapChoice": {
+        "prototyp": "Prototype - still being built, nobody uses it yet",
+        "produkcja": "Released - people are using it and it works",
+        "utrzymanie": "Maintenance - no new features, fixes only"
+      },
+      "limits": {
+        "fromFile": "Load from a file",
+        "note": "Already have this in CONVENTIONS.md or .cursorrules? Load it instead of retyping.",
+        "tooBig": "That file is larger than {kb} KB. Paste just the rules from it.",
+        "unreadable": "That file could not be read. Pick a text file.",
+        "empty": "That file is empty."
+      }
     },
     "agent": {
       "title": "Connect your agent",
@@ -145,7 +162,10 @@
         "other": "Other"
       },
       "tokenWhat": "This is your token. Give it to the agent as an Authorization: Bearer header.",
-      "tokenWhere": "Copy it now. Once you leave this screen you will not see it again."
+      "tokenWhere": "Copy it now. Once you leave this screen you will not see it again.",
+      "whereToRun": "Run this command inside this project's repository, not in some other directory. A coder reports the address of the repository it is standing in, and this project is filed under:",
+      "mustMatch": "If the two do not match, the coder is told the repository is unknown. You can change the project's address at any time on its card.",
+      "onceOnly": "You run this command once per machine, not once per project. It covers all of your projects at once. A second attempt answers \"already exists in user config\", which means everything is connected already."
     },
     "key": {
       "title": "Your Gemini key",
@@ -211,7 +231,8 @@
     "needsProject": "Choose a project first",
     "noProject": "No project",
     "hideNav": "Hide menu",
-    "showNav": "Show menu"
+    "showNav": "Show menu",
+    "newProject": "New project"
   },
   "tour": {
     "step": "step {current} of {total}",
@@ -323,10 +344,9 @@
     },
     "etap": {
       "prototyp": "Prototype",
-      "produkcja": "Production",
+      "produkcja": "Released",
       "utrzymanie": "Maintenance"
     },
-    "repoFixed": "Fixed: this is the address an agent recognises the project by.",
     "save": "Save changes",
     "saving": "Saving",
     "saved": "Saved",
@@ -353,7 +373,36 @@
     "noProject": "You have no project yet",
     "noProjectNote": "Create a project on the overview screen and its card will appear here.",
     "graphError": "The map did not load",
-    "graphErrorNote": "The server did not answer the map request. Your entries are safe; try again."
+    "graphErrorNote": "The server did not answer the map request. Your entries are safe; try again.",
+    "etapChoice": {
+      "prototyp": "Prototype - still being built, nobody uses it yet",
+      "produkcja": "Released - people are using it and it works",
+      "utrzymanie": "Maintenance - no new features, fixes only"
+    },
+    "create": {
+      "title": "New project",
+      "create": "Create project",
+      "creating": "Creating...",
+      "cancel": "Cancel",
+      "created": "Project created",
+      "error": {
+        "name": "A project needs a name.",
+        "repoTaken": "You already have a project for this repository.",
+        "failed": "The project could not be created. Try again."
+      }
+    },
+    "repoWarning": "This is the address a coder finds this project by. Changing it means a coder working in the old repository stops seeing it.",
+    "delete": {
+      "open": "Delete this project",
+      "title": "Deleting the project",
+      "warning": "This project goes, and the whole archive with it: {count} entries, their anchors, the review queue and the chats. It cannot be undone or recovered.",
+      "confirmLabel": "Type {name} to confirm",
+      "confirm": "Delete permanently",
+      "deleting": "Deleting...",
+      "cancel": "Keep it",
+      "ownerOnly": "Only the workspace owner can delete a project.",
+      "failed": "The project could not be deleted. Try again."
+    }
   },
   "entry": {
     "type": {

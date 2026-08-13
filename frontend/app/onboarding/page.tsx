@@ -9,6 +9,7 @@ import {
   PROFILE_QUESTIONS,
   ProfileStep,
   ProjectStep,
+  effectiveRepoRef,
   type Agent,
   type Answers,
   type Card,
@@ -42,6 +43,40 @@ const HOST = serverUrl.replace(/^https?:\/\//, "");
 const EMPTY_ANSWERS: Answers = { q1: "", q2: "", q3: "", q4: "" };
 const EMPTY_CARD: Card = { name: "", repoRef: "", stack: "", etap: "prototyp", ograniczenia: "" };
 
+// A refresh used to end the run. Half of this wizard has already touched the
+// server by step 3 - the profile is saved, the key is stored, the project
+// exists - so reloading dropped someone back at question one with no way to
+// reach the state they had, and past step 3 the guard below then sent them
+// straight to /home. The minted token is the part that does not survive that: it
+// is shown once and only its hash is kept.
+//
+// Everything the run holds therefore goes to localStorage on every change and is
+// cleared when the wizard ends. Same store as the session token, which the app
+// already keeps there, so this adds no new place for anything to sit.
+const WIZARD_KEY = "ariadne.onboarding";
+
+type Wizard = {
+  step: 1 | 2 | 3 | 4;
+  profileIndex: number;
+  answers: Answers;
+  profile: string;
+  card: Card;
+  agent: Agent;
+  token: string | null;
+};
+
+function readWizard(): Wizard | null {
+  try {
+    const raw = localStorage.getItem(WIZARD_KEY);
+    return raw ? (JSON.parse(raw) as Wizard) : null;
+  } catch {
+    // A half-written or hand-edited record must not be the reason the screen
+    // will not open. Starting over is worse than resuming and better than a
+    // blank page.
+    return null;
+  }
+}
+
 export default function OnboardingScreen() {
   const t = useTranslations("onboarding");
   const tAuth = useTranslations("auth");
@@ -62,6 +97,12 @@ export default function OnboardingScreen() {
   const [busy, setBusy] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  // Read after mount rather than in a state initializer: this page is
+  // prerendered by Node, where localStorage does not exist, and reading during
+  // render would hand the client different markup than the server built.
+  // Nothing is written back until this turns true, or the first render would
+  // save its own empty defaults over the record it is about to load.
+  const [restored, setRestored] = useState(false);
 
   // Two ways to be in the wrong place. Without a token the session went away
   // during a reload. With projects already on the account this is a second run
@@ -73,15 +114,44 @@ export default function OnboardingScreen() {
       router.replace("/");
       return;
     }
+
+    const saved = readWizard();
+    if (saved) {
+      setStep(saved.step);
+      setProfileIndex(saved.profileIndex);
+      setAnswers(saved.answers);
+      setProfile(saved.profile);
+      setCard(saved.card);
+      setAgent(saved.agent);
+      setToken(saved.token);
+    }
+    setRestored(true);
+
     // A server that cannot be reached must not lock the owner out of their own
-    // onboarding, so only a definite answer redirects.
-    void listProjects()
-      .then((rows) => rows.length && router.replace("/home"))
-      .catch(() => {});
+    // onboarding, so only a definite answer redirects. A run already in progress
+    // is not a second run: by step 4 the project exists, and that is exactly the
+    // state this used to read as "already onboarded" while the person was still
+    // looking at a token they had not copied yet.
+    if (!saved) {
+      void listProjects()
+        .then((rows) => rows.length && router.replace("/home"))
+        .catch(() => {});
+    }
     void getAccount()
       .then((account) => setKeySource(account.geminiKey))
       .catch(() => {});
   }, [router]);
+
+  useEffect(() => {
+    if (!restored) return;
+    const record: Wizard = { step, profileIndex, answers, profile, card, agent, token };
+    try {
+      localStorage.setItem(WIZARD_KEY, JSON.stringify(record));
+    } catch {
+      // A full or blocked store costs the resume and nothing else; the wizard
+      // itself keeps working exactly as it did before any of this.
+    }
+  }, [restored, step, profileIndex, answers, profile, card, agent, token]);
 
   const mint = async () => {
     setTokenFailed(false);
@@ -147,8 +217,10 @@ export default function OnboardingScreen() {
         await createProject({
           name: card.name.trim(),
           // The backend requires a repo_ref and a project without a repository is
-          // a real case, so the name stands in until there is one.
-          repoRef: card.repoRef.trim() || `local/${slug(card.name)}`,
+          // a real case, so the name stands in until there is one. Same helper the
+          // step used to show this value, so the screen cannot promise one string
+          // and the archive hold another.
+          repoRef: effectiveRepoRef(card),
           stack: card.stack.trim(),
           etap: card.etap,
           ograniczenia: card.ograniczenia.trim(),
@@ -158,6 +230,10 @@ export default function OnboardingScreen() {
         return;
       }
 
+      // The run is over, so the record goes. Leaving it would mean the next
+      // visit to this page resumes a finished wizard and offers a token that was
+      // already handed over.
+      localStorage.removeItem(WIZARD_KEY);
       router.push("/home");
     } catch (caught) {
       if (caught instanceof ApiError && caught.code === "validation" && step === 2) {
@@ -238,6 +314,7 @@ export default function OnboardingScreen() {
               <ProjectStep
                 card={card}
                 error={fieldError}
+                heading={t("project.title")}
                 onChange={(patch) => setCard({ ...card, ...patch })}
               />
             ) : (
@@ -245,6 +322,7 @@ export default function OnboardingScreen() {
                 agent={agent}
                 token={token}
                 failed={tokenFailed}
+                repoRef={effectiveRepoRef(card)}
                 onAgent={setAgent}
                 onRegenerate={() => void mint()}
               />
@@ -276,7 +354,14 @@ export default function OnboardingScreen() {
             {step === 3 ? (
               <button
                 type="button"
-                onClick={() => router.push("/settings")}
+                // Walking out counts as ending the run. A record left behind
+                // here would resume a wizard nobody meant to return to, and
+                // would keep suppressing the "already onboarded" redirect for
+                // good.
+                onClick={() => {
+                  localStorage.removeItem(WIZARD_KEY);
+                  router.push("/settings");
+                }}
                 className="pb-8 text-small text-thread underline underline-offset-2"
               >
                 {t("project.joinInstead")}
@@ -308,15 +393,4 @@ function assemble(answers: Answers): string {
     .filter(Boolean)
     .map((sentence) => (/[.!?]$/.test(sentence) ? sentence : `${sentence}.`))
     .join(" ");
-}
-
-function slug(name: string): string {
-  return (
-    name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "projekt"
-  );
 }

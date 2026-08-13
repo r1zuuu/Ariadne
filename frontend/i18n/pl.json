@@ -82,7 +82,7 @@
       },
       "q3": {
         "label": "STYL PRACY",
-        "hint": "Tłumacz decyzje, nie tylko kod. Najprostsze rozwiązanie wygrywa.",
+        "hint": "Tłumacz decyzje, nie tylko kod",
         "question": "Jak chcesz pracować?"
       },
       "q4": {
@@ -111,9 +111,9 @@
         "limits": "Czego w tym projekcie nie robimy"
       },
       "etap": {
-        "prototyp": "prototyp",
-        "produkcja": "produkcja",
-        "utrzymanie": "utrzymanie"
+        "prototyp": "Prototyp",
+        "produkcja": "Wydany",
+        "utrzymanie": "Utrzymanie"
       },
       "joinInstead": "Dołączasz do cudzego zespołu? Mam kod zaproszenia",
       "required": "wymagane",
@@ -123,7 +123,24 @@
         "repoTaken": "Masz już projekt dla tego repozytorium."
       },
       "previewTitle": "KARTA PROJEKTU",
-      "previewEmpty": "Karta rośnie w miarę wypełniania. Agent czyta ją przy każdym pytaniu o ten projekt."
+      "previewEmpty": "Karta rośnie w miarę wypełniania. Agent czyta ją przy każdym pytaniu o ten projekt.",
+      "repoLead": "Adres repozytorium jest tu najważniejszym polem. Po nim, a nie po nazwie, Twój coder odnajduje ten projekt: uruchomiony w katalogu repozytorium odczytuje jego adres i pyta Ariadne właśnie o niego. Wpisz to samo, co pokazuje `git remote get-url origin`.",
+      "repoNote": {
+        "set": "Ten sam adres musi mieć repozytorium, w którym uruchomisz codera. Zapis w rodzaju github.com/ty/projekt, https://... i git@... są traktowane jako ten sam adres.",
+        "fallback": "Zostawiasz puste, więc projekt zostanie zapisany jako {ref}. Coder odnajdzie go tylko wtedy, gdy podasz mu dokładnie ten ciąg, bo nie odczyta go z żadnego katalogu."
+      },
+      "etapChoice": {
+        "prototyp": "Prototyp - dopiero powstaje, nikt jeszcze z niego nie korzysta",
+        "produkcja": "Wydany - jest już u użytkowników i działa",
+        "utrzymanie": "Utrzymanie - nowe funkcje nie powstają, zostają poprawki"
+      },
+      "limits": {
+        "fromFile": "Wczytaj z pliku",
+        "note": "Masz to już w CONVENTIONS.md albo .cursorrules? Wczytaj zamiast przepisywać.",
+        "tooBig": "Plik jest większy niż {kb} KB. Wklej sam fragment z zasadami.",
+        "unreadable": "Nie udało się odczytać tego pliku. Wybierz plik tekstowy.",
+        "empty": "Ten plik jest pusty."
+      }
     },
     "agent": {
       "title": "Podłącz agenta",
@@ -145,7 +162,10 @@
         "other": "Inny"
       },
       "tokenWhat": "To jest twój token. Podaj go agentowi jako nagłówek Authorization: Bearer.",
-      "tokenWhere": "Skopiuj go teraz. Po opuszczeniu tego ekranu nie zobaczysz go ponownie."
+      "tokenWhere": "Skopiuj go teraz. Po opuszczeniu tego ekranu nie zobaczysz go ponownie.",
+      "whereToRun": "Uruchom to polecenie w katalogu repozytorium tego projektu, nie w dowolnym innym. Coder melduje Ariadne adres repozytorium, w którym stoi, a ten projekt jest zapisany pod adresem:",
+      "mustMatch": "Jeśli te dwa adresy się nie zgodzą, coder dostanie odpowiedź, że nie zna takiego repozytorium. Adres projektu zmienisz w każdej chwili w jego karcie.",
+      "onceOnly": "To polecenie wpisujesz raz na komputer, nie raz na projekt. Obejmuje wszystkie Twoje projekty naraz. Przy drugim podejściu Claude Code odpowie \"already exists in user config\" i to znaczy, że wszystko jest już podłączone."
     },
     "key": {
       "title": "Klucz do Gemini",
@@ -211,7 +231,8 @@
     "needsProject": "Najpierw wybierz projekt",
     "noProject": "Brak projektu",
     "hideNav": "Ukryj menu",
-    "showNav": "Pokaż menu"
+    "showNav": "Pokaż menu",
+    "newProject": "Nowy projekt"
   },
   "tour": {
     "step": "krok {current} z {total}",
@@ -323,10 +344,9 @@
     },
     "etap": {
       "prototyp": "Prototyp",
-      "produkcja": "Produkcja",
+      "produkcja": "Wydany",
       "utrzymanie": "Utrzymanie"
     },
-    "repoFixed": "Nie do zmiany: po tym adresie agent rozpoznaje projekt.",
     "save": "Zapisz zmiany",
     "saving": "Zapisuję",
     "saved": "Zapisane",
@@ -353,7 +373,36 @@
     "noProject": "Nie masz jeszcze projektu",
     "noProjectNote": "Załóż projekt na ekranie przeglądu, a jego karta pojawi się tutaj.",
     "graphError": "Mapa się nie wczytała",
-    "graphErrorNote": "Serwer nie odpowiedział na zapytanie o mapę. Wpisy są bezpieczne, spróbuj ponownie."
+    "graphErrorNote": "Serwer nie odpowiedział na zapytanie o mapę. Wpisy są bezpieczne, spróbuj ponownie.",
+    "etapChoice": {
+      "prototyp": "Prototyp - dopiero powstaje, nikt jeszcze z niego nie korzysta",
+      "produkcja": "Wydany - jest już u użytkowników i działa",
+      "utrzymanie": "Utrzymanie - nowe funkcje nie powstają, zostają poprawki"
+    },
+    "create": {
+      "title": "Nowy projekt",
+      "create": "Załóż projekt",
+      "creating": "Zakładam...",
+      "cancel": "Anuluj",
+      "created": "Projekt założony",
+      "error": {
+        "name": "Projekt musi mieć nazwę.",
+        "repoTaken": "Masz już projekt dla tego repozytorium.",
+        "failed": "Nie udało się założyć projektu. Spróbuj jeszcze raz."
+      }
+    },
+    "repoWarning": "Po tym adresie coder odnajduje ten projekt. Zmiana znaczy, że coder pracujący w starym repozytorium przestanie go widzieć.",
+    "delete": {
+      "open": "Usuń ten projekt",
+      "title": "Usunięcie projektu",
+      "warning": "Zniknie ten projekt razem z całym archiwum: {count} wpisów, ich kotwice, kolejka do zatwierdzenia i rozmowy. Nie da się tego cofnąć ani odzyskać.",
+      "confirmLabel": "Wpisz {name}, żeby potwierdzić",
+      "confirm": "Usuń bezpowrotnie",
+      "deleting": "Usuwam...",
+      "cancel": "Zostaw",
+      "ownerOnly": "Tylko właściciel przestrzeni może usunąć projekt.",
+      "failed": "Nie udało się usunąć projektu. Spróbuj jeszcze raz."
+    }
   },
   "entry": {
     "type": {

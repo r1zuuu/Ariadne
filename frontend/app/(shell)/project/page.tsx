@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { MemoryGraph } from "@/components/memory-graph";
@@ -16,6 +17,8 @@ import {
   Textarea,
 } from "@/components/ui";
 import {
+  ApiError,
+  deleteProject,
   getGraph,
   updateProject,
   type GraphEdge,
@@ -201,7 +204,7 @@ function EditCard({
   const set = (key: keyof Project) => (event: { target: { value: string } }) =>
     setDraft((prev) => ({ ...prev, [key]: event.target.value }));
 
-  const dirty = (["name", "opis", "stack", "etap", "ograniczenia"] as const).some(
+  const dirty = (["name", "repoRef", "opis", "stack", "etap", "ograniczenia"] as const).some(
     (key) => draft[key] !== project[key],
   );
 
@@ -212,6 +215,7 @@ function EditCard({
       onSaved(
         await updateProject(project.id, {
           name: draft.name,
+          repoRef: draft.repoRef,
           opis: draft.opis,
           stack: draft.stack,
           etap: draft.etap,
@@ -229,15 +233,19 @@ function EditCard({
     <Card className="flex flex-col gap-5 p-6">
       <Input id="name" label={t("label.name")} value={draft.name} onChange={set("name")} />
 
+      {/* This was read-only, on the grounds that changing it would orphan a
+          connected agent. It orphans one either way: the address is how a coder
+          finds the archive, so getting it wrong once meant no coder ever found
+          this project again, and the only cure on offer was deleting it. The
+          backend has always accepted the edit - it normalises the value and has
+          a message ready for a collision - so the lock was the frontend's alone.
+          A warning is the honest version of that reasoning. */}
       <Input
         id="repo"
         label={t("label.repo")}
-        value={project.repoRef}
-        readOnly
-        // The repo ref is the key a coder's MCP calls resolve against, so
-        // changing it here would silently orphan a connected agent.
-        note={t("repoFixed")}
-        className="cursor-not-allowed text-ink-2"
+        value={draft.repoRef}
+        onChange={set("repoRef")}
+        note={t("repoWarning")}
       />
 
       <div>
@@ -250,9 +258,11 @@ function EditCard({
           onChange={set("etap")}
           className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-thread focus:ring-2 focus:ring-thread/15"
         >
+          {/* The full sentence here, the one word on the badge above: this is
+              where the choice is made and the badge is only read back. */}
           {["prototyp", "produkcja", "utrzymanie"].map((stage) => (
             <option key={stage} value={stage}>
-              {t(`etap.${stage}`)}
+              {t(`etapChoice.${stage}`)}
             </option>
           ))}
         </select>
@@ -277,6 +287,103 @@ function EditCard({
         </Button>
         {error ? <span className="text-small text-iron">{error}</span> : null}
       </div>
+
+      <DeleteSection project={project} />
     </Card>
+  );
+}
+
+/**
+ * Removing a project takes the archive under it: every entry, its anchors, the
+ * review queue and the chats. There is no undo and no copy, so the confirmation
+ * is the project's own name, typed. A second button to click is a button people
+ * click; a name to copy out is a sentence they have to read first.
+ *
+ * Inside edit mode rather than on the reading screen, and behind a link rather
+ * than a standing button, because this is the rarest thing anyone does here.
+ */
+function DeleteSection({ project }: { project: Project }) {
+  const t = useTranslations("project.delete");
+  const router = useRouter();
+  const { refreshProjects } = useApp();
+
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteProject(project.id);
+      await refreshProjects();
+      // Whatever is left becomes the active project, or the empty state does the
+      // talking. Either way this screen is about a project that is gone.
+      router.push("/home");
+    } catch (caught) {
+      setError(
+        caught instanceof ApiError && caught.code === "unauthorized"
+          ? t("ownerOnly")
+          : caught instanceof ApiError
+            ? caught.message
+            : t("failed"),
+      );
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <div className="border-t border-hairline pt-5">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded-control text-small text-iron underline underline-offset-2"
+        >
+          {t("open")}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-control border border-iron/40 bg-iron/[0.04] p-5">
+      <p className="text-small font-medium text-ink">{t("title")}</p>
+      <p className="max-w-[64ch] pt-2 text-small text-ink-2">
+        {t("warning", { count: String(project.nodeCount ?? 0) })}
+      </p>
+      <div className="pt-4">
+        <Input
+          id="confirm-delete"
+          label={t("confirmLabel", { name: project.name })}
+          value={typed}
+          onChange={(event) => setTyped(event.target.value)}
+          autoComplete="off"
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-3 pt-4">
+        <Button
+          variant="destructive"
+          loading={busy}
+          disabled={typed.trim() !== project.name}
+          onClick={() => void remove()}
+        >
+          {busy ? t("deleting") : t("confirm")}
+        </Button>
+        <Button
+          variant="quiet"
+          disabled={busy}
+          onClick={() => {
+            setOpen(false);
+            setTyped("");
+            setError(null);
+          }}
+        >
+          {t("cancel")}
+        </Button>
+        {error ? <span className="text-small text-iron">{error}</span> : null}
+      </div>
+    </div>
   );
 }
