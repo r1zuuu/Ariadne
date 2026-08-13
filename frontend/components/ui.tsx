@@ -409,26 +409,51 @@ type FieldProps = {
   boxed?: boolean;
   error?: string;
   note?: string;
+  /**
+   * Aligns the label to the top of the row instead of to the control's baseline.
+   *
+   * Baseline is right for a one-line input and wrong for anything taller: a
+   * textarea's baseline sits at its bottom edge, so the label slid down past the
+   * field it names and came to rest between that field and the button under it,
+   * reading as a heading for the wrong thing.
+   */
+  alignTop?: boolean;
   children?: ReactNode;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
-export function Field({ id, label, boxed = false, error, note, children, ...rest }: FieldProps) {
+export function Field({
+  id,
+  label,
+  boxed = false,
+  error,
+  note,
+  alignTop = false,
+  children,
+  ...rest
+}: FieldProps) {
   const box = boxed
     ? "rounded-control border border-edge/60 bg-surface px-4 py-3"
     : "border-0 bg-transparent px-0 py-3";
   return (
-    <div className="grid grid-cols-[132px_1fr] items-baseline gap-x-6 py-2">
+    <div
+      className={`grid grid-cols-[132px_1fr] gap-x-6 py-2 ${alignTop ? "items-start" : "items-baseline"}`}
+    >
       <div className="pt-4">
         <Label htmlFor={id}>{label}</Label>
       </div>
       <div>
+        {/* Full ink-3, not ink-3/70. At seventy percent a placeholder came out at
+            2.6:1 against a boxed field, under the 3:1 floor, and in this wizard
+            the placeholder is the only example of what the field wants - the
+            repository address most of all. Every other input in the app uses the
+            solid value; these two were the exceptions. */}
         {children ?? (
           <input
             id={id}
             {...rest}
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-            className={`w-full text-body text-ink outline-none placeholder:text-ink-3/70 ${box} ${error ? "border-iron" : ""}`}
+            className={`w-full text-body text-ink outline-none placeholder:text-ink-3 ${box} ${error ? "border-iron" : ""}`}
           />
         )}
         <FieldNote id={id} error={error} note={note} />

@@ -307,7 +307,10 @@ export default function OnboardingScreen() {
   // The key step has no record of its own to show, so it keeps the profile on
   // screen: what was just written is better company than an empty project card.
   const preview: { title: string; note?: string; entries: Entry[]; empty: string } =
-    step <= 2
+    // The join branch has no project card to preview, and showing an empty one
+    // beside "you do not need a project of your own" says the opposite of the
+    // step. It keeps the profile up, same as the key step does.
+    step <= 2 || joining
       ? {
           title: t("profile.previewTitle"),
           note: t("profile.note"),

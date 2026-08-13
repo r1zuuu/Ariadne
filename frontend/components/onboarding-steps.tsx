@@ -245,7 +245,7 @@ export function ProjectStep({
           ))}
         </div>
       </Field>
-      <Field id="ograniczenia" label={t("label.limits")}>
+      <Field id="ograniczenia" label={t("label.limits")} alignTop>
         <GuardrailsField
           value={card.ograniczenia}
           onChange={(ograniczenia) => onChange({ ograniczenia })}
@@ -315,7 +315,7 @@ function GuardrailsField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={t("hint.limits")}
-        className="w-full resize-y bg-transparent text-body leading-7 text-ink outline-none placeholder:text-ink-3/70"
+        className="w-full resize-y bg-transparent text-body leading-7 text-ink outline-none placeholder:text-ink-3"
       />
       <div className="flex flex-wrap items-center gap-4 pt-2">
         <Button type="button" variant="secondary" onClick={() => picker.current?.click()}>
