@@ -36,7 +36,19 @@ export function readToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+// State that belongs to whoever was signed in, not to this machine. localStorage
+// is scoped to the origin and not to the account, so signing into a second
+// account inherited the first one's leftovers: the main screen greeted a
+// brand-new account with "last time you were here", carrying a date from
+// somebody else's session, and a half-finished wizard would have resumed under
+// the wrong name. The device's own preferences - which side the navigation is
+// on, the language - are deliberately not in this list.
+const SESSION_SCOPED = ["ariadne.lastSeen", "ariadne.activeProject", "ariadne.onboarding"];
+
 export function writeToken(token: string) {
+  // Every way into the application ends here, which makes it the one place that
+  // knows the session has changed.
+  for (const key of SESSION_SCOPED) localStorage.removeItem(key);
   localStorage.setItem(TOKEN_KEY, token);
 }
 

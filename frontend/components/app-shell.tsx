@@ -70,6 +70,9 @@ const ACCOUNT_LINKS: NavLink[] = [
   },
 ];
 
+/** Whether the navigation column keeps its place. "0" means someone put it away. */
+const NAV_PINNED_KEY = "ariadne.nav";
+
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useTranslations("nav");
   const router = useRouter();
@@ -79,18 +82,32 @@ export function AppShell({ children }: { children: ReactNode }) {
   const active = activeProject;
   const waiting = pendingCount;
 
-  // The column is away by default and comes back on approach, so a screen is
-  // the screen and not a frame around one. Two ways for it to be there: pinned
-  // from the title bar, or reached for with the pointer. Either way it floats
-  // over the page rather than taking a place in the row, so nothing under it
-  // moves sideways when it arrives.
-  const [navPinned, setNavPinned] = useState(false);
+  // Two ways for the column to be there, and they behave differently on
+  // purpose. Pinned, it is part of the row and the page sits beside it, which
+  // is what an application's navigation normally does. Reached for with the
+  // pointer, it floats over the page and nothing moves sideways.
+  //
+  // It used to start away and unpin itself again on every navigation, so there
+  // was no way to keep it: you pinned it, clicked a link, and it was gone. On a
+  // new account there was nothing on screen saying navigation existed at all -
+  // one unlabelled icon in the title bar and a strip of edge to discover by
+  // accident. It starts pinned now and remembers being unpinned, so anyone who
+  // wants the bare screen says so once.
+  const [navPinned, setNavPinned] = useState(true);
   const [navNear, setNavNear] = useState(false);
   const navShown = navPinned || navNear;
 
-  // Arriving somewhere puts the frame away again: the column has done its job
-  // the moment the screen changes.
-  useEffect(() => setNavPinned(false), [pathname]);
+  // Read after mount, not in the initialiser: these screens are prerendered
+  // where localStorage does not exist.
+  useEffect(() => {
+    setNavPinned(localStorage.getItem(NAV_PINNED_KEY) !== "0");
+  }, []);
+
+  const toggleNav = () => {
+    const next = !navPinned;
+    setNavPinned(next);
+    localStorage.setItem(NAV_PINNED_KEY, next ? "1" : "0");
+  };
 
   const signOut = () => {
     clearToken();
@@ -104,7 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <TitleBar
         project={active?.name}
         navOpen={navPinned}
-        onToggleNav={() => setNavPinned(!navPinned)}
+        onToggleNav={toggleNav}
       />
 
       <div
@@ -134,11 +151,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         <AnimatePresence initial={false}>
           {navShown ? (
             <m.nav
-              initial={{ x: "-100%" }}
+              initial={navPinned ? false : { x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={enterTransition}
-              className="absolute inset-y-0 left-0 z-30 flex w-[68px] flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 shadow-lifted lg:w-[236px] lg:p-4"
+              // Pinned it holds a place in the row, so the page is beside it
+              // rather than under it. Only the reached-for form floats, and only
+              // that one casts a shadow, because only that one is above
+              // something.
+              className={`flex w-[68px] shrink-0 flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 lg:w-[236px] lg:p-4 ${
+                navPinned ? "relative" : "absolute inset-y-0 left-0 z-30 shadow-lifted"
+              }`}
             >
               <ProjectSwitcher projects={projects ?? []} active={active} />
 

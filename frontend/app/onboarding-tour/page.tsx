@@ -1,6 +1,7 @@
 "use client";
 
 import { m, useReducedMotion } from "motion/react";
+import { StepMarker } from "@/components/step-marker";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -48,7 +49,7 @@ export default function TourScreen() {
       {/* Vertically centred: the tour is a ceremony of three sentences, and
           text pinned to the top of an empty window read as an unfinished page. */}
       <main className="grid min-h-0 flex-1 place-content-center overflow-y-auto px-6 py-9 lg:px-8">
-        <div className="mx-auto flex w-full max-w-[880px] gap-8">
+        <div className="mx-auto flex w-full max-w-[1000px] gap-12">
           {/* The thread. One stroke drawing itself down to where the reader is,
               which is the only decoration in the product and the reason it is
               here rather than a row of dots: it is the same line the app claims
@@ -74,15 +75,13 @@ export default function TourScreen() {
 
             {STEPS.map((name, index) => {
               const reached = index <= step;
+              const current = index === step;
               return (
-                <li key={name} className="flex h-5 items-center gap-4">
-                  {/* Opaque fill on both states, because the thread runs behind
-                      the markers and a hollow one would have a line through it. */}
-                  <span
-                    className={`block h-[10px] w-[10px] shrink-0 transition-colors duration-state ease-out-quint ${
-                      reached ? "bg-thread" : "border border-edge bg-plaster"
-                    }`}
-                  />
+                <li key={name} className="flex h-6 items-center gap-3">
+                  {/* Knots on a thread, round like the wizard's. Opaque fill on
+                      both states, because the thread runs behind the markers and
+                      a hollow one would have a line through it. */}
+                  <StepMarker state={current ? "current" : reached ? "done" : "upcoming"} />
                   <span
                     className={`whitespace-nowrap text-label uppercase tracking-[0.12em] ${
                       reached ? "text-ink" : "text-ink-3"
@@ -111,20 +110,23 @@ export default function TourScreen() {
               </p>
             </FadeIn>
 
-            <div className="flex flex-wrap items-center gap-4 pt-8">
+            {/* Together, and in the order they are used: the way on first, then
+                back, then out. ml-auto used to throw "skip" and "next" to
+                opposite ends of a row several hundred pixels wide, which reads
+                as two unrelated controls rather than one set of choices about
+                the same screen. Same arrangement the wizard uses. */}
+            <div className="flex flex-wrap items-center gap-6 pt-8">
+              <Button onClick={() => (last ? leave("/home") : setStep(step + 1))}>
+                {last ? t("start") : t("next")}
+              </Button>
+              {step > 0 ? (
+                <Button variant="quiet" onClick={() => setStep(step - 1)}>
+                  {t("back")}
+                </Button>
+              ) : null}
               <Button variant="quiet" onClick={() => leave("/home")}>
                 {t("skip")}
               </Button>
-              <div className="ml-auto flex gap-4">
-                {step > 0 ? (
-                  <Button variant="secondary" onClick={() => setStep(step - 1)}>
-                    {t("back")}
-                  </Button>
-                ) : null}
-                <Button onClick={() => (last ? leave("/home") : setStep(step + 1))}>
-                  {last ? t("start") : t("next")}
-                </Button>
-              </div>
             </div>
           </div>
         </div>

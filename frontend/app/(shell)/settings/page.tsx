@@ -512,7 +512,7 @@ function TokensSection({ toast }: { toast: Toast }) {
               id="settings-token-workspace"
               value={workspaceId}
               onChange={(event) => setWorkspaceId(event.target.value)}
-              className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none transition-colors duration-state focus:border-thread focus:ring-2 focus:ring-thread/15"
+              className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none transition-colors duration-state focus:border-aegean focus:ring-2 focus:ring-aegean/25"
             >
               {workspaces.map((workspace) => (
                 <option key={workspace.id} value={workspace.id}>

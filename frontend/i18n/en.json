@@ -27,16 +27,9 @@
     "submitBusy": "Checking",
     "switchToRegister": "Sign up",
     "switchToLogin": "Sign in",
-    "server": {
-      "checking": "Checking the Ariadne server at {url}",
-      "up": "The Ariadne server at {url} is responding",
-      "down": "The Ariadne server at {url} is not responding",
-      "retry": "Try again",
-      "downMeans": "Without it you cannot enter the base and nothing will be saved."
-    },
     "error": {
       "credentials": "This address and password do not match. Check the password or create an account.",
-      "server": "The Ariadne server at {url} is not responding. Start it and try again.",
+      "server": "There is no connection to Ariadne. Check your network and try again.",
       "emailTaken": "An account already uses this address. Enter it with your password.",
       "emailShape": "That does not look like an email address. Check it.",
       "passwordShort": "The password needs at least 8 characters.",

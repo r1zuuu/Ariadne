@@ -27,16 +27,9 @@
     "submitBusy": "Sprawdzam",
     "switchToRegister": "Zarejestruj się",
     "switchToLogin": "Zaloguj się",
-    "server": {
-      "checking": "Sprawdzam serwer Ariadne na {url}",
-      "up": "Serwer Ariadne na {url} odpowiada",
-      "down": "Serwer Ariadne na {url} nie odpowiada",
-      "retry": "Spróbuj ponownie",
-      "downMeans": "Bez niego nie wejdziesz do bazy i nic się nie zapisze."
-    },
     "error": {
       "credentials": "Ten adres i hasło nie pasują do siebie. Sprawdź hasło albo załóż konto.",
-      "server": "Serwer Ariadne na {url} nie odpowiada. Uruchom go i spróbuj ponownie.",
+      "server": "Nie ma połączenia z Ariadne. Sprawdź sieć i spróbuj ponownie.",
       "emailTaken": "Na ten adres jest już konto. Wejdź na nie hasłem.",
       "emailShape": "To nie wygląda na adres e-mail. Sprawdź go.",
       "passwordShort": "Hasło musi mieć co najmniej 8 znaków.",
@@ -239,7 +232,7 @@
     "memory": "Dodaj do pamięci",
     "pending": "Do zatwierdzenia",
     "settings": "Ustawienia",
-    "tour": "Oprowadź mnie po Ariadne",
+    "tour": "Oprowadź mnie",
     "signOut": "Wyloguj się",
     "needsProject": "Najpierw wybierz projekt",
     "noProject": "Brak projektu",

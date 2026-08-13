@@ -64,10 +64,10 @@ export function Composer({
       {/* The most important object in the product, and the one thing allowed to
           borrow the thread while it is awake: focus pulls the left edge taut
           in madder and lifts the paper. Everything else on screen stays flat. */}
-      <div className="group relative rounded-card border border-edge/80 bg-elevated shadow-lifted transition-[border-color,box-shadow] duration-state focus-within:border-thread-lift">
+      <div className="group relative rounded-card border border-edge/80 bg-elevated shadow-lifted transition-[border-color,box-shadow] duration-state focus-within:border-aegean">
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-[10px] left-0 top-[10px] w-[2px] origin-top scale-y-0 bg-thread transition-transform duration-enter ease-out-quint group-focus-within:scale-y-100"
+          className="pointer-events-none absolute bottom-[10px] left-0 top-[10px] w-[2px] origin-top scale-y-0 bg-aegean transition-transform duration-enter ease-out-quint group-focus-within:scale-y-100"
         />
         <textarea
           ref={field}
@@ -95,9 +95,13 @@ export function Composer({
       </div>
 
       {/* Questions, not chips: each suggestion reads as a line you could have
-          written, marked by the thread taking it up on hover. */}
+          written, marked by the thread taking it up on hover.
+
+          A grid, not wrapped centring. Four centred lines of different lengths
+          made two rows that shared no edge with each other and none with the
+          composer above them. */}
       {suggestions.length ? (
-        <ul className="flex flex-wrap justify-center gap-x-7 gap-y-2 pt-4">
+        <ul className="mx-auto grid max-w-[620px] grid-cols-1 gap-x-8 gap-y-1 pt-4 sm:grid-cols-2">
           {suggestions.map((suggestion) => (
             <li key={suggestion}>
               <button

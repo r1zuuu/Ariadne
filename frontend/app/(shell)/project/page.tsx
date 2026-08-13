@@ -288,7 +288,7 @@ function EditCard({
           id="etap"
           value={draft.etap}
           onChange={set("etap")}
-          className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-thread focus:ring-2 focus:ring-thread/15"
+          className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-aegean focus:ring-2 focus:ring-aegean/25"
         >
           {/* The full sentence here, the one word on the badge above: this is
               where the choice is made and the badge is only read back. */}
