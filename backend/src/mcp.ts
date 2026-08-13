@@ -111,7 +111,9 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     ({ repo_ref, query, k }) =>
       run(async () => {
         const project = await resolveProjectByRepoRef(workspaceId, repo_ref);
-        return { results: await searchNodes({ userId, projectId: project.id, query, k }) };
+        return {
+          results: await searchNodes({ userId, projectId: project.id, query, k, channel: "coder" }),
+        };
       }),
   );
 
@@ -130,7 +132,17 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
         content: z.string().describe("the thought itself, written for a human to read"),
         anchors: z.array(anchorSchema).optional().describe("files this thought is about"),
         source: z.object({
-          session_id: z.string().describe("uuid you generated at the start of this session"),
+          // It used to say "uuid you generated at the start of this session",
+          // which reads as a fact being reported and is not one: there is no
+          // session id to look up, so a model invents a fresh uuid per call and
+          // the field records nothing. Saying what it is for is what makes it
+          // worth anything - one value reused across a run groups those entries
+          // on the review screen, which is the whole of its job.
+          session_id: z
+            .string()
+            .describe(
+              "any uuid you make up once per working session and then reuse for every call in that session; it only groups the entries from one run together on the review screen",
+            ),
           commit_sha: z.string().optional().describe("related commit, if there is one"),
         }),
         replaces_node_id: z

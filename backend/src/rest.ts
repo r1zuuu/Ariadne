@@ -585,7 +585,7 @@ export function createRestApp() {
   // shows how close a hit is, a coder reading prose does not need the number.
   app.post("/search", async (c) => {
     const { projectId, query, k } = await readBody(c, searchSchema);
-    return c.json(await searchNodes({ userId: userId(c), projectId, query, k }));
+    return c.json(await searchNodes({ userId: userId(c), projectId, query, k, channel: "app" }));
   });
 
   app.put("/nodes/:id", async (c) => {

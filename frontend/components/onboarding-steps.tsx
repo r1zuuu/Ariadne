@@ -245,7 +245,7 @@ export function ProjectStep({
           ))}
         </div>
       </Field>
-      <Field id="ograniczenia" label={t("label.limits")}>
+      <Field id="ograniczenia" label={t("label.limits")} alignTop>
         <GuardrailsField
           value={card.ograniczenia}
           onChange={(ograniczenia) => onChange({ ograniczenia })}
@@ -315,7 +315,7 @@ function GuardrailsField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={t("hint.limits")}
-        className="w-full resize-y bg-transparent text-body leading-7 text-ink outline-none placeholder:text-ink-3/70"
+        className="w-full resize-y bg-transparent text-body leading-7 text-ink outline-none placeholder:text-ink-3"
       />
       <div className="flex flex-wrap items-center gap-4 pt-2">
         <Button type="button" variant="secondary" onClick={() => picker.current?.click()}>
@@ -337,6 +337,57 @@ function GuardrailsField({
   );
 }
 
+/**
+ * The other answer to step 3: no project of your own, a code from somebody who
+ * already has one.
+ *
+ * This used to be a link to the settings screen sitting under the wizard's
+ * actions, which reads as abandoning the step rather than answering it, so the
+ * ordinary thing to do was to invent a project instead. That invented project
+ * lands in the private archive with the same repository address as the team's
+ * copy, and from then on the coder writes to whichever of the two its token
+ * belongs to, silently.
+ */
+export function JoinStep({
+  code,
+  error,
+  onCode,
+  onBack,
+}: {
+  code: string;
+  error: string | null;
+  onCode: (value: string) => void;
+  onBack: () => void;
+}) {
+  const t = useTranslations("onboarding.join");
+
+  return (
+    <div>
+      <h1 className="max-w-[24ch] text-title">{t("title")}</h1>
+      <p className="max-w-[62ch] pt-5 text-body text-ink-2">{t("lead")}</p>
+      <input
+        id="invite-code"
+        autoFocus
+        autoComplete="off"
+        spellCheck={false}
+        value={code}
+        onChange={(e) => onCode(e.target.value)}
+        placeholder={t("hint")}
+        className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 font-mono text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread"
+      />
+      {error ? <p className="max-w-[62ch] pt-4 text-small text-iron">{error}</p> : null}
+      <p className="max-w-[62ch] pt-4 text-small text-ink-3">{t("note")}</p>
+      <button
+        type="button"
+        onClick={onBack}
+        className="mt-5 rounded-control text-small text-thread underline underline-offset-2"
+      >
+        {t("back")}
+      </button>
+    </div>
+  );
+}
+
 // Step 3. Claude Code gets a command; the others get the same token with an
 // honest sentence saying there is no ready-made command for them.
 export function AgentStep({
@@ -344,14 +395,20 @@ export function AgentStep({
   token,
   failed,
   repoRef,
+  joinedWorkspace,
   onAgent,
   onRegenerate,
 }: {
   agent: Agent;
   token: string | null;
   failed: boolean;
-  /** What the project was filed under, which is what the coder has to send back. */
-  repoRef: string;
+  /** What the project was filed under, which is what the coder has to send back.
+   *  Null for somebody who joined a team: they have no project of their own, and
+   *  the address that matters is whichever of the team's projects they open. */
+  repoRef: string | null;
+  /** Set when this account arrived by invitation, so the step says which archive
+   *  the token it just minted actually reaches. */
+  joinedWorkspace: string | null;
   onAgent: (agent: Agent) => void;
   onRegenerate: () => void;
 }) {
@@ -395,9 +452,20 @@ export function AgentStep({
           a different one or none at all. */}
       <div className="mt-7 rounded-control border border-edge/60 bg-plaster-sunk p-5">
         <p className="max-w-[68ch] text-small text-ink">{t("onceOnly")}</p>
-        <p className="max-w-[68ch] pt-3 text-small text-ink">{t("whereToRun")}</p>
-        <p className="pt-3 font-mono text-data text-ink-2">{repoRef}</p>
-        <p className="max-w-[68ch] pt-3 text-small text-ink-2">{t("mustMatch")}</p>
+        {joinedWorkspace ? (
+          <>
+            <p className="max-w-[68ch] pt-3 text-small text-ink">
+              {t("joinedArchive", { name: joinedWorkspace })}
+            </p>
+            <p className="max-w-[68ch] pt-3 text-small text-ink-2">{t("joinedWhereToRun")}</p>
+          </>
+        ) : (
+          <>
+            <p className="max-w-[68ch] pt-3 text-small text-ink">{t("whereToRun")}</p>
+            <p className="pt-3 font-mono text-data text-ink-2">{repoRef}</p>
+            <p className="max-w-[68ch] pt-3 text-small text-ink-2">{t("mustMatch")}</p>
+          </>
+        )}
       </div>
 
       <div className="pt-6">

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { MemoryGraph } from "@/components/memory-graph";
+import { ProjectPlacement, useProjectPlacement } from "@/components/project-marks";
 import { useToast } from "@/components/toast";
 import {
   Button,
@@ -85,8 +86,9 @@ export default function ProjectScreen() {
                 {/* Stage and repository are both facts about the project, so
                     they are one metadata line rather than a tinted label beside
                     the name competing with it. */}
-                <div className="pt-3">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-3">
                   <Meta items={[t(`etap.${project.etap}`), project.repoRef]} />
+                  <ProjectPlacement project={project} />
                 </div>
               </div>
               {!editing ? (
@@ -96,6 +98,8 @@ export default function ProjectScreen() {
               ) : null}
             </div>
 
+
+            <DuplicateRepoNotice project={project} />
 
             {editing ? (
               <EditCard
@@ -136,6 +140,34 @@ export default function ProjectScreen() {
             </section>
           </>
       )}
+    </div>
+  );
+}
+
+/**
+ * One repository address, two archives, and a coder that resolves the address
+ * inside whichever archive its token belongs to. It picks one without a word,
+ * so half the entries land where the other half cannot see them.
+ *
+ * The check is a string match: the server normalises repo_ref before storing it,
+ * so every copy is already spelled one way. Shown here rather than only at
+ * creation because the pair is usually made by two people on two days.
+ */
+function DuplicateRepoNotice({ project }: { project: Project }) {
+  const t = useTranslations("project.duplicate");
+  const { sameRepoElsewhere } = useProjectPlacement(project);
+  if (!sameRepoElsewhere.length) return null;
+
+  return (
+    <div className="mb-5 rounded-control border border-ochre/40 bg-ochre/[0.07] p-5">
+      <p className="text-small font-medium text-ink">{t("title")}</p>
+      <p className="max-w-[70ch] pt-2 text-small text-ink-2">
+        {t("body", {
+          repo: project.repoRef,
+          where: sameRepoElsewhere.map((p) => `${p.name} (${p.workspaceName})`).join(", "),
+        })}
+      </p>
+      <p className="max-w-[70ch] pt-2 text-small text-ink-2">{t("fix")}</p>
     </div>
   );
 }

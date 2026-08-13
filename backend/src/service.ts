@@ -137,6 +137,23 @@ function reachableWorkspaces(userId: string) {
     .where(eq(memberships.userId, userId));
 }
 
+/**
+ * The caller's own account is gone.
+ *
+ * Every site below arrives with a userId taken from a verified token, so a
+ * missing row cannot mean "look somewhere else" - it means the account this
+ * session names no longer exists. Reported as an authentication failure because
+ * that is what it is, and because 404 leaves the dead session in place: the app
+ * only drops a token on 401, so every screen fails, nothing logs out, and the
+ * copy blames a server that answered perfectly well.
+ */
+function noSuchAccount(): ServiceError {
+  return new ServiceError(
+    "unauthorized",
+    "this session belongs to an account that no longer exists; sign in again",
+  );
+}
+
 async function assertMember(userId: string, workspaceId: string): Promise<"owner" | "member"> {
   assertUuid(userId, "userId");
   assertUuid(workspaceId, "workspaceId");
@@ -296,6 +313,16 @@ export async function createNode(input: {
   assertAnchors(anchors);
   const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
+  // Written from the app, or written by a coder on an account that has said it
+  // does not want to be asked. all_permission already meant that for edits and
+  // deletions; it means it for new entries too, which is the only reading under
+  // which the review screen is a gate rather than a list.
+  //
+  // Nobody watches which tools a coder calls mid-session, so the default has to
+  // be that nothing it writes counts until a person has seen it.
+  const settled =
+    input.source.channel !== "coder" || (await hasAllPermission(input.userId));
+
   // Network calls stay outside the transaction. The embedding goes first
   // because the conflict search needs the vector to find anything; the summary
   // and the search then run side by side, since neither waits on the other.
@@ -309,8 +336,8 @@ export async function createNode(input: {
   // The queue exists because a coder writes while nobody is watching. A person
   // writing in the app is watching, has just read the exact text on screen, and
   // is the one who would approve it a moment later - so their own entries are
-  // settled as they are written. Anything from a coder still waits.
-  const byHand = input.source.channel !== "coder";
+  // settled as they are written. A coder's wait, unless the account has said
+  // once and for all that it would rather not be asked.
 
   return db.transaction(async (tx) => {
     const [node] = await tx
@@ -323,9 +350,9 @@ export async function createNode(input: {
         content,
         summary,
         conflictsWith,
-        status: byHand ? "confirmed" : "proposed", // never taken from input
-        confirmedBy: byHand ? input.userId : null,
-        confirmedAt: byHand ? new Date() : null,
+        status: settled ? "confirmed" : "proposed", // never taken from input
+        confirmedBy: settled ? input.userId : null,
+        confirmedAt: settled ? new Date() : null,
         source: input.source,
         embedding,
       })
@@ -360,7 +387,7 @@ export async function createNode(input: {
 
     return {
       nodeId: node.id,
-      status: byHand ? "confirmed" : "proposed",
+      status: settled ? "confirmed" : "proposed",
       conflictsWith,
       contradictedNodeId,
     };
@@ -512,11 +539,21 @@ async function attachAnchors<T extends { id: string }>(rows: T[]) {
   }));
 }
 
+/**
+ * Semantic search over one project's archive.
+ *
+ * `channel` says who is asking, and it changes what comes back. Not a filter for
+ * tidiness: a coder reading its own unapproved proposals is the approval screen
+ * being decorative, since whatever it wrote a minute ago comes back as settled
+ * project knowledge in the next breath. Required rather than defaulted, so a new
+ * call site has to say which side it is on instead of inheriting the loose one.
+ */
 export async function searchNodes(input: {
   userId: string;
   projectId: string;
   query: string;
   k?: number;
+  channel: "coder" | "app";
 }) {
   assertUuid(input.userId, "userId");
   assertUuid(input.projectId, "projectId");
@@ -534,6 +571,7 @@ export async function searchNodes(input: {
 
   const queryVector = await embed(await geminiKey(input.userId), input.query, "RETRIEVAL_QUERY");
   const distance = cosineDistance(nodes.embedding, queryVector);
+  const toCoder = input.channel === "coder";
 
   // Metadata filters BEFORE similarity: they narrow, vectors rank (plan section 7).
   const found = await db
@@ -547,7 +585,10 @@ export async function searchNodes(input: {
       status: nodes.status,
       source: nodes.source,
       createdAt: nodes.createdAt,
-      author: users.email,
+      // An address is for the person reading the review screen, who knows their
+      // teammates. A coder has no use for one and every result it reads becomes
+      // part of a prompt, so the team's addresses stay out of it.
+      author: toCoder ? sql<null>`null` : users.email,
       similarity: sql<number>`1 - (${distance})`,
     })
     .from(nodes)
@@ -559,6 +600,15 @@ export async function searchNodes(input: {
         eq(nodes.workspaceId, workspaceId),
         eq(nodes.projectId, input.projectId),
         ne(nodes.status, "archived"),
+        // Everything a coder gets back has been through a person, either because
+        // someone approved it or because the account turned that requirement off
+        // and its entries are written settled.
+        toCoder ? eq(nodes.status, "confirmed") : undefined,
+        // A session summary is a note about a working session, useful to a person
+        // asking what happened last week and noise to a coder asking which ORM
+        // this project uses. The boot index already leaves them out; this is the
+        // same rule, applied where it was missed.
+        toCoder ? inArray(nodes.type, ["decision", "note"]) : undefined,
       ),
     )
     .orderBy(distance)
@@ -688,7 +738,7 @@ export async function getBootContext(input: {
     .select({ profile: users.profile })
     .from(users)
     .where(eq(users.id, input.userId));
-  if (!user) throw new ServiceError("not_found", "user not found");
+  if (!user) throw noSuchAccount();
 
   const [lastSummary] = await db
     .select({ content: nodes.content, createdAt: nodes.createdAt, author: users.email })
@@ -715,7 +765,11 @@ export async function getBootContext(input: {
     eq(nodes.workspaceId, input.workspaceId),
     eq(nodes.projectId, project.id),
     inArray(nodes.type, ["decision", "note"]),
-    inArray(nodes.status, ["proposed", "confirmed"]),
+    // Confirmed only. This used to include proposals, which meant a coder opened
+    // every session already believing whatever the last one wrote, before anyone
+    // had looked at it - and a headline carries no status, so there was nothing
+    // in the payload to tell it apart from a settled decision.
+    eq(nodes.status, "confirmed"),
   );
 
   // Without this the graph is invisible: the boot payload looks complete, so the
@@ -807,7 +861,7 @@ async function hasAllPermission(userId: string): Promise<boolean> {
     .select({ allPermission: users.allPermission })
     .from(users)
     .where(eq(users.id, userId));
-  if (!user) throw new ServiceError("not_found", "user not found");
+  if (!user) throw noSuchAccount();
   return user.allPermission;
 }
 
@@ -1307,7 +1361,7 @@ export async function changePassword(input: {
     .select({ passwordHash: users.passwordHash })
     .from(users)
     .where(eq(users.id, input.userId));
-  if (!user) throw new ServiceError("not_found", "user not found");
+  if (!user) throw noSuchAccount();
   // Here, unlike login, the caller is already holding this account's token, so
   // there is nobody to leak anything to and the accurate message is the useful
   // one. Setting a first password from this screen would be a different feature:
@@ -1380,7 +1434,7 @@ export async function getAccount(userId: string) {
     })
     .from(users)
     .where(eq(users.id, userId));
-  if (!user) throw new ServiceError("not_found", "user not found");
+  if (!user) throw noSuchAccount();
   // The key itself never leaves the server; whether there is a working one does.
   // "user" means one that still opens: a row sealed with a secret that has since
   // changed is as good as none, and saying otherwise would send someone hunting
@@ -1414,7 +1468,7 @@ export async function setGeminiKey(input: { userId: string; key: string }) {
     .set({ geminiKey: seal(key) })
     .where(eq(users.id, input.userId))
     .returning({ id: users.id });
-  if (!updated) throw new ServiceError("not_found", "user not found");
+  if (!updated) throw noSuchAccount();
   return { geminiKey: "user" as GeminiKeySource };
 }
 
@@ -1425,7 +1479,7 @@ export async function clearGeminiKey(userId: string) {
     .set({ geminiKey: null })
     .where(eq(users.id, userId))
     .returning({ id: users.id });
-  if (!updated) throw new ServiceError("not_found", "user not found");
+  if (!updated) throw noSuchAccount();
   return { geminiKey: "none" as GeminiKeySource };
 }
 
@@ -1445,7 +1499,7 @@ export async function updateProfile(input: { userId: string; profile: string }) 
     .set({ profile })
     .where(eq(users.id, input.userId))
     .returning({ profile: users.profile });
-  if (!updated) throw new ServiceError("not_found", "user not found");
+  if (!updated) throw noSuchAccount();
   return updated;
 }
 
@@ -1456,7 +1510,7 @@ export async function setAllPermission(input: { userId: string; allPermission: b
     .set({ allPermission: input.allPermission })
     .where(eq(users.id, input.userId))
     .returning({ allPermission: users.allPermission });
-  if (!updated) throw new ServiceError("not_found", "user not found");
+  if (!updated) throw noSuchAccount();
   return updated;
 }
 
@@ -1486,6 +1540,15 @@ export async function listWorkspaces(userId: string) {
       isOwner: sql<boolean>`${workspaces.ownerId} = ${userId}`,
       memberCount: sql<number>`(
         SELECT count(*)::int FROM memberships m WHERE m.workspace_id = ${workspaces.id}
+      )`,
+      // Who else is in here, so a screen can say "this project is shared, with
+      // these people" without a request per workspace. Addresses because that is
+      // the only name an account has: sign-in asks a provider for an email and a
+      // profile, never a picture, so there are no avatars to show.
+      members: sql<string[]>`(
+        SELECT coalesce(json_agg(u.email ORDER BY u.email), '[]'::json)
+        FROM memberships m JOIN users u ON u.id = m.user_id
+        WHERE m.workspace_id = ${workspaces.id}
       )`,
       createdAt: workspaces.createdAt,
     })
@@ -1653,7 +1716,7 @@ export async function acceptInvite(input: { userId: string; code: string }) {
     .select({ email: users.email })
     .from(users)
     .where(eq(users.id, input.userId));
-  if (!user) throw new ServiceError("not_found", "user not found");
+  if (!user) throw noSuchAccount();
 
   return db.transaction(async (tx) => {
     // The single use is the update itself: a second acceptance finds no row with

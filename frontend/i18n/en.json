@@ -165,7 +165,9 @@
       "tokenWhere": "Copy it now. Once you leave this screen you will not see it again.",
       "whereToRun": "Run this command inside this project's repository, not in some other directory. A coder reports the address of the repository it is standing in, and this project is filed under:",
       "mustMatch": "If the two do not match, the coder is told the repository is unknown. You can change the project's address at any time on its card.",
-      "onceOnly": "You run this command once per machine, not once per project. It covers all of your projects at once. A second attempt answers \"already exists in user config\", which means everything is connected already."
+      "onceOnly": "You run this command once per machine, not once per project. It covers all of your projects at once. A second attempt answers \"already exists in user config\", which means everything is connected already.",
+      "joinedArchive": "The token just created reaches the archive \"{name}\", the one you joined. What your coder writes, the whole team sees.",
+      "joinedWhereToRun": "Run your coder in the repository of whichever project you mean to write about. Each team project shows its address on its own card in the app."
     },
     "key": {
       "title": "Your Gemini key",
@@ -178,6 +180,17 @@
       "required": "A key is required. Requests to Gemini are paid for by the account that makes them, so without one you cannot write or search an entry.",
       "keptIfEmpty": "Leave it empty to keep the key you already have.",
       "requiredError": "Paste a Gemini key to go on."
+    },
+    "join": {
+      "title": "Join a team",
+      "lead": "Paste the invitation code you were given. You land in somebody else's archive together with its projects, so you do not need one of your own.",
+      "hint": "invitation-code",
+      "note": "The code is tied to your address. One written for somebody else will not work.",
+      "back": "I would rather start my own project",
+      "error": {
+        "empty": "Paste the invitation code.",
+        "bad": "That code does not work. Check that it is complete and was written for your address."
+      }
     }
   },
   "common": {
@@ -402,6 +415,12 @@
       "cancel": "Keep it",
       "ownerOnly": "Only the workspace owner can delete a project.",
       "failed": "The project could not be deleted. Try again."
+    },
+    "sharedIn": "shared in {name}",
+    "duplicate": {
+      "title": "This repository sits in two archives",
+      "body": "The address {repo} also belongs to: {where}. A coder picks the archive from the token it connects with, so it reaches only one of them and will not tell you which.",
+      "fix": "Keep the address on one project and change it on the other, or delete that project. To write to the team, generate a token for the shared archive in settings and swap it into your coder configuration."
     }
   },
   "entry": {
@@ -465,8 +484,8 @@
     "geminiRemove": "Remove key",
     "geminiRemoved": "Key removed",
     "autoApprove": "Automatic approval",
-    "autoApproveIsOff": "Edits and removals an agent asks for wait in the queue for your decision. New entries always go to the queue, whatever this is set to.",
-    "autoApproveIsOn": "An agent corrects and archives entries on the spot, without asking. New entries still wait for approval.",
+    "autoApproveIsOff": "Everything the agent writes waits for you in the queue: new entries, edits and deletions alike. Until you approve it the agent cannot see it, so it will not build its next answer on it.",
+    "autoApproveIsOn": "The agent writes, edits and archives immediately, without asking. Its entries count as project memory from the first second and come back in search. The review queue stays empty.",
     "turnOn": "Turn on",
     "turnOff": "Turn off",
     "autoApproveOn": "Automatic approval is on.",

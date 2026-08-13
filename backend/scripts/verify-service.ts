@@ -58,7 +58,13 @@ const seedNodes: Array<{ type: "decision" | "note" | "session_summary"; content:
 
 console.log("Seeding 10 nodes...");
 for (const n of seedNodes) {
-  await service.createNode({ userId: user.id, projectId: project.id, type: n.type, content: n.content, anchors: n.anchors, source });
+  const created = await service.createNode({ userId: user.id, projectId: project.id, type: n.type, content: n.content, anchors: n.anchors, source });
+  // The seed arrives over the coder channel, so it lands as a proposal on an
+  // account with all_permission off, and the boot index only carries confirmed
+  // entries. Approving here is what a person would do before opening a session;
+  // without it the index section below would report an empty archive and prove
+  // nothing.
+  await service.confirmNode({ userId: user.id, nodeId: created.nodeId });
 }
 
 const queries = [
@@ -69,7 +75,7 @@ const queries = [
 
 for (const query of queries) {
   console.log(`\n=== "${query}"`);
-  const results = await service.searchNodes({ userId: user.id, projectId: project.id, query, k: 3 });
+  const results = await service.searchNodes({ userId: user.id, projectId: project.id, query, k: 3, channel: "app" });
   for (const r of results) {
     console.log(`  ${r.similarity.toFixed(3)} [${r.type}] ${r.content.slice(0, 90)}...`);
   }
@@ -90,7 +96,7 @@ console.log(`  index: ${boot.index.showing} of ${boot.index.total} entries`);
 console.log(`  by file: ${boot.index.by_file.map((f) => `${f.path} (${f.entries})`).join(", ")}`);
 
 console.log("\n=== lifecycle smoke");
-const search = await service.searchNodes({ userId: user.id, projectId: project.id, query: "hono", k: 1 });
+const search = await service.searchNodes({ userId: user.id, projectId: project.id, query: "hono", k: 1, channel: "app" });
 const nodeId = search[0].id;
 const pendingUpdate = await service.requestUpdate({
   userId: user.id,
@@ -100,18 +106,18 @@ const pendingUpdate = await service.requestUpdate({
 });
 if (pendingUpdate.applied) throw new Error("expected pending, allPermission=false");
 await service.approvePending({ userId: user.id, pendingActionId: pendingUpdate.pendingActionId });
-const after = await service.searchNodes({ userId: user.id, projectId: project.id, query: "middleware auth", k: 1 });
+const after = await service.searchNodes({ userId: user.id, projectId: project.id, query: "middleware auth", k: 1, channel: "app" });
 if (after[0].id !== nodeId) throw new Error("updated node should match its new content best");
 await service.confirmNode({ userId: user.id, nodeId });
 await service.archiveNode({ userId: user.id, nodeId });
-const archived = await service.searchNodes({ userId: user.id, projectId: project.id, query: "hono", k: 10 });
+const archived = await service.searchNodes({ userId: user.id, projectId: project.id, query: "hono", k: 10, channel: "app" });
 if (archived.some((r) => r.id === nodeId)) throw new Error("archived node must not appear in search");
 console.log("  update->approve->recompute, confirm, archive: OK");
 
 // The replaces path, which the REST script cannot reach: nodes are only ever
 // written through MCP. It runs one transaction that inserts the new node and
 // points the old one at it, and nothing else proves that order holds.
-const [replaced] = await service.searchNodes({ userId: user.id, projectId: project.id, query: "drizzle studio", k: 1 });
+const [replaced] = await service.searchNodes({ userId: user.id, projectId: project.id, query: "drizzle studio", k: 1, channel: "app" });
 const successor = await service.createNode({
   userId: user.id,
   projectId: project.id,

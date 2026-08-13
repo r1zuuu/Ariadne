@@ -19,6 +19,11 @@ import {
 // so it happens, and what comes back says what was recorded.
 
 const MAX_MESSAGE = 2000;
+// ponytail: the entries handed to the model are the five closest in meaning to
+// the question, so "what was the last decision" is answered from a semantic
+// sample rather than from the archive's tail. Correct while a project holds a
+// handful of entries, since the sample is then everything; blend the newest few
+// into the retrieved set when an archive outgrows that.
 const RETRIEVED = 5;
 
 type Retrieved = Awaited<ReturnType<typeof searchNodes>>[number];
@@ -37,10 +42,30 @@ function assertMessage(message: string) {
 // The metadata sits on its own bracketed line and the content is fenced. Run
 // together on one line, the editor copied the metadata into the rewritten
 // content as if it were the entry's first sentence.
+/**
+ * Newest first, because "which of these came last" is a question a list answers
+ * and a pile does not.
+ *
+ * Sorted here rather than inside asContext: the model cites entries by their
+ * bracketed number and the app resolves that number back against the sources it
+ * was handed, so the order in the prompt and the order on screen have to be the
+ * same one. Reordering only the prompt would have every citation point at the
+ * wrong entry.
+ */
+function newestFirst(found: Retrieved[]): Retrieved[] {
+  return [...found].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+}
+
 function asContext(found: Retrieved[]): string {
   return found
     .map((node, i) => {
-      const when = new Date(node.createdAt).toISOString().slice(0, 10);
+      // Minutes, not just the day. This used to be sliced to 10 characters, so
+      // everything written in one working session arrived stamped with the same
+      // date and "what was the last decision" had no answer in the material -
+      // the model said so, correctly, and looked broken doing it.
+      const when = new Date(node.createdAt).toISOString().slice(0, 16).replace("T", " ");
       const where = node.anchors?.map((a) => a.path).join(", ");
       return [
         `[${i + 1}] (${node.type}, ${node.status}, ${when}${where ? `, files: ${where}` : ""})`,
@@ -62,6 +87,11 @@ const ANSWER_RULES = [
   "Cite with the bracketed number of the entry you used, like [2], right after the claim it supports.",
   "Be short. Two or three sentences unless the question genuinely needs more.",
   "Never invent a date, a file path or a decision that is not in the entries.",
+  "The entries are ordered newest first and each carries the date and time it was written, so [1] is the most recent of them.",
+  // The entries are the ones closest in meaning to the question, not the whole
+  // archive, so "the latest" can only ever be the latest of these. Saying which
+  // is a fact; saying it is the project's last word is a guess.
+  "When asked what is most recent, answer from that order and say it is the most recent of the entries shown, not of the whole archive.",
 ].join(" ");
 
 // Yields the sources first and then the answer in pieces. Sources go first on
@@ -82,15 +112,19 @@ export async function* answerQuestion(input: {
     projectId: input.projectId,
     query: input.question,
     k: RETRIEVED,
+    // The app's own agent answers a person who is looking at the screen and can
+    // see an entry's status next to it, so it reads the archive as the app does.
+    channel: "app",
   });
 
-  yield { type: "sources", sources: found };
+  const ordered = newestFirst(found);
+  yield { type: "sources", sources: ordered };
 
   if (!found.length) return;
 
   for await (const text of generateStream(await geminiKey(input.userId), {
     system: ANSWER_RULES,
-    user: `Entries:\n\n${asContext(found)}\n\nQuestion: ${input.question}`,
+    user: `Entries:\n\n${asContext(ordered)}\n\nQuestion: ${input.question}`,
   })) {
     yield { type: "delta", text };
   }
@@ -144,6 +178,7 @@ export async function proposeEdits(input: {
     projectId: input.projectId,
     query: input.message,
     k: RETRIEVED,
+    channel: "app",
   });
 
   const answer = await generateJson<{ reply: string; proposals: Proposal[] }>(

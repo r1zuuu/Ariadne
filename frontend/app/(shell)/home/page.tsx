@@ -140,7 +140,12 @@ export default function HomeScreen() {
         <EmptyState
           title={t("empty.title")}
           note={t("empty.note")}
-          action={<Button onClick={() => router.push("/onboarding")}>{t("empty.action")}</Button>}
+          // The project form, not the wizard. This screen is only reachable by
+          // an account that has already been through onboarding and has no
+          // project right now - it deleted its last one, or left a team - and
+          // sending it back through the wizard would ask for a profile and a key
+          // it already has, then overwrite the profile with whatever was typed.
+          action={<Button onClick={() => router.push("/project/new")}>{t("empty.action")}</Button>}
         />
       ) : (
         <>

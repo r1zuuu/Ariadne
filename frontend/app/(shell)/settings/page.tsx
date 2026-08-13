@@ -19,6 +19,7 @@ import {
 } from "@/components/ui";
 import {
   acceptInvite,
+  ApiError,
   changePassword,
   clearGeminiKey,
   createInvite,
@@ -64,7 +65,18 @@ export default function SettingsScreen() {
     // state with a retry is the difference between stuck and delayed.
     void getAccount()
       .then(setAccount)
-      .catch(() => setAccountError(true));
+      .catch((caught) => {
+        // A rejected request is not an absent server. On 401 the client has
+        // already dropped the token, so there is nothing on this screen to
+        // retry: the session is over and the entrance is the only place to go.
+        // Telling someone to check that a server is running, when that server
+        // just answered, sends them looking in the wrong place entirely.
+        if (caught instanceof ApiError && caught.status === 401) {
+          window.location.href = "/";
+          return;
+        }
+        setAccountError(true);
+      });
   }, []);
 
   useEffect(loadAccount, [loadAccount]);
