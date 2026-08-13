@@ -15,6 +15,7 @@ import type { Project, Workspace } from "@/lib/api";
 /** Two letters from an address. There are no avatars: sign-in asks a provider
  *  for an email and a profile, never a picture. */
 export function initialsOf(email: string): string {
+  if (!email) return "?";
   const name = email.split("@")[0] ?? email;
   const parts = name.split(/[._-]+/).filter(Boolean);
   const letters = parts.length > 1 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
@@ -50,15 +51,24 @@ export function useProjectPlacement(project: Project | null) {
     workspace,
     /** More than one person can read it, so it is somebody else's work too. */
     shared: (workspace?.memberCount ?? 1) > 1,
+    /** The addresses, or none if this server does not send them yet. */
+    members: workspace?.members ?? [],
     /** Worth naming the archive only when there is more than one to confuse. */
     showWorkspace: workspaces.length > 1,
     sameRepoElsewhere,
   };
 }
 
-export function MemberMarks({ emails, max = 3 }: { emails: string[]; max?: number }) {
-  const shown = emails.slice(0, max);
-  const rest = emails.length - shown.length;
+export function MemberMarks({ emails, max = 3 }: { emails?: string[]; max?: number }) {
+  // Absent, not merely empty. A server one deploy behind this build does not
+  // send the field at all, and a component that renders a list has no business
+  // taking the whole screen down when the list is missing - every deploy has a
+  // window where the two sides disagree, and the answer to that is to draw
+  // nothing, not to throw.
+  const all = emails ?? [];
+  const shown = all.slice(0, max);
+  const rest = all.length - shown.length;
+  if (!shown.length) return null;
 
   return (
     // Overlapped, which is what says "these are one group" rather than three
@@ -94,7 +104,7 @@ export function ProjectPlacement({ project }: { project: Project }) {
 
   return (
     <span className="flex min-w-0 items-center gap-2">
-      {shared ? <MemberMarks emails={workspace.members} /> : null}
+      {shared ? <MemberMarks emails={workspace.members ?? []} /> : null}
       <span className="truncate text-data text-ink-3">
         {shared ? t("sharedIn", { name: workspace.name }) : workspace.name}
       </span>

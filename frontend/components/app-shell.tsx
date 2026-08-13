@@ -317,7 +317,7 @@ function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Pr
               <>
                 <span aria-hidden="true">/</span>
                 <span className="truncate">{placement.workspace.name}</span>
-                {placement.shared ? <MemberMarks emails={placement.workspace.members} max={2} /> : null}
+                {placement.shared ? <MemberMarks emails={placement.members} max={2} /> : null}
               </>
             ) : null}
           </span>
