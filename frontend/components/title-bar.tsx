@@ -4,33 +4,30 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { serverUrl } from "@/lib/api";
 
 // 38px, plaster-sunk, one hairline underneath. Application name and open project
-// on the left, server state in words plus the window controls on the right.
+// on the left, the window controls on the right.
 //
 // The controls are not rendered outside Tauri: a browser cannot close its own
 // window from a button, and a dead control is worse than no control. They arrive
 // with the Tauri shell, which also decides their side (right on Windows, left on
 // macOS) rather than this component guessing.
-
-export type ServerState = "checking" | "up" | "down";
-
-// Screen 01 puts the server line under the form, where the eye already is when
-// the button will not submit, so the bar leaves it out there rather than saying
-// the same thing twice on one screen.
+//
+// The bar used to carry the server's address and whether it answered. That was
+// written when the backend ran on the reader's own machine and starting it was
+// something they could do. It is hosted now: the address means nothing to the
+// person reading it, and "the server answers" is a sentence nobody needs on a
+// working day. The one state worth reporting already has a better home, on the
+// main screen, as a banner with a retry button and no hostname in it.
 export function TitleBar({
   project,
-  server,
   navOpen,
   onToggleNav,
 }: {
   project?: string;
-  server?: ServerState;
   navOpen?: boolean;
   onToggleNav?: () => void;
 }) {
-  const t = useTranslations("auth.server");
   const tNav = useTranslations("nav");
 
   return (
@@ -73,16 +70,7 @@ export function TitleBar({
         <span className="display-serif text-[15px] tracking-[0.08em] text-ink">ARIADNE</span>
         {project ? <span className="text-small text-ink-2">{project}</span> : null}
       </div>
-      <div className="flex items-center gap-5">
-        {/* Words, not a coloured dot: the reader should not have to learn what
-            green means before trusting the app. */}
-        {server ? (
-          <span className={`text-data ${server === "down" ? "text-iron" : "text-ink-3"}`}>
-            {t(server, { url: serverUrl.replace(/^https?:\/\//, "") })}
-          </span>
-        ) : null}
-        <WindowControls />
-      </div>
+      <WindowControls />
     </header>
   );
 }

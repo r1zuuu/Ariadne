@@ -10,7 +10,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { ServerState } from "@/components/title-bar";
+/**
+ * Whether the backend answers. Read by the main screen, which turns "down" into
+ * a banner over stale data; nothing else needs to know, and nothing shows the
+ * other two states.
+ */
+export type ServerState = "checking" | "up" | "down";
 import {
   ApiError,
   getPending,
