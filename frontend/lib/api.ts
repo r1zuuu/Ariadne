@@ -1,6 +1,9 @@
 // The only place that talks to the backend. Every screen goes through request().
 
-const BASE = process.env.NEXT_PUBLIC_ARIADNE_URL ?? "http://localhost:3000";
+// Trailing slash trimmed: this is pasted by hand into .env.local, and one at the
+// end turns every call into BASE//path, which answers 404 and looks like a
+// broken server rather than a typo.
+const BASE = (process.env.NEXT_PUBLIC_ARIADNE_URL ?? "http://localhost:3000").replace(/\/+$/, "");
 const TOKEN_KEY = "ariadne.jwt";
 
 export const serverUrl = BASE;
