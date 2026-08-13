@@ -73,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const t = useTranslations("nav");
   const router = useRouter();
   const pathname = usePathname();
-  const { projects, activeProject, pendingCount, server } = useApp();
+  const { projects, activeProject, pendingCount } = useApp();
 
   const active = activeProject;
   const waiting = pendingCount;
@@ -102,7 +102,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex h-full flex-col">
       <TitleBar
         project={active?.name}
-        server={server}
         navOpen={navPinned}
         onToggleNav={() => setNavPinned(!navPinned)}
       />
