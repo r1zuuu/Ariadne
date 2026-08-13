@@ -48,9 +48,21 @@ import {
   searchNodes,
   setAllPermission,
   setGeminiKey,
+  signInWithProvider,
   updateProfile,
   updateProject,
 } from "./service.js";
+import {
+  authorizeUrl,
+  collect,
+  configured,
+  identify,
+  isHandoff,
+  isProvider,
+  issueState,
+  park,
+  readState,
+} from "./oauth.js";
 
 // The REST API of plan section 10. Same shape as mcp.ts: schema in, service
 // call, result out. No business logic here.
@@ -245,6 +257,17 @@ const STATUS_BY_CODE: Record<ServiceError["code"], 400 | 401 | 404 | 429> = {
   not_found: 404,
 };
 
+// The last thing a person sees in the browser before going back to the window
+// they started in. Deliberately one sentence and no styling: it exists so the
+// tab is not blank, and anything more would be a second front end to maintain.
+function closingPage(message: string): string {
+  const safe = message.replace(
+    /[&<>"]/g,
+    (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch] ?? ch,
+  );
+  return `<!doctype html><meta charset="utf-8"><title>Ariadne</title><body style="font:16px/1.6 system-ui;max-width:34rem;margin:20vh auto;padding:0 1.5rem;color:#1a1a1a"><p>${safe}</p></body>`;
+}
+
 export function createRestApp() {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET is not set (add it to ../.env)");
@@ -334,6 +357,75 @@ export function createRestApp() {
     // Logged in straight away: onboarding starts on the next screen, not on a
     // second form asking for the password just typed.
     return c.json({ token: await issueToken(userId) }, 201);
+  });
+
+  // --- Public: sign-in through Google and GitHub ---
+  //
+  // Three routes, and only the first is called by the app's own code. The other
+  // two are visited by a browser window, so neither may answer with JSON: a
+  // person looking at a raw error object has nothing to click. Every failure
+  // goes back to where it came from with a reason in the fragment.
+
+  // Which buttons to draw. A server deployed without GitHub credentials should
+  // not show a GitHub button that can only fail.
+  app.get("/auth/providers", (c) => c.json({ providers: configured() }));
+
+  app.get("/auth/:provider/start", async (c) => {
+    const provider = c.req.param("provider");
+    if (!isProvider(provider)) throw new ServiceError("not_found", "unknown sign-in provider");
+    // The app made this up before opening the browser and is already polling for
+    // it. It is not a secret the server keeps, it is the name of the shelf the
+    // answer goes on.
+    const handoff = c.req.query("handoff");
+    if (!isHandoff(handoff)) throw new ServiceError("validation", "handoff is missing or malformed");
+    return c.redirect(authorizeUrl(provider, await issueState(provider, handoff)));
+  });
+
+  app.get("/auth/:provider/callback", async (c) => {
+    const provider = c.req.param("provider");
+    if (!isProvider(provider)) throw new ServiceError("not_found", "unknown sign-in provider");
+
+    // Reading the state comes first, because it names the shelf. Failing it is
+    // the one case with nowhere to leave an answer, so it is also the one case
+    // that reports in the browser instead of to the app.
+    let handoff: string;
+    try {
+      handoff = await readState(c.req.query("state"), provider);
+    } catch {
+      return c.html(closingPage("This sign-in link is no longer valid."), 400);
+    }
+
+    try {
+      // The person pressed cancel on the provider's consent screen. Not an error
+      // worth a stack trace, but the app has to stop waiting.
+      const denied = c.req.query("error");
+      const code = c.req.query("code");
+      if (denied || !code) {
+        park(handoff, { error: denied === "access_denied" ? "cancelled" : (denied ?? "no_code") });
+        return c.html(closingPage("Sign-in was cancelled."));
+      }
+
+      const identity = await identify(provider, code);
+      const { userId } = await signInWithProvider({ provider, ...identity });
+      park(handoff, { token: await issueToken(userId) });
+      return c.html(closingPage("You are signed in. You can close this tab and go back to Ariadne."));
+    } catch (caught) {
+      // The app shows this string, so a ServiceError's message is the copy the
+      // person reads. Anything else is a bug and says nothing useful.
+      const reason = caught instanceof ServiceError ? caught.message : "sign_in_failed";
+      park(handoff, { error: reason });
+      return c.html(closingPage(reason));
+    }
+  });
+
+  // What the app polls. 204 means "nothing on that shelf yet", which is also the
+  // honest answer for an id that never existed: the two are the same to a caller
+  // who is entitled to neither.
+  app.get("/auth/handoff/:id", (c) => {
+    const id = c.req.param("id");
+    if (!isHandoff(id)) throw new ServiceError("validation", "handoff is malformed");
+    const result = collect(id);
+    return result ? c.json(result) : c.body(null, 204);
   });
 
   app.post("/auth/login", async (c) => {
