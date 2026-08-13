@@ -108,7 +108,7 @@ export async function serverReachable(): Promise<boolean> {
  * the server's, or none, in which case writing an entry and both chats stop
  * working until one is set.
  */
-export type GeminiKeySource = "user" | "server" | "none";
+export type GeminiKeySource = "user" | "none";
 
 /** Where a person gets one. Named here because two screens send them there. */
 export const GEMINI_KEY_CONSOLE = "https://aistudio.google.com/apikey";

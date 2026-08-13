@@ -79,8 +79,12 @@ export function ProfileStep({
 // Step 2. The one thing on this screen that is not about the person or their
 // project: without a key to Google, Ariadne cannot embed an entry or answer a
 // question, and finding that out later on a chat that says nothing is the worst
-// possible way to learn it. Skippable all the same, and the step says what
-// skipping costs rather than blocking the way through.
+// possible way to learn it.
+//
+// The only step with no way past it. Every call to Google is paid for by the
+// account that made it, so an account without a key is an account that cannot
+// write an entry or run a search - and walking someone through the rest of the
+// wizard first would only move the wall further from the thing that explains it.
 export function KeyStep({
   value,
   source,
@@ -88,7 +92,7 @@ export function KeyStep({
   onChange,
 }: {
   value: string;
-  /** What the account has today: the server's key already covers "server". */
+  /** Whether this account already has a working key, in which case typing is optional. */
   source: GeminiKeySource;
   error: string | null;
   onChange: (value: string) => void;
@@ -111,7 +115,9 @@ export function KeyStep({
         className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread"
       />
       {error ? <p className="max-w-[62ch] pt-4 text-small text-iron">{error}</p> : null}
-      <p className="pt-4 text-small text-ink-3">{t("optional")}</p>
+      <p className="max-w-[62ch] pt-4 text-small text-ink-3">
+        {t(source === "user" ? "keptIfEmpty" : "required")}
+      </p>
       <a
         href={GEMINI_KEY_CONSOLE}
         target="_blank"
