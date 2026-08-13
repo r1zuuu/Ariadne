@@ -2,17 +2,20 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TitleBar } from "@/components/title-bar";
 import { Button, Input } from "@/components/ui";
 import {
   ApiError,
+  type Provider,
+  authProviders,
   listProjects,
   login,
   readToken,
   register,
   serverReachable,
   serverUrl,
+  signInWithProvider,
   writeToken,
 } from "@/lib/api";
 
@@ -26,6 +29,9 @@ const HOST = serverUrl.replace(/^https?:\/\//, "");
 
 type Mode = "login" | "register";
 
+// The provider's own spelling. Nobody writes "Github".
+const PROVIDER_NAMES: Record<Provider, string> = { google: "Google", github: "GitHub" };
+
 export default function EntryScreen() {
   const t = useTranslations("auth");
   const router = useRouter();
@@ -37,6 +43,11 @@ export default function EntryScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [server, setServer] = useState<"checking" | "up" | "down">("checking");
+  const [providers, setProviders] = useState<Provider[]>([]);
+  // Which provider we are mid-handoff with, so the button can say so and offer
+  // a way out: the person is looking at a browser tab, not at this window.
+  const [pending, setPending] = useState<Provider | null>(null);
+  const abort = useRef<AbortController | null>(null);
 
   // Showing a login form to someone who already holds a token is the one thing
   // this screen must not do, so a held token leaves immediately.
@@ -50,6 +61,26 @@ export default function EntryScreen() {
   };
 
   useEffect(probe, []);
+
+  // Which ways in this server actually offers. A failure here is not worth a
+  // message: the form still works, and buttons that cannot work stay hidden.
+  useEffect(() => {
+    void authProviders()
+      .then(setProviders)
+      .catch(() => setProviders([]));
+  }, []);
+
+  // Leaving the screen mid-handoff must stop the polling loop.
+  useEffect(() => () => abort.current?.abort(), []);
+
+  // Onboarding is a one-time wizard, so only someone with no projects yet
+  // belongs in it. A fresh registration always lands there; every other way in
+  // has to ask, because it may be an account that never finished.
+  const enter = async (token: string, fresh: boolean) => {
+    writeToken(token);
+    const projects = fresh ? [] : await listProjects();
+    router.push(projects.length ? "/home" : "/onboarding");
+  };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -65,17 +96,31 @@ export default function EntryScreen() {
     setBusy(true);
     try {
       const { token } = mode === "login" ? await login(email, password) : await register(email, password);
-      writeToken(token);
-      // Onboarding is a one-time wizard, so only someone with no projects yet
-      // belongs in it. Registering always lands there; signing in only does on
-      // an account that never finished.
-      const projects = mode === "register" ? [] : await listProjects();
-      router.push(projects.length ? "/home" : "/onboarding");
+      await enter(token, mode === "register");
     } catch (caught) {
       setError(messageFor(caught, mode, t));
       if (caught instanceof ApiError && caught.failure === "unreachable") setServer("down");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const startProvider = async (provider: Provider) => {
+    setError(null);
+    setPending(provider);
+    const controller = new AbortController();
+    abort.current = controller;
+    try {
+      // Opens the system browser and does not return until the server has an
+      // answer under this window's one-time id, or nobody comes back.
+      const token = await signInWithProvider(provider, controller.signal);
+      await enter(token, false);
+    } catch (caught) {
+      // Cancelling is a decision, not a failure, and needs no red text.
+      if (!controller.signal.aborted) setError(providerMessage(caught, provider, t));
+    } finally {
+      abort.current = null;
+      setPending(null);
     }
   };
 
@@ -136,10 +181,64 @@ export default function EntryScreen() {
                 />
               ) : null}
 
-              <Button type="submit" size="lg" loading={busy} disabled={down} className="mt-1 w-full">
+              <Button
+                type="submit"
+                size="lg"
+                loading={busy}
+                disabled={down || !!pending}
+                className="mt-1 w-full"
+              >
                 {busy ? t("submitBusy") : mode === "login" ? t("submit") : t("submitRegister")}
               </Button>
             </form>
+
+            {/* Below the form, not above it: the address and password are how
+                this account was made, and the providers are the alternative. */}
+            {providers.length ? (
+              <div className="pt-6">
+                <p className="flex items-center gap-3 text-data text-ink-3">
+                  <span aria-hidden="true" className="h-px flex-1 bg-edge/60" />
+                  {t("or")}
+                  <span aria-hidden="true" className="h-px flex-1 bg-edge/60" />
+                </p>
+
+                <div className="flex flex-col gap-3 pt-6">
+                  {providers.map((provider) => (
+                    <Button
+                      key={provider}
+                      type="button"
+                      variant="secondary"
+                      size="lg"
+                      // Only the one being waited on shows a spinner; the other
+                      // is merely unavailable while that is happening.
+                      loading={pending === provider}
+                      disabled={down || busy || (!!pending && pending !== provider)}
+                      onClick={() => void startProvider(provider)}
+                      className="w-full"
+                    >
+                      {pending === provider
+                        ? t("providerBusy")
+                        : t("continueWith", { provider: PROVIDER_NAMES[provider] })}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* The browser has the person's attention at this point, so this
+                    window's only job is to offer a way back out of the wait. */}
+                {pending ? (
+                  <p className="pt-3 text-small text-ink-2">
+                    {t("providerHint")}{" "}
+                    <button
+                      type="button"
+                      onClick={() => abort.current?.abort()}
+                      className="rounded-control font-medium text-thread underline underline-offset-2"
+                    >
+                      {t("providerCancel")}
+                    </button>
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <p className="pt-6 text-small text-ink-2">
               {mode === "login" ? t("noAccount") : t("haveAccount")}{" "}
@@ -217,5 +316,21 @@ function messageFor(caught: unknown, mode: Mode, t: (key: string, values?: Recor
     if (/at least/i.test(caught.message)) return t("error.passwordShort");
     if (/email/i.test(caught.message)) return t("error.emailShape");
   }
+  return caught.message;
+}
+
+// Provider failures are different in kind: the server has already turned the
+// interesting ones into a sentence meant to be read, so the job here is to pass
+// those through and cover the two that carry no sentence of their own.
+function providerMessage(
+  caught: unknown,
+  provider: Provider,
+  t: (key: string, values?: Record<string, string>) => string,
+) {
+  const name = PROVIDER_NAMES[provider];
+  if (!(caught instanceof ApiError)) return t("error.provider", { provider: name });
+  if (caught.failure === "unreachable") return t("error.server", { url: HOST });
+  if (caught.code === "timeout") return t("error.providerTimeout", { provider: name });
+  if (caught.message === "cancelled") return t("error.providerCancelled", { provider: name });
   return caught.message;
 }
