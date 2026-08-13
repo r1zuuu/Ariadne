@@ -33,7 +33,7 @@ export default function PendingScreen() {
   const t = useTranslations("pending");
   const toast = useToast();
 
-  const { pendingFeed: feed, refreshPending } = useApp();
+  const { pendingFeed: feed, refreshPending, workspaces } = useApp();
   const { locale } = useLocale();
   const [working, setWorking] = useState<string | null>(null);
   const stamp = (iso: string) =>
@@ -70,10 +70,19 @@ export default function PendingScreen() {
         ) : (
           <div className="flex flex-col gap-8">
             {groups.map((group) => (
-              <section key={group.project}>
-                <div className="flex items-baseline gap-4 pb-4">
+              <section key={group.key}>
+                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 pb-4">
                   <h2 className="text-section text-ink">{group.project}</h2>
-                  <Meta items={[t("count", { count: group.actions.length + group.nodes.length })]} />
+                  {/* The archive only when there is more than one to confuse,
+                      same rule the project marks use: on a single private
+                      archive its name is the account's own email address and
+                      says nothing. */}
+                  <Meta
+                    items={[
+                      ...(workspaces.length > 1 ? [group.team] : []),
+                      t("count", { count: group.actions.length + group.nodes.length }),
+                    ]}
+                  />
                 </div>
 
                 {group.actions.length ? (
@@ -258,13 +267,22 @@ function ActionCard({
 
 // The feed arrives as two flat account-wide lists; the screen needs them per
 // project. Order follows first appearance, which is newest-first from the API.
+//
+// Keyed by the archive as well as the project, not by the project alone. Two
+// teams can hold projects under one name, and grouping on the name put a
+// teammate's proposals under the same heading as your own with nothing saying
+// so. The server has always sent both names.
 function groupByProject(feed: PendingFeed) {
-  const groups = new Map<string, { project: string; actions: PendingAction[]; nodes: ReviewNode[] }>();
-  const of = (name: string) => {
-    if (!groups.has(name)) groups.set(name, { project: name, actions: [], nodes: [] });
-    return groups.get(name)!;
+  type Group = { key: string; project: string; team: string; actions: PendingAction[]; nodes: ReviewNode[] };
+  const groups = new Map<string, Group>();
+  const of = (team: string, project: string) => {
+    const key = team + " › " + project;
+    if (!groups.has(key)) groups.set(key, { key, project, team, actions: [], nodes: [] });
+    return groups.get(key)!;
   };
-  for (const action of feed.pendingActions) of(action.projectName).actions.push(action);
-  for (const node of feed.nodesToReview) of(node.projectName).nodes.push(node);
+  for (const action of feed.pendingActions) {
+    of(action.workspaceName, action.projectName).actions.push(action);
+  }
+  for (const node of feed.nodesToReview) of(node.workspaceName, node.projectName).nodes.push(node);
   return [...groups.values()];
 }

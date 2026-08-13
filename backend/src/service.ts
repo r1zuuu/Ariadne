@@ -1692,6 +1692,76 @@ export async function listInvites(input: { userId: string; workspaceId: string }
     .orderBy(desc(invites.createdAt));
 }
 
+/**
+ * Invitations written to my address and still open.
+ *
+ * listInvites answers the other question - what has this workspace sent out -
+ * and only its members can ask it. There was no way at all to find out that
+ * somebody had invited you: the code had to arrive through a channel outside
+ * this application and be pasted in from memory. This is the half that lets an
+ * invitation be a thing you are shown rather than a thing you are told about.
+ *
+ * Only invitations with an address on them. A code created without one opens for
+ * whoever holds it, so there is nobody in particular to show it to.
+ */
+export async function listMyInvites(userId: string) {
+  assertUuid(userId, "userId");
+  const [me] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
+  if (!me) throw noSuchAccount();
+
+  const inviter = alias(users, "inviter");
+  return db
+    .select({
+      id: invites.id,
+      // The code the recipient would otherwise have to be told by hand. Safe to
+      // hand over here and nowhere else: the filter below is the address on the
+      // invitation, so this only ever returns codes written to the reader.
+      code: invites.code,
+      workspaceId: invites.workspaceId,
+      workspaceName: workspaces.name,
+      invitedBy: inviter.email,
+      expiresAt: invites.expiresAt,
+      createdAt: invites.createdAt,
+    })
+    .from(invites)
+    .innerJoin(workspaces, eq(workspaces.id, invites.workspaceId))
+    // Left, so an invitation outlives the account that wrote it rather than
+    // vanishing from the recipient's list when that person leaves.
+    .leftJoin(inviter, eq(inviter.id, invites.createdBy))
+    .where(
+      and(
+        eq(invites.email, me.email),
+        isNull(invites.acceptedAt),
+        gt(invites.expiresAt, new Date()),
+      ),
+    )
+    .orderBy(desc(invites.createdAt));
+}
+
+/**
+ * Saying no. Mine to refuse because it carries my address; revokeInvite is the
+ * same act from the other side and is guarded by workspace membership instead.
+ *
+ * ponytail: the row is deleted rather than marked, so the sender sees it
+ * disappear without learning whether it was refused or whether they withdrew it
+ * themselves. A declined_at column the day that difference matters.
+ */
+export async function declineInvite(input: { userId: string; inviteId: string }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.inviteId, "inviteId");
+  const [me] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, input.userId));
+  if (!me) throw noSuchAccount();
+
+  const [deleted] = await db
+    .delete(invites)
+    .where(and(eq(invites.id, input.inviteId), eq(invites.email, me.email)))
+    .returning({ id: invites.id });
+  if (!deleted) throw new ServiceError("not_found", "invite not found");
+}
+
 export async function revokeInvite(input: { userId: string; inviteId: string }) {
   assertUuid(input.userId, "userId");
   assertUuid(input.inviteId, "inviteId");

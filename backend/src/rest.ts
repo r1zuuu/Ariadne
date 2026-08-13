@@ -25,6 +25,7 @@ import {
   createInvite,
   createProject,
   createWorkspace,
+  declineInvite,
   deleteApiToken,
   deleteConversation,
   deleteProject,
@@ -37,6 +38,7 @@ import {
   listConversations,
   listInvites,
   listMembers,
+  listMyInvites,
   listNodes,
   listProjects,
   listWorkspaces,
@@ -527,6 +529,16 @@ export function createRestApp() {
       await createInvite({ userId: userId(c), workspaceId: c.req.param("id"), email }),
       201,
     );
+  });
+
+  // Invitations written to this account, which is the question listInvites
+  // cannot answer: that one reports what a workspace has sent, and only to its
+  // members. Under /me because it is about the reader, not about an archive.
+  app.get("/me/invites", async (c) => c.json(await listMyInvites(userId(c))));
+
+  app.post("/invites/:id/decline", async (c) => {
+    await declineInvite({ userId: userId(c), inviteId: c.req.param("id") });
+    return c.body(null, 204);
   });
 
   app.delete("/invites/:id", async (c) => {

@@ -21,6 +21,7 @@ import {
   getPending,
   listProjects,
   listWorkspaces,
+  myInvites,
   readToken,
   type PendingAction,
   type Project,
@@ -55,6 +56,9 @@ type AppContextValue = {
    * else opens.
    */
   workspaces: Workspace[];
+  /** How many invitations are addressed to this account and still open, for the
+   *  counter beside the navigation entry. Somebody is waiting on each one. */
+  invitationCount: number;
   server: ServerState;
 };
 
@@ -72,6 +76,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pendingFeed, setPendingFeed] = useState<PendingFeed | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [invitationCount, setInvitationCount] = useState(0);
   const [server, setServer] = useState<ServerState>("checking");
 
   const refreshProjects = useCallback(async () => {
@@ -122,6 +127,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void listWorkspaces()
       .then(setWorkspaces)
       .catch(() => {});
+    void myInvites()
+      .then((rows) => setInvitationCount(rows.length))
+      .catch(() => {});
   }, [refreshProjects, refreshPending, router]);
 
   const setActiveProject = useCallback((id: string) => {
@@ -141,6 +149,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : 0,
       refreshPending,
       workspaces,
+      invitationCount,
       server,
     }),
     [
@@ -151,6 +160,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       pendingFeed,
       refreshPending,
       workspaces,
+      invitationCount,
       server,
     ],
   );

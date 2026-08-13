@@ -100,7 +100,7 @@ export function Input({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/15 ${
+        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-aegean focus:ring-2 focus:ring-aegean/25 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -130,7 +130,7 @@ export function Textarea({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/15 ${
+        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-aegean focus:ring-2 focus:ring-aegean/25 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />

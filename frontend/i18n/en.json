@@ -1,7 +1,6 @@
 {
   "app": {
     "name": "Ariadne",
-    "nameGreek": "Ἀριάδνη",
     "window": {
       "minimize": "Minimise the window",
       "maximize": "Maximise the window",
@@ -27,16 +26,9 @@
     "submitBusy": "Checking",
     "switchToRegister": "Sign up",
     "switchToLogin": "Sign in",
-    "server": {
-      "checking": "Checking the Ariadne server at {url}",
-      "up": "The Ariadne server at {url} is responding",
-      "down": "The Ariadne server at {url} is not responding",
-      "retry": "Try again",
-      "downMeans": "Without it you cannot enter the base and nothing will be saved."
-    },
     "error": {
       "credentials": "This address and password do not match. Check the password or create an account.",
-      "server": "The Ariadne server at {url} is not responding. Start it and try again.",
+      "server": "There is no connection to Ariadne. Check your network and try again.",
       "emailTaken": "An account already uses this address. Enter it with your password.",
       "emailShape": "That does not look like an email address. Check it.",
       "passwordShort": "The password needs at least 8 characters.",
@@ -52,7 +44,6 @@
     "haveAccount": "Already have an account?",
     "or": "or",
     "continueWith": "Continue with {provider}",
-    "providerBusy": "Waiting for the browser",
     "providerHint": "Finish signing in in the browser window that just opened.",
     "providerCancel": "Cancel"
   },
@@ -245,7 +236,8 @@
     "noProject": "No project",
     "hideNav": "Hide menu",
     "showNav": "Show menu",
-    "newProject": "New project"
+    "newProject": "New project",
+    "teams": "Teams"
   },
   "tour": {
     "step": "step {current} of {total}",
@@ -294,7 +286,6 @@
     "sending": "Preparing",
     "thinking": "Reading the project's context...",
     "nothingProposed": "Nothing here needs changing.",
-    "queuedNote": "Proposals are waiting.",
     "queuedLink": "See project memory",
     "action": {
       "update": "Entry correction",
@@ -303,12 +294,8 @@
     },
     "lead": "Describe a decision or an agreement. Ariadne records it straight away, because you are the one writing it.",
     "hint": "Enter sends, Shift + Enter starts a new line",
-    "suggest1": "We switched the form library from X to Y.",
-    "suggest2": "We are not using a backend; the app stays static.",
-    "suggest3": "Case studies are postponed.",
     "nothingProposedNote": "Ariadne found nothing in this that needs recording or correcting.",
     "willSave": "Recorded",
-    "awaiting": "Waiting for approval",
     "toast": "Recorded in the project's memory.",
     "historyTitle": "Recently added context",
     "historyEmpty": "You have not added any context yet.",
@@ -317,7 +304,6 @@
     "ariadneProposed": "Ariadne recorded",
     "statusPending": "Waiting for approval",
     "statusSaved": "Recorded",
-    "statusRejected": "Rejected",
     "historyNew": "New entry"
   },
   "pending": {
@@ -494,7 +480,6 @@
     "tokensLead": "One token connects one agent to one archive. You see it once, when it is created.",
     "tokenOnce": "Copy it now, it is not shown again",
     "copyToken": "Copy token",
-    "copyCode": "Copy code",
     "tokenOnceWhere": "Paste it into your agent's configuration, where it asks for the Ariadne token.",
     "tokenLabel": "What for",
     "tokenPlaceholder": "laptop, work machine",
@@ -506,39 +491,15 @@
     "noLabel": "No description",
     "used": "in use",
     "neverUsed": "never used",
-    "revoke": "Revoke",
     "tokenRevoked": "Token revoked.",
-    "team": "Team",
-    "teamLead": "An archive belongs to a workspace, not to a person. Everyone in the workspace reads and writes the same context, over MCP as well.",
-    "roles": {
-      "owner": "owner",
-      "member": "member"
-    },
-    "memberCount": "{count, plural, one {# person} other {# people}}",
-    "you": "(you)",
-    "leave": "Leave",
-    "remove": "Remove",
-    "left": "You left the workspace.",
-    "removed": "Removed from the workspace.",
-    "inviteEmail": "Invite someone",
-    "inviteEmailNote": "Give an address and the code works only for it. Leave it empty for a code anyone can use.",
-    "inviteEmailPlaceholder": "address@example.com",
-    "createInvite": "Create invitation",
-    "inviteCreated": "Invitation ready.",
-    "inviteFor": "Code for {at}",
-    "inviteOpen": "Code for anyone",
-    "inviteWhere": "Send it to the person you are inviting. They paste it below, under I have an invitation code.",
-    "inviteExpires": "expires {at}",
-    "inviteRevoked": "Invitation revoked.",
-    "newWorkspace": "New workspace",
-    "newWorkspaceNote": "A separate archive with its own projects and its own people.",
     "create": "Create",
-    "workspaceCreated": "Workspace created.",
-    "joinCode": "I have an invitation code",
-    "joinCodeNote": "Paste the code somebody on the team sent you.",
     "join": "Join",
     "joined": "You are in the workspace.",
-    "passwordViaProvider": "This account signs in through Google or GitHub, so it has no password to change."
+    "passwordViaProvider": "This account signs in through Google or GitHub, so it has no password to change.",
+    "revoke": "Revoke",
+    "geminiStored": "saved",
+    "geminiReplace": "Replace",
+    "cancel": "Cancel"
   },
   "conflict": {
     "title": "CONTRADICTION",
@@ -551,5 +512,53 @@
       "old": "The new entry is marked as overruled.",
       "both": "Left as they were."
     }
+  },
+  "teams": {
+    "title": "Teams",
+    "lead": "A team is a shared archive. Whoever belongs to it sees every project inside and everything you have recorded in them.",
+    "waiting": "Waiting for your answer",
+    "invitedTo": "An invitation to {team}",
+    "invitedBy": "from {who}",
+    "invitedByUnknown": "the sender deleted their account",
+    "expires": "valid until {at}",
+    "join": "Join",
+    "decline": "Decline",
+    "joined": "You are in {team}",
+    "declined": "Invitation declined",
+    "yours": "Your teams",
+    "noTeams": "You are not working with anyone yet",
+    "noTeamsNote": "Invite somebody to your own archive below and it becomes a team. They will see every project in it and be able to write to them.",
+    "private": "Yours alone",
+    "privateNote": "Only you can see this archive. Invite somebody and it becomes a team, together with every project already in it.",
+    "projectsIn": "PROJECTS IN THIS ARCHIVE",
+    "noProjects": "No project in here yet.",
+    "manage": "Manage",
+    "close": "Collapse",
+    "memberCount": "{count} people",
+    "you": "(you)",
+    "roles": {
+      "owner": "owner",
+      "member": "member"
+    },
+    "leave": "Leave",
+    "remove": "Remove",
+    "left": "You left the team",
+    "removed": "Removed from the team",
+    "inviteEmail": "THEIR ADDRESS",
+    "inviteEmailNote": "The code will only work for this address. Leave it empty and it opens for whoever receives it.",
+    "inviteEmailPlaceholder": "them@domain.com",
+    "createInvite": "Create an invitation",
+    "inviteCreated": "Invitation created",
+    "inviteFor": "Code for {at}",
+    "inviteOpen": "Open code, for whoever receives it",
+    "inviteWhere": "Pass it to them. They paste it under Teams, or in the wizard when they create their account.",
+    "copyCode": "Copy the code",
+    "revoke": "Withdraw",
+    "inviteRevoked": "Invitation withdrawn",
+    "newTeam": "New team",
+    "newTeamName": "TEAM NAME",
+    "newTeamNote": "A separate archive for projects you run with somebody else.",
+    "createTeam": "Create the team",
+    "teamCreated": "Team created"
   }
 }

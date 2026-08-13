@@ -196,7 +196,6 @@ export default function DatabaseScreen() {
           disabled={!projectId}
           rows={4}
           autoFocus
-          suggestions={empty ? [t("suggest1"), t("suggest2"), t("suggest3")] : []}
         />
       </div>
 

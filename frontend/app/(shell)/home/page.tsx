@@ -29,6 +29,8 @@ import { Banner, Button, Card, EmptyState, IconButton, SectionHeader, Status } f
 // screen of its own.
 
 const LAST_SEEN_KEY = "ariadne.lastSeen";
+// Below this the line says nothing worth a line.
+const STALE_AFTER_MS = 30 * 60 * 1000;
 
 export default function HomeScreen() {
   const t = useTranslations("home");
@@ -54,7 +56,13 @@ export default function HomeScreen() {
       return;
     }
     const stored = localStorage.getItem(LAST_SEEN_KEY);
-    if (stored) setSince(new Date(stored));
+    // Only when it was actually a while ago. This effect reads and then writes,
+    // so anything that mounts the screen twice - a development double-invoke, a
+    // client-side navigation back to it - would otherwise report a visit from
+    // seconds earlier. "Last time you were here, a moment ago" is not a fact
+    // anyone needs, whatever produced it.
+    const previous = stored ? new Date(stored) : null;
+    if (previous && Date.now() - previous.getTime() > STALE_AFTER_MS) setSince(previous);
     localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
   }, [router]);
 

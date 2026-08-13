@@ -36,7 +36,19 @@ export function readToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+// State that belongs to whoever was signed in, not to this machine. localStorage
+// is scoped to the origin and not to the account, so signing into a second
+// account inherited the first one's leftovers: the main screen greeted a
+// brand-new account with "last time you were here", carrying a date from
+// somebody else's session, and a half-finished wizard would have resumed under
+// the wrong name. The device's own preferences - which side the navigation is
+// on, the language - are deliberately not in this list.
+const SESSION_SCOPED = ["ariadne.lastSeen", "ariadne.activeProject", "ariadne.onboarding"];
+
 export function writeToken(token: string) {
+  // Every way into the application ends here, which makes it the one place that
+  // knows the session has changed.
+  for (const key of SESSION_SCOPED) localStorage.removeItem(key);
   localStorage.setItem(TOKEN_KEY, token);
 }
 
@@ -358,6 +370,25 @@ export const createInvite = (workspaceId: string, email: string | null) =>
 
 export const revokeInvite = (id: string) => request<void>(`/invites/${id}`, { method: "DELETE" });
 
+/** Invitations written to this account and still open, newest first. */
+export type MyInvite = {
+  id: string;
+  /** Only ever a code written to this address, so accepting needs no retyping. */
+  code: string;
+  workspaceId: string;
+  workspaceName: string;
+  /** Null once the account that wrote it is gone; the invitation still stands. */
+  invitedBy: string | null;
+  expiresAt: string;
+  createdAt: string;
+};
+
+export const myInvites = () => request<MyInvite[]>("/me/invites");
+
+/** Saying no. Mine to refuse because it carries my address. */
+export const declineInvite = (id: string) =>
+  request<void>(`/invites/${id}/decline`, { method: "POST" });
+
 export const acceptInvite = (code: string) =>
   request<{ id: string; name: string }>(`/invites/${encodeURIComponent(code)}/accept`, {
     method: "POST",
@@ -386,6 +417,9 @@ export type PendingAction = {
   /** What is stored today, so the screen can show the change against it. */
   nodeContent: string;
   projectName: string;
+  /** Which archive it belongs to. The server has always sent this; the type
+   *  dropped it, so the queue could not say whose work an item was about. */
+  workspaceName: string;
 };
 
 /** The other side of a suspected clash, with enough text to judge it by. */
@@ -396,6 +430,7 @@ export type ConflictEntry = Pick<Node, "id" | "type" | "content" | "summary" | "
 export type ReviewNode = Node & {
   supersededBy: string | null;
   projectName: string;
+  workspaceName: string;
   conflicts: ConflictEntry[];
 };
 

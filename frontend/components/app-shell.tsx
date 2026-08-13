@@ -19,7 +19,7 @@ import { resetTour } from "@/lib/first-run";
 // times. Data comes from AppProvider in the (shell) layout, so navigating
 // between screens neither refetches it nor remounts this frame.
 
-export type Section = "home" | "project" | "database" | "pending" | "settings";
+export type Section = "home" | "project" | "database" | "pending" | "teams" | "settings";
 
 // `label` is not always the section name: "database" is what the screen has
 // always been called in the code and the URL, but "Dodaj kontekst" told a
@@ -62,6 +62,13 @@ const ACCOUNT_LINKS: NavLink[] = [
     icon: <IconQueue />,
   },
   {
+    section: "teams",
+    label: "teams",
+    href: "/teams",
+    needsProject: false,
+    icon: <IconTeams />,
+  },
+  {
     section: "settings",
     label: "settings",
     href: "/settings",
@@ -70,27 +77,44 @@ const ACCOUNT_LINKS: NavLink[] = [
   },
 ];
 
+/** Whether the navigation column keeps its place. "0" means someone put it away. */
+const NAV_PINNED_KEY = "ariadne.nav";
+
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useTranslations("nav");
   const router = useRouter();
   const pathname = usePathname();
-  const { projects, activeProject, pendingCount } = useApp();
+  const { projects, activeProject, pendingCount, invitationCount, workspaces } = useApp();
 
   const active = activeProject;
-  const waiting = pendingCount;
+  const counts = { pending: pendingCount, teams: invitationCount };
 
-  // The column is away by default and comes back on approach, so a screen is
-  // the screen and not a frame around one. Two ways for it to be there: pinned
-  // from the title bar, or reached for with the pointer. Either way it floats
-  // over the page rather than taking a place in the row, so nothing under it
-  // moves sideways when it arrives.
-  const [navPinned, setNavPinned] = useState(false);
+  // Two ways for the column to be there, and they behave differently on
+  // purpose. Pinned, it is part of the row and the page sits beside it, which
+  // is what an application's navigation normally does. Reached for with the
+  // pointer, it floats over the page and nothing moves sideways.
+  //
+  // It used to start away and unpin itself again on every navigation, so there
+  // was no way to keep it: you pinned it, clicked a link, and it was gone. On a
+  // new account there was nothing on screen saying navigation existed at all -
+  // one unlabelled icon in the title bar and a strip of edge to discover by
+  // accident. It starts pinned now and remembers being unpinned, so anyone who
+  // wants the bare screen says so once.
+  const [navPinned, setNavPinned] = useState(true);
   const [navNear, setNavNear] = useState(false);
   const navShown = navPinned || navNear;
 
-  // Arriving somewhere puts the frame away again: the column has done its job
-  // the moment the screen changes.
-  useEffect(() => setNavPinned(false), [pathname]);
+  // Read after mount, not in the initialiser: these screens are prerendered
+  // where localStorage does not exist.
+  useEffect(() => {
+    setNavPinned(localStorage.getItem(NAV_PINNED_KEY) !== "0");
+  }, []);
+
+  const toggleNav = () => {
+    const next = !navPinned;
+    setNavPinned(next);
+    localStorage.setItem(NAV_PINNED_KEY, next ? "1" : "0");
+  };
 
   const signOut = () => {
     clearToken();
@@ -104,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <TitleBar
         project={active?.name}
         navOpen={navPinned}
-        onToggleNav={() => setNavPinned(!navPinned)}
+        onToggleNav={toggleNav}
       />
 
       <div
@@ -134,11 +158,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         <AnimatePresence initial={false}>
           {navShown ? (
             <m.nav
-              initial={{ x: "-100%" }}
+              initial={navPinned ? false : { x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={enterTransition}
-              className="absolute inset-y-0 left-0 z-30 flex w-[68px] flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 shadow-lifted lg:w-[236px] lg:p-4"
+              // Pinned it holds a place in the row, so the page is beside it
+              // rather than under it. Only the reached-for form floats, and only
+              // that one casts a shadow, because only that one is above
+              // something.
+              className={`flex w-[68px] shrink-0 flex-col gap-2 border-r border-hairline bg-plaster-sunk p-3 lg:w-[236px] lg:p-4 ${
+                navPinned ? "relative" : "absolute inset-y-0 left-0 z-30 shadow-lifted"
+              }`}
             >
               <ProjectSwitcher projects={projects ?? []} active={active} />
 
@@ -146,7 +176,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 links={WORK_LINKS}
                 pathname={pathname}
                 hasProject={!!active}
-                waiting={waiting}
+                counts={counts}
                 className="pt-2"
               />
 
@@ -156,7 +186,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 links={ACCOUNT_LINKS}
                 pathname={pathname}
                 hasProject={!!active}
-                waiting={waiting}
+                counts={counts}
                 className="mt-2 border-t border-hairline pt-3"
               />
 
@@ -201,13 +231,15 @@ function NavList({
   links,
   pathname,
   hasProject,
-  waiting,
+  counts,
   className = "",
 }: {
   links: NavLink[];
   pathname: string;
   hasProject: boolean;
-  waiting: number;
+  /** Keyed by section, because two entries carry one now: things to approve and
+   *  people waiting on an answer. */
+  counts: Record<string, number>;
   className?: string;
 }) {
   const t = useTranslations("nav");
@@ -265,9 +297,9 @@ function NavList({
               ) : null}
               <span className="relative shrink-0">{icon}</span>
               <span className="relative hidden lg:inline">{t(label)}</span>
-              {section === "pending" && waiting ? (
+              {counts[section] ? (
                 <span className="relative ml-auto hidden rounded-label bg-ochre/15 px-[8px] py-[2px] text-data tabular text-ochre lg:inline">
-                  {waiting}
+                  {counts[section]}
                 </span>
               ) : null}
             </Link>
@@ -385,6 +417,16 @@ function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Pr
         </li>
       </ul>
     </details>
+  );
+}
+
+function IconTeams() {
+  return (
+    <svg {...stroke}>
+      <circle cx="7" cy="6.5" r="2.6" />
+      <path d="M2.5 15c0-2.3 2-3.8 4.5-3.8s4.5 1.5 4.5 3.8" />
+      <path d="M12.3 4.4a2.6 2.6 0 0 1 0 4.9M13.5 11.6c1.3.5 2.2 1.7 2.2 3.4" />
+    </svg>
   );
 }
 
