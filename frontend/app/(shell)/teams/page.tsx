@@ -118,8 +118,9 @@ function Doors({
   onPick,
 }: {
   /** Whether the counts under these doors are answers rather than starting
-   *  values. Until they are, each door says nothing about what is behind it
-   *  rather than saying the wrong thing and correcting itself. */
+   *  values. Until they are, the second door says nothing about what is behind
+   *  it rather than saying "0 archives" and correcting itself a second later.
+   *  The first door needs no such guard: it is silent unless something waits. */
   read: boolean;
   waiting: number;
   archives: number;
@@ -135,12 +136,14 @@ function Doors({
         note={t("doors.join.note")}
         icon={<IconEnter />}
         onClick={() => onPick("join")}
+        // Nothing waiting says nothing. The sentence under the name already
+        // tells you what the door is for, so a line announcing an absence was
+        // filler standing in the one place a count stands, and it made the
+        // quiet case look like the busy one with worse news.
         state={
-          !read ? null : waiting ? (
+          waiting ? (
             <Status tone="proposed">{t("doors.join.waiting", { count: waiting })}</Status>
-          ) : (
-            <span className="text-data text-ink-3">{t("doors.join.empty")}</span>
-          )
+          ) : null
         }
       />
 
@@ -242,8 +245,11 @@ function Door({
   );
 }
 
-// The two marks. Drawn at 28 rather than the column's 18, at the same stroke,
-// so they read as the same hand one size up rather than as a different set.
+// The two marks. Drawn at 36 rather than the column's 18, and drawn there
+// rather than scaled up from it: a 18-box stretched to 36 takes its 1.5 stroke
+// along and lands at 3, which is a heavier hand, not a bigger mark. The
+// geometry is doubled and the stroke left alone, so these are the column's
+// weight at twice its size.
 //
 // Deliberately not the same glyph twice: the doors are told apart by silhouette
 // before either word is read, so one is a line entering an opening and the
@@ -255,9 +261,9 @@ function Door({
 function IconEnter() {
   return (
     <svg
-      width="28"
-      height="28"
-      viewBox="0 0 28 28"
+      width="36"
+      height="36"
+      viewBox="0 0 36 36"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
@@ -265,8 +271,8 @@ function IconEnter() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M15 5h6.5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H15" />
-      <path d="M4.5 14h11M11.5 10l4 4-4 4" />
+      <path d="M19 6h8a2.5 2.5 0 0 1 2.5 2.5v19a2.5 2.5 0 0 1-2.5 2.5h-8" />
+      <path d="M6 18h14M15 13l5 5-5 5" />
     </svg>
   );
 }
@@ -274,9 +280,9 @@ function IconEnter() {
 function IconGroup() {
   return (
     <svg
-      width="28"
-      height="28"
-      viewBox="0 0 28 28"
+      width="36"
+      height="36"
+      viewBox="0 0 36 36"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
@@ -284,9 +290,9 @@ function IconGroup() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <circle cx="11" cy="10" r="4" />
-      <path d="M4 23.2c0-3.5 3.1-5.8 7-5.8s7 2.3 7 5.8" />
-      <path d="M19.2 6.9a4 4 0 0 1 0 7.5M21 17.9c2 .8 3.4 2.6 3.4 5.3" />
+      <circle cx="14" cy="13" r="5" />
+      <path d="M5 29.8c0-4.5 4-7.5 9-7.5s9 3 9 7.5" />
+      <path d="M24.6 8.1a5 5 0 0 1 0 9.8M27 23.2c2.6 1 4.4 3.4 4.4 6.6" />
     </svg>
   );
 }

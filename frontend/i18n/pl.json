@@ -523,8 +523,7 @@
       "join": {
         "title": "Dołącz do zespołu",
         "note": "Odpowiedz na zaproszenie wystawione na Twój adres albo wklej kod, który ktoś Ci przekazał.",
-        "waiting": "{count, plural, one {# zaproszenie} few {# zaproszenia} many {# zaproszeń} other {# zaproszenia}}",
-        "empty": "Nic nie czeka. Wklej tu kod."
+        "waiting": "{count, plural, one {# zaproszenie} few {# zaproszenia} many {# zaproszeń} other {# zaproszenia}}"
       },
       "mine": {
         "title": "Moje zespoły",

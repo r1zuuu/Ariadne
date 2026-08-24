@@ -523,8 +523,7 @@
       "join": {
         "title": "Join a team",
         "note": "Answer an invitation written to you, or paste a code somebody handed over.",
-        "waiting": "{count, plural, one {# invitation} other {# invitations}}",
-        "empty": "Nothing is waiting. Paste a code here."
+        "waiting": "{count, plural, one {# invitation} other {# invitations}}"
       },
       "mine": {
         "title": "My teams",
