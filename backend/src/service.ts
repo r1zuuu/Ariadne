@@ -1815,11 +1815,11 @@ export async function acceptInvite(input: { userId: string; code: string }) {
 
 // The raw token is shown once at generation; only its sha256 reaches the DB,
 // so a database leak does not hand out working tokens.
-export function generateToken(): string {
+function generateToken(): string {
   return randomBytes(32).toString("base64url");
 }
 
-export function hashToken(rawToken: string): string {
+function hashToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
 }
 
