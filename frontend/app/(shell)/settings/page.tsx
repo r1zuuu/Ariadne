@@ -19,7 +19,6 @@ import {
   Textarea,
 } from "@/components/ui";
 import {
-  acceptInvite,
   ApiError,
   changePassword,
   clearGeminiKey,
