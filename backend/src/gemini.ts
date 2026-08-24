@@ -198,6 +198,53 @@ export async function summarize(key: string, content: string): Promise<string> {
   return summary.trim().split(/\s+/).slice(0, SUMMARY_WORDS).join(" ");
 }
 
+// How many names one question is allowed to contribute. The rules ask for names
+// only; this is what holds when a model answers a question with the question.
+export const MAX_LITERALS = 8;
+
+const LITERAL_RULES = [
+  "You are given one question about a software project's records.",
+  "List the exact names in it worth matching literally: function and variable names, file paths, library, tool and product names, commit hashes, environment variables, error codes.",
+  // The whole point of the list. A lexical index has no idea which of its words
+  // are rare, so an ordinary word sent to it ranks whatever repeats it most.
+  // Naming no language, for the reason SUMMARY_RULES names none: the question
+  // and the names in it are routinely in different ones.
+  "An ordinary word is not a name, in any language: leave out verbs, adjectives, and words like decision, database, project, change.",
+  // Copied, not coined. Turning "the function that tidies the repo address"
+  // into normalizeRepoRef is something a model can do and is deliberately not
+  // asked for here: a name that was never in the question matches nothing and
+  // is indistinguishable from a name that was invented.
+  "Copy each name exactly as the question writes it.",
+  "A question that names nothing gets an empty list, which is a correct answer and not a failure.",
+].join(" ");
+
+/**
+ * The names in a question worth looking for letter by letter.
+ *
+ * Half of the input to the lexical arm of search; a regex over the question is
+ * the other half. The split is by how a name is recognised: a regex sees shape,
+ * so it has snake_case, paths, camelCase and hashes covered for free and
+ * forever, and it cannot ever know that Hono is a library and "naprawde" is
+ * not. That part needs to have read something.
+ */
+export async function extractLiterals(key: string, query: string): Promise<string[]> {
+  const { literals } = await generateJson<{ literals: string[] }>(
+    key,
+    { system: LITERAL_RULES, user: query },
+    {
+      type: "object",
+      properties: { literals: { type: "array", items: { type: "string" } } },
+      required: ["literals"],
+    },
+  );
+  return (literals ?? [])
+    .map((name) => name.trim())
+    // A single character carries no more meaning than a stopword, and anything
+    // past 64 is the model handing back a phrase rather than a name.
+    .filter((name) => name.length >= 2 && name.length <= 64)
+    .slice(0, MAX_LITERALS);
+}
+
 function textOf(payload: unknown): string {
   const parts = (payload as { candidates?: { content?: { parts?: { text?: string }[] } }[] })
     .candidates?.[0]?.content?.parts;
