@@ -516,6 +516,32 @@
   "teams": {
     "title": "Zespoły",
     "lead": "Zespół to wspólne archiwum. Kto do niego należy, ten widzi wszystkie projekty w środku i wszystko, co w nich zapisaliście.",
+    "or": "albo",
+    "back": "Wróć do wyboru",
+    "cancel": "Anuluj",
+    "doors": {
+      "join": {
+        "title": "Dołącz do zespołu",
+        "note": "Odpowiedz na zaproszenie wystawione na Twój adres albo wklej kod, który ktoś Ci przekazał.",
+        "waiting": "{count, plural, one {# zaproszenie} few {# zaproszenia} many {# zaproszeń} other {# zaproszenia}}"
+      },
+      "mine": {
+        "title": "Moje zespoły",
+        "note": "Archiwa, do których należysz: kto w nich jest i jakie projekty w sobie mają.",
+        "archives": "{count, plural, one {# archiwum} few {# archiwa} many {# archiwów} other {# archiwum}}",
+        "shared": "{count} wspólne"
+      }
+    },
+    "code": {
+      "title": "Masz kod zaproszenia",
+      "lead": "Kod przekazany Ci z ręki też tu zadziała.",
+      "leadAlone": "Nic teraz nie czeka na Twoją odpowiedź. Jeśli ktoś przekazał Ci kod zaproszenia, wklej go tutaj.",
+      "label": "Kod zaproszenia",
+      "placeholder": "kod-zaproszenia",
+      "note": "Kod jest przypisany do Twojego adresu. Zaproszenie wystawione na kogoś innego nie zadziała.",
+      "errorEmpty": "Wklej kod zaproszenia.",
+      "errorBad": "Ten kod nie działa. Sprawdź, czy jest cały i czy wystawiono go na Twój adres."
+    },
     "waiting": "Czekają na Twoją odpowiedź",
     "invitedTo": "Zaproszenie do zespołu {team}",
     "invitedBy": "od {who}",
@@ -525,12 +551,12 @@
     "decline": "Odrzuć",
     "joined": "Jesteś w zespole {team}",
     "declined": "Zaproszenie odrzucone",
-    "yours": "Twoje zespoły",
+    "shared": "Wspólne z innymi",
     "noTeams": "Nie pracujesz jeszcze z nikim",
     "noTeamsNote": "Zaproś kogoś do swojego archiwum poniżej, a stanie się zespołem. Druga osoba zobaczy wtedy wszystkie projekty w tym archiwum i będzie mogła do nich pisać.",
     "private": "Tylko Twoje",
     "privateNote": "To archiwum widzisz wyłącznie Ty. Zaproś kogoś, a stanie się zespołem razem ze wszystkimi projektami, które w nim leżą.",
-    "projectsIn": "PROJEKTY W TYM ARCHIWUM",
+    "projectsIn": "Projekty w tym archiwum",
     "noProjects": "Nie ma tu jeszcze żadnego projektu.",
     "manage": "Zarządzaj",
     "close": "Zwiń",
@@ -544,7 +570,7 @@
     "remove": "Usuń",
     "left": "Wyszedłeś z zespołu",
     "removed": "Osoba usunięta z zespołu",
-    "inviteEmail": "ADRES OSOBY",
+    "inviteEmail": "Adres osoby",
     "inviteEmailNote": "Kod zadziała tylko dla tego adresu. Zostaw puste, a otworzy każdemu, kto go dostanie.",
     "inviteEmailPlaceholder": "kolega@domena.pl",
     "createInvite": "Utwórz zaproszenie",
@@ -556,7 +582,7 @@
     "revoke": "Cofnij",
     "inviteRevoked": "Zaproszenie cofnięte",
     "newTeam": "Nowy zespół",
-    "newTeamName": "NAZWA ZESPOŁU",
+    "newTeamName": "Nazwa archiwum",
     "newTeamNote": "Osobne archiwum na projekty, które prowadzisz z kimś innym.",
     "createTeam": "Załóż zespół",
     "teamCreated": "Zespół założony"

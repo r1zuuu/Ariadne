@@ -84,10 +84,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const t = useTranslations("nav");
   const router = useRouter();
   const pathname = usePathname();
-  const { projects, activeProject, pendingCount, invitationCount, workspaces } = useApp();
+  const { projects, activeProject, pendingCount, invitations } = useApp();
 
   const active = activeProject;
-  const counts = { pending: pendingCount, teams: invitationCount };
+  const counts = { pending: pendingCount, teams: invitations.length };
 
   // Two ways for the column to be there, and they behave differently on
   // purpose. Pinned, it is part of the row and the page sits beside it, which

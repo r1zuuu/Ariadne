@@ -102,23 +102,12 @@ export async function request<T>(path: string, options: Options = {}): Promise<T
   return payload as T;
 }
 
-// Cheap reachability probe for the line the login screen keeps on screen. Any
-// answer at all counts, including 401: it proves the server is up.
-export async function serverReachable(): Promise<boolean> {
-  try {
-    await request("/me", { auth: false });
-    return true;
-  } catch (error) {
-    return error instanceof ApiError && error.failure === "rejected";
-  }
-}
-
 // --- Endpoints used by login and onboarding ---
 
 /**
- * Which key pays for the calls to Google on this account: the person's own,
- * the server's, or none, in which case writing an entry and both chats stop
- * working until one is set.
+ * Whether this account has a key of its own for the calls to Google. Without
+ * one, writing an entry and both chats stop working until it is set: there is
+ * no server-wide key behind it.
  */
 export type GeminiKeySource = "user" | "none";
 
@@ -196,11 +185,6 @@ export type Provider = "google" | "github";
  * Which buttons the entry screen may show. A server without GitHub credentials
  * leaves that one out, so the screen never offers a way in that only fails.
  */
-// No undo and no copy: the entries, their anchors, the review queue and the
-// chats under this project go with it. The screen asks for the name first.
-export const deleteProject = (id: string) =>
-  request<void>(`/projects/${id}`, { method: "DELETE" });
-
 export const authProviders = () =>
   request<{ providers: Provider[] }>("/auth/providers", { auth: false }).then((r) => r.providers);
 
@@ -265,6 +249,11 @@ export const updateProject = (
   id: string,
   card: Partial<ProjectCard & { name: string; repoRef: string }>,
 ) => request<Project>(`/projects/${id}`, { method: "PUT", body: card });
+
+// No undo and no copy: the entries, their anchors, the review queue and the
+// chats under this project go with it. The screen asks for the name first.
+export const deleteProject = (id: string) =>
+  request<void>(`/projects/${id}`, { method: "DELETE" });
 
 // `sort` picks the question being asked: "created" is newest thought first,
 // "updated" is what has been touched lately, which is a different list once
