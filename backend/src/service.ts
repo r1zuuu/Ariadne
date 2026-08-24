@@ -569,9 +569,11 @@ const RRF_DAMPING = 60;
 function literalsByShape(query: string): string[] {
   return query
     .split(/\s+/)
-    // Sentence punctuation only: the edges, and never a dot between letters,
-    // so "service.ts." loses its full stop and stays service.ts.
-    .map((token) => token.replace(/^[^\w/]+|[^\w/]+$/g, ""))
+    // Sentence punctuation off the edges, so "service.ts." loses its full stop
+    // and (normalizeRepoRef) loses its brackets. A leading dot is spared on the
+    // way in, because dotfiles are half the configuration in a repository and
+    // .env stripped down to env is a different word.
+    .map((token) => token.replace(/^[^\w/.]+|[^\w/]+$/g, ""))
     .filter(
       (token) =>
         /[_/]/.test(token) || // snake_case, a path

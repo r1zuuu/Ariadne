@@ -200,7 +200,7 @@ export async function summarize(key: string, content: string): Promise<string> {
 
 // How many names one question is allowed to contribute. The rules ask for names
 // only; this is what holds when a model answers a question with the question.
-export const MAX_LITERALS = 8;
+const MAX_LITERALS = 8;
 
 const LITERAL_RULES = [
   "You are given one question about a software project's records.",
