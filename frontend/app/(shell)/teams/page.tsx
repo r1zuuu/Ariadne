@@ -56,7 +56,7 @@ type View = "doors" | "join" | "mine";
 
 export default function TeamsScreen() {
   const t = useTranslations("teams");
-  const { workspaces, invitations } = useApp();
+  const { workspaces, invitations, membershipRead } = useApp();
   const [view, setView] = useState<View>("doors");
   const [accountId, setAccountId] = useState<string | null>(null);
 
@@ -80,6 +80,7 @@ export default function TeamsScreen() {
           <>
             <PageHeader title={t("title")} lead={t("lead")} />
             <Doors
+              read={membershipRead}
               waiting={invitations.length}
               archives={workspaces.length}
               shared={teams.length}
@@ -110,11 +111,16 @@ export default function TeamsScreen() {
 // --- The two doors ---
 
 function Doors({
+  read,
   waiting,
   archives,
   shared,
   onPick,
 }: {
+  /** Whether the counts under these doors are answers rather than starting
+   *  values. Until they are, each door says nothing about what is behind it
+   *  rather than saying the wrong thing and correcting itself. */
+  read: boolean;
   waiting: number;
   archives: number;
   shared: number;
@@ -129,7 +135,7 @@ function Doors({
         note={t("doors.join.note")}
         onClick={() => onPick("join")}
         state={
-          waiting ? (
+          !read ? null : waiting ? (
             <Status tone="proposed">{t("doors.join.waiting", { count: waiting })}</Status>
           ) : (
             <span className="text-data text-ink-3">{t("doors.join.empty")}</span>
@@ -149,12 +155,14 @@ function Doors({
         note={t("doors.mine.note")}
         onClick={() => onPick("mine")}
         state={
-          <Meta
-            items={[
-              t("doors.mine.archives", { count: archives }),
-              shared ? t("doors.mine.shared", { count: shared }) : t("private"),
-            ]}
-          />
+          read ? (
+            <Meta
+              items={[
+                t("doors.mine.archives", { count: archives }),
+                shared ? t("doors.mine.shared", { count: shared }) : t("private"),
+              ]}
+            />
+          ) : null
         }
       />
     </div>
@@ -204,7 +212,10 @@ function Door({
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
-          className="shrink-0 text-ink-3 transition-colors duration-state group-hover:text-thread"
+          // ml-auto and not only justify-between: the state beside it is absent
+          // until the lists have been read, and a lone child in a
+          // justify-between row goes to the wrong end.
+          className="ml-auto shrink-0 text-ink-3 transition-colors duration-state group-hover:text-thread"
         >
           <path d="M3.5 9h11M10 4.5 14.5 9 10 13.5" />
         </svg>
