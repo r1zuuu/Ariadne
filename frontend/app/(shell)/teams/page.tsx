@@ -133,6 +133,7 @@ function Doors({
       <Door
         title={t("doors.join.title")}
         note={t("doors.join.note")}
+        icon={<IconEnter />}
         onClick={() => onPick("join")}
         state={
           !read ? null : waiting ? (
@@ -153,6 +154,7 @@ function Doors({
       <Door
         title={t("doors.mine.title")}
         note={t("doors.mine.note")}
+        icon={<IconGroup />}
         onClick={() => onPick("mine")}
         state={
           read ? (
@@ -173,9 +175,16 @@ function Doors({
  * One of the two. A square you press, not a card you read.
  *
  * Read top to bottom it is a poster: what is behind the door first - the ochre
- * count, or the quiet line saying nothing waits - then the name of the door at
- * the foot of it, where a door's name is. Anchoring both ends is also what
- * keeps a square from being mostly empty in the middle.
+ * count, or the quiet line saying nothing waits - then the mark, then the name
+ * of the door at the foot of it, where a door's name is.
+ *
+ * Mark, name and sentence are one block at the foot, and the square's slack all
+ * sits above it. Splitting the slack either side of the mark was the first go
+ * and it left the mark floating in the middle of nothing, which reads as a
+ * placeholder; hanging it off the name makes it part of what it names. The mark
+ * is what the square is for: the two doors differ by silhouette before either
+ * word is read, and that is the whole reason a choice is offered as two shapes
+ * rather than as two lines of text.
  *
  * The name is set by hand in the display serif rather than as an h2, because a
  * heading is flow content and this is the inside of a button. The button's own
@@ -184,11 +193,13 @@ function Doors({
 function Door({
   title,
   note,
+  icon,
   state,
   onClick,
 }: {
   title: string;
   note: string;
+  icon: ReactNode;
   state: ReactNode;
   onClick: () => void;
 }) {
@@ -220,9 +231,63 @@ function Door({
           <path d="M3.5 9h11M10 4.5 14.5 9 10 13.5" />
         </svg>
       </span>
-      <span className="mt-auto pt-7 display-serif text-title text-ink">{title}</span>
+      {/* Quiet on its own, and it warms with the arrow under the pointer: one
+          door, one hover, rather than two things lighting up separately. */}
+      <span className="mt-auto text-ink-3 transition-colors duration-state group-hover:text-ink-2">
+        {icon}
+      </span>
+      <span className="pt-5 display-serif text-title text-ink">{title}</span>
       <span className="max-w-[34ch] pt-3 text-small text-ink-2">{note}</span>
     </button>
+  );
+}
+
+// The two marks. Drawn at 28 rather than the column's 18, at the same stroke,
+// so they read as the same hand one size up rather than as a different set.
+//
+// Deliberately not the same glyph twice: the doors are told apart by silhouette
+// before either word is read, so one is a line entering an opening and the
+// other is a group of people. An envelope would have been the obvious mark for
+// an invitation and is wrong here - nothing in this product sends mail, an
+// invitation is a code handed over, and a mark promising a letter would be the
+// screen making a promise the backend never keeps.
+
+function IconEnter() {
+  return (
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 28 28"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M15 5h6.5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H15" />
+      <path d="M4.5 14h11M11.5 10l4 4-4 4" />
+    </svg>
+  );
+}
+
+function IconGroup() {
+  return (
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 28 28"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="10" r="4" />
+      <path d="M4 23.2c0-3.5 3.1-5.8 7-5.8s7 2.3 7 5.8" />
+      <path d="M19.2 6.9a4 4 0 0 1 0 7.5M21 17.9c2 .8 3.4 2.6 3.4 5.3" />
+    </svg>
   );
 }
 
