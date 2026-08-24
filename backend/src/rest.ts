@@ -468,8 +468,8 @@ export function createRestApp() {
     return c.json(await setAllPermission({ userId: userId(c), allPermission }));
   });
 
-  // The key goes in and never comes back out: both routes answer with which of
-  // the three sources is now in play, which is all a screen can honestly show.
+  // The key goes in and never comes back out: both routes answer with whether
+  // this account now has one, which is all a screen can honestly show.
   app.put("/me/gemini-key", async (c) => {
     const { key } = await readBody(c, z.object({ key: z.string() }));
     return c.json(await setGeminiKey({ userId: userId(c), key }));

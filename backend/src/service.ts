@@ -180,13 +180,10 @@ async function workspaceOfProject(userId: string, projectId: string): Promise<st
 }
 
 /**
- * Whose key pays for a call to Gemini. The person's own first, the server's
- * afterwards: an instance that carries a key in its environment works for
- * everyone on it out of the box, and anyone who would rather spend their own
- * quota says so in settings and is served first from then on.
+ * Whose key pays for a call to Gemini: the account that asked, and nobody else.
  *
  * One place decides this, because the alternative is every call site inventing
- * its own order and the answer to "which key just got billed" being "depends".
+ * its own rule and the answer to "which key just got billed" being "depends".
  */
 export async function geminiKey(userId: string): Promise<string> {
   const [user] = await db
@@ -332,12 +329,6 @@ export async function createNode(input: {
     summarizeOrNothing(key, content),
     conflictsFor({ key, workspaceId, projectId: input.projectId, content, embedding }),
   ]);
-
-  // The queue exists because a coder writes while nobody is watching. A person
-  // writing in the app is watching, has just read the exact text on screen, and
-  // is the one who would approve it a moment later - so their own entries are
-  // settled as they are written. A coder's wait, unless the account has said
-  // once and for all that it would rather not be asked.
 
   return db.transaction(async (tx) => {
     const [node] = await tx
@@ -1394,9 +1385,9 @@ async function verifyPassword(storedHash: string, password: string): Promise<boo
   }
 }
 
-// ponytail: no rate limiting, so guessing against a known address is only slowed
-// by argon2 itself. Enough while this listens on localhost; put a per-IP limiter
-// in front of /auth before it faces the internet.
+// Counting failed attempts is the transport's job, not this one's: the limiter
+// keyed by address sits on POST /auth/login in rest.ts, where there is a request
+// to refuse. This function only ever answers whether the pair is correct.
 export async function login(input: {
   email: string;
   password: string;
@@ -1938,9 +1929,10 @@ export async function listProjects(userId: string) {
   // per project would be one round trip per row for a number the list is never
   // shown without.
   //
-  // ponytail: counts pending_actions only through proposed nodes, because the
-  // chat that queues the other kind does not exist until step 5d. Add the
-  // pending_actions tally here when it does.
+  // ponytail: pendingCount counts proposed nodes only. Queued update and delete
+  // requests are missing from it, so a project whose only waiting item is a
+  // coder's correction shows zero here and one item on the review screen. Add
+  // the pending_actions tally when that gap is worth a second aggregate.
   return db
     .select({
       id: projects.id,
