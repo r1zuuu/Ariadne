@@ -11,7 +11,7 @@ import { ServiceError } from "./service.js";
 
 export type Provider = "google" | "github";
 
-export const PROVIDERS: Provider[] = ["google", "github"];
+const PROVIDERS: Provider[] = ["google", "github"];
 
 export function isProvider(value: string): value is Provider {
   return (PROVIDERS as string[]).includes(value);
@@ -80,7 +80,7 @@ function publicUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
-export function redirectUri(provider: Provider): string {
+function redirectUri(provider: Provider): string {
   return `${publicUrl()}/auth/${provider}/callback`;
 }
 

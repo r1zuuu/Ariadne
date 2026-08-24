@@ -180,13 +180,10 @@ async function workspaceOfProject(userId: string, projectId: string): Promise<st
 }
 
 /**
- * Whose key pays for a call to Gemini. The person's own first, the server's
- * afterwards: an instance that carries a key in its environment works for
- * everyone on it out of the box, and anyone who would rather spend their own
- * quota says so in settings and is served first from then on.
+ * Whose key pays for a call to Gemini: the account that asked, and nobody else.
  *
  * One place decides this, because the alternative is every call site inventing
- * its own order and the answer to "which key just got billed" being "depends".
+ * its own rule and the answer to "which key just got billed" being "depends".
  */
 export async function geminiKey(userId: string): Promise<string> {
   const [user] = await db
@@ -333,12 +330,6 @@ export async function createNode(input: {
     conflictsFor({ key, workspaceId, projectId: input.projectId, content, embedding }),
   ]);
 
-  // The queue exists because a coder writes while nobody is watching. A person
-  // writing in the app is watching, has just read the exact text on screen, and
-  // is the one who would approve it a moment later - so their own entries are
-  // settled as they are written. A coder's wait, unless the account has said
-  // once and for all that it would rather not be asked.
-
   return db.transaction(async (tx) => {
     const [node] = await tx
       .insert(nodes)
@@ -409,32 +400,6 @@ export function normalizeRepoRef(raw: string): string {
 
 // Takes a workspace, not a user: the same repo can be recorded in two workspaces
 // a person belongs to, and a coder's token says which archive it is speaking to.
-/**
- * Removes a project and everything filed under it. Irreversible, and there is no
- * archive of the archive: the entries, their anchors, the review queue and the
- * chats about it all go with it.
- *
- * The database does the removing. projects -> nodes -> code_anchors and
- * pending_actions are all ON DELETE CASCADE, conversations hang off the project
- * directly, and nodes.superseded_by is SET NULL, so one statement leaves nothing
- * behind and nothing dangling. Writing the same sweep by hand here would be a
- * second description of the same rule, and the one that drifts.
- *
- * Only the workspace's owner, matching removeMember: a member writes to a shared
- * archive, and destroying one is not writing to it.
- */
-export async function deleteProject(input: { userId: string; projectId: string }) {
-  const workspaceId = await workspaceOfProject(input.userId, input.projectId);
-  if ((await assertMember(input.userId, workspaceId)) !== "owner") {
-    throw new ServiceError("unauthorized", "only the workspace owner deletes a project");
-  }
-  const [gone] = await db
-    .delete(projects)
-    .where(eq(projects.id, input.projectId))
-    .returning({ id: projects.id });
-  if (!gone) throw new ServiceError("not_found", "project not found for this user");
-}
-
 export async function resolveProjectByRepoRef(workspaceId: string, repoRef: string) {
   assertUuid(workspaceId, "workspaceId");
   const normalized = normalizeRepoRef(repoRef);
@@ -1394,9 +1359,9 @@ async function verifyPassword(storedHash: string, password: string): Promise<boo
   }
 }
 
-// ponytail: no rate limiting, so guessing against a known address is only slowed
-// by argon2 itself. Enough while this listens on localhost; put a per-IP limiter
-// in front of /auth before it faces the internet.
+// Counting failed attempts is the transport's job, not this one's: the limiter
+// keyed by address sits on POST /auth/login in rest.ts, where there is a request
+// to refuse. This function only ever answers whether the pair is correct.
 export async function login(input: {
   email: string;
   password: string;
@@ -1824,11 +1789,11 @@ export async function acceptInvite(input: { userId: string; code: string }) {
 
 // The raw token is shown once at generation; only its sha256 reaches the DB,
 // so a database leak does not hand out working tokens.
-export function generateToken(): string {
+function generateToken(): string {
   return randomBytes(32).toString("base64url");
 }
 
-export function hashToken(rawToken: string): string {
+function hashToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
 }
 
@@ -1938,9 +1903,10 @@ export async function listProjects(userId: string) {
   // per project would be one round trip per row for a number the list is never
   // shown without.
   //
-  // ponytail: counts pending_actions only through proposed nodes, because the
-  // chat that queues the other kind does not exist until step 5d. Add the
-  // pending_actions tally here when it does.
+  // ponytail: pendingCount counts proposed nodes only. Queued update and delete
+  // requests are missing from it, so a project whose only waiting item is a
+  // coder's correction shows zero here and one item on the review screen. Add
+  // the pending_actions tally when that gap is worth a second aggregate.
   return db
     .select({
       id: projects.id,
@@ -1970,6 +1936,94 @@ export async function listProjects(userId: string) {
     .groupBy(projects.id, workspaces.id)
     .orderBy(desc(projects.updatedAt));
 }
+
+export async function createProject(input: {
+  userId: string;
+  workspaceId?: string;
+  card: ProjectCard;
+}) {
+  assertUuid(input.userId, "userId");
+  validateCard(input.card);
+  const workspaceId = input.workspaceId ?? (await defaultWorkspace(input.userId));
+  await assertMember(input.userId, workspaceId);
+  const repoRef = normalizeRepoRef(input.card.repoRef);
+  const [project] = await db
+    .insert(projects)
+    .values({ ...input.card, workspaceId, repoRef })
+    .onConflictDoNothing({ target: [projects.workspaceId, projects.repoRef] })
+    .returning();
+  if (!project) {
+    throw new ServiceError(
+      "validation",
+      `this workspace already has a project for repo_ref ${repoRef}`,
+    );
+  }
+  return project;
+}
+
+export async function updateProject(input: {
+  userId: string;
+  projectId: string;
+  card: Partial<ProjectCard>;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  validateCard(input.card);
+  const patch = { ...input.card, updatedAt: new Date() };
+  if (input.card.repoRef !== undefined) patch.repoRef = normalizeRepoRef(input.card.repoRef);
+
+  try {
+    const [project] = await db
+      .update(projects)
+      .set(patch)
+      .where(
+        and(
+          eq(projects.id, input.projectId),
+          inArray(projects.workspaceId, reachableWorkspaces(input.userId)),
+        ),
+      )
+      .returning();
+    if (!project) throw new ServiceError("not_found", "project not found for this user");
+    return project;
+  } catch (error) {
+    // A repo_ref edit can land on another project in the same workspace.
+    if (isUniqueViolation(error)) {
+      throw new ServiceError(
+        "validation",
+        "another project in this workspace already uses this repo_ref",
+      );
+    }
+    throw error;
+  }
+}
+
+/**
+ * Removes a project and everything filed under it. Irreversible, and there is no
+ * archive of the archive: the entries, their anchors, the review queue and the
+ * chats about it all go with it.
+ *
+ * The database does the removing. projects -> nodes -> code_anchors and
+ * pending_actions are all ON DELETE CASCADE, conversations hang off the project
+ * directly, and nodes.superseded_by is SET NULL, so one statement leaves nothing
+ * behind and nothing dangling. Writing the same sweep by hand here would be a
+ * second description of the same rule, and the one that drifts.
+ *
+ * Only the workspace's owner, matching removeMember: a member writes to a shared
+ * archive, and destroying one is not writing to it.
+ */
+export async function deleteProject(input: { userId: string; projectId: string }) {
+  const workspaceId = await workspaceOfProject(input.userId, input.projectId);
+  if ((await assertMember(input.userId, workspaceId)) !== "owner") {
+    throw new ServiceError("unauthorized", "only the workspace owner deletes a project");
+  }
+  const [gone] = await db
+    .delete(projects)
+    .where(eq(projects.id, input.projectId))
+    .returning({ id: projects.id });
+  if (!gone) throw new ServiceError("not_found", "project not found for this user");
+}
+
+// --- The connection graph (plan section 8) ---
 
 // Two kinds of edge, computed on the fly rather than stored, because both are
 // derivable and a stored copy would need invalidating on every write (plan
@@ -2233,66 +2287,6 @@ export async function deleteConversation(input: { userId: string; conversationId
     .where(
       and(eq(conversations.id, input.conversationId), eq(conversations.userId, input.userId)),
     );
-}
-
-export async function createProject(input: {
-  userId: string;
-  workspaceId?: string;
-  card: ProjectCard;
-}) {
-  assertUuid(input.userId, "userId");
-  validateCard(input.card);
-  const workspaceId = input.workspaceId ?? (await defaultWorkspace(input.userId));
-  await assertMember(input.userId, workspaceId);
-  const repoRef = normalizeRepoRef(input.card.repoRef);
-  const [project] = await db
-    .insert(projects)
-    .values({ ...input.card, workspaceId, repoRef })
-    .onConflictDoNothing({ target: [projects.workspaceId, projects.repoRef] })
-    .returning();
-  if (!project) {
-    throw new ServiceError(
-      "validation",
-      `this workspace already has a project for repo_ref ${repoRef}`,
-    );
-  }
-  return project;
-}
-
-export async function updateProject(input: {
-  userId: string;
-  projectId: string;
-  card: Partial<ProjectCard>;
-}) {
-  assertUuid(input.userId, "userId");
-  assertUuid(input.projectId, "projectId");
-  validateCard(input.card);
-  const patch = { ...input.card, updatedAt: new Date() };
-  if (input.card.repoRef !== undefined) patch.repoRef = normalizeRepoRef(input.card.repoRef);
-
-  try {
-    const [project] = await db
-      .update(projects)
-      .set(patch)
-      .where(
-        and(
-          eq(projects.id, input.projectId),
-          inArray(projects.workspaceId, reachableWorkspaces(input.userId)),
-        ),
-      )
-      .returning();
-    if (!project) throw new ServiceError("not_found", "project not found for this user");
-    return project;
-  } catch (error) {
-    // A repo_ref edit can land on another project in the same workspace.
-    if (isUniqueViolation(error)) {
-      throw new ServiceError(
-        "validation",
-        "another project in this workspace already uses this repo_ref",
-      );
-    }
-    throw error;
-  }
 }
 
 // --- Review feed (plan section 10) ---

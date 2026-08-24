@@ -118,7 +118,7 @@ export async function generateJson<T>(key: string, prompt: Prompt, schema: objec
   return JSON.parse(text) as T;
 }
 
-export const SUMMARY_WORDS = 10;
+const SUMMARY_WORDS = 10;
 
 const SUMMARY_RULES = [
   `You title one recorded entry in at most ${SUMMARY_WORDS} words.`,
@@ -144,6 +144,15 @@ const SUMMARY_RULES = [
  * is the guarantee, and a card whose lead line wraps to three rows is the thing
  * this feature exists to prevent.
  */
+export async function summarize(key: string, content: string): Promise<string> {
+  const { summary } = await generateJson<{ summary: string }>(
+    key,
+    { system: SUMMARY_RULES, user: content },
+    { type: "object", properties: { summary: { type: "string" } }, required: ["summary"] },
+  );
+  return summary.trim().split(/\s+/).slice(0, SUMMARY_WORDS).join(" ");
+}
+
 const CONFLICT_RULES = [
   "You are given one new entry in a project's record and a numbered list of entries already in it.",
   "Name the numbers of the entries the new one contradicts: both cannot be true of the same project at the same time.",
@@ -187,15 +196,6 @@ export async function findConflicts(
   return (conflicts ?? [])
     .map((n) => n - 1)
     .filter((i) => Number.isInteger(i) && i >= 0 && i < candidates.length);
-}
-
-export async function summarize(key: string, content: string): Promise<string> {
-  const { summary } = await generateJson<{ summary: string }>(
-    key,
-    { system: SUMMARY_RULES, user: content },
-    { type: "object", properties: { summary: { type: "string" } }, required: ["summary"] },
-  );
-  return summary.trim().split(/\s+/).slice(0, SUMMARY_WORDS).join(" ");
 }
 
 function textOf(payload: unknown): string {
