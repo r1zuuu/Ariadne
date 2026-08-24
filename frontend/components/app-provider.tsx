@@ -23,6 +23,7 @@ import {
   listWorkspaces,
   myInvites,
   readToken,
+  type MyInvite,
   type PendingAction,
   type Project,
   type ReviewNode,
@@ -56,9 +57,12 @@ type AppContextValue = {
    * else opens.
    */
   workspaces: Workspace[];
-  /** How many invitations are addressed to this account and still open, for the
-   *  counter beside the navigation entry. Somebody is waiting on each one. */
-  invitationCount: number;
+  /** The invitations written to this account and still open. Somebody is waiting
+   *  on each one, so the navigation counts them and the teams screen shows them. */
+  invitations: MyInvite[];
+  /** Re-reads both of the above. Joining, leaving or founding an archive changes
+   *  them, and the screen that does it must not reach for a page reload. */
+  refreshMembership: () => Promise<void>;
   server: ServerState;
 };
 
@@ -76,7 +80,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [pendingFeed, setPendingFeed] = useState<PendingFeed | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
-  const [invitationCount, setInvitationCount] = useState(0);
+  const [invitations, setInvitations] = useState<MyInvite[]>([]);
   const [server, setServer] = useState<ServerState>("checking");
 
   const refreshProjects = useCallback(async () => {
@@ -115,6 +119,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // The two membership lists move together: accepting an invitation removes one
+  // and adds an archive. allSettled rather than all, so a server one deploy
+  // behind that answers only one of them still updates the half it can.
+  const refreshMembership = useCallback(async () => {
+    const [archives, waiting] = await Promise.allSettled([listWorkspaces(), myInvites()]);
+    if (archives.status === "fulfilled") setWorkspaces(archives.value);
+    if (waiting.status === "fulfilled") setInvitations(waiting.value);
+  }, []);
+
   useEffect(() => {
     if (!readToken()) {
       router.replace("/");
@@ -122,15 +135,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     void refreshProjects();
     void refreshPending();
-    // Membership changes when an invitation is accepted, which is rare and never
-    // silent, so this is read once rather than kept in step with every refresh.
-    void listWorkspaces()
-      .then(setWorkspaces)
-      .catch(() => {});
-    void myInvites()
-      .then((rows) => setInvitationCount(rows.length))
-      .catch(() => {});
-  }, [refreshProjects, refreshPending, router]);
+    void refreshMembership();
+  }, [refreshProjects, refreshPending, refreshMembership, router]);
 
   const setActiveProject = useCallback((id: string) => {
     localStorage.setItem(ACTIVE_PROJECT_KEY, id);
@@ -149,7 +155,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : 0,
       refreshPending,
       workspaces,
-      invitationCount,
+      invitations,
+      refreshMembership,
       server,
     }),
     [
@@ -160,7 +167,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       pendingFeed,
       refreshPending,
       workspaces,
-      invitationCount,
+      invitations,
+      refreshMembership,
       server,
     ],
   );

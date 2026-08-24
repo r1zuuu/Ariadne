@@ -1,22 +1,32 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useApp } from "@/components/app-provider";
 import { CommandBlock } from "@/components/command-block";
 import { useFailure } from "@/components/failure";
+import { Collapse, FadeIn } from "@/components/motion";
 import { MemberMarks } from "@/components/project-marks";
 import { useToast } from "@/components/toast";
-import { Button, Card, EmptyState, Input, Meta, PageHeader, SectionHeader } from "@/components/ui";
+import {
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  Meta,
+  PageHeader,
+  SectionHeader,
+  Status,
+} from "@/components/ui";
 import {
   acceptInvite,
+  ApiError,
   createInvite,
   createWorkspace,
   declineInvite,
   getAccount,
   listInvites,
   listMembers,
-  myInvites,
   removeMember,
   revokeInvite,
   type Invite,
@@ -28,39 +38,236 @@ import {
 
 // Screen 09. Who you work with, and on what.
 //
-// All of this existed already and none of it was findable: members, invitations
-// and creating an archive lived at the bottom of the settings screen, past the
-// account, the key, the approval switch and the tokens. Nothing anywhere said
-// teams were a thing at all.
+// Two questions arrive at this screen and only one of them is ever yours: either
+// somebody let you in somewhere, or you are looking after archives you already
+// have. The first has a deadline on it, the second does not. Laid out one under
+// another they read as one long list of equal things, which is what this screen
+// used to be: invitations, teams, private archives and a founding form, four
+// sections at one weight down a page nobody scrolled.
 //
-// The order down the page is the order the questions arrive in. Somebody is
-// waiting for you first, because it is the only part with a deadline. Then the
-// teams you are in, each showing the projects inside it - that nesting is the
-// whole model and it had never been drawn. Your own archive last, named as what
-// it is: a team of one, an invitation away from being a team.
+// So the screen opens on the two doors instead, and the doors carry what is
+// behind them: an ochre count when somebody is waiting, a quiet metadata line
+// when it is only your own shelves. Colour picks the door with the deadline,
+// which is the one thing colour is for in this product. Founding an archive is
+// not a third door - it is something you do once you are already inside your
+// own, so it lives there as an action on the heading.
+
+type View = "doors" | "join" | "mine";
 
 export default function TeamsScreen() {
   const t = useTranslations("teams");
-  const toast = useToast();
-  const failure = useFailure();
-  const { workspaces, projects, refreshProjects } = useApp();
-
-  const [invitations, setInvitations] = useState<MyInvite[] | null>(null);
+  const { workspaces, invitations } = useApp();
+  const [view, setView] = useState<View>("doors");
   const [accountId, setAccountId] = useState<string | null>(null);
-  const [working, setWorking] = useState<string | null>(null);
 
-  const loadInvitations = useCallback(() => {
-    void myInvites()
-      .then(setInvitations)
-      .catch(() => setInvitations([]));
-  }, []);
-
-  useEffect(loadInvitations, [loadInvitations]);
   useEffect(() => {
     void getAccount()
       .then((account) => setAccountId(account.id))
       .catch(() => {});
   }, []);
+
+  // A team is an archive more than one person reaches, or one you were let into.
+  // Everything else is yours alone.
+  const teams = workspaces.filter((w) => w.memberCount > 1 || !w.isOwner);
+  const mine = workspaces.filter((w) => w.memberCount === 1 && w.isOwner);
+
+  return (
+    <div className="mx-auto max-w-[900px]">
+      {/* Keyed on the view, so passing through a door is the same 200ms arrival
+          every other screen change in the app uses. */}
+      <FadeIn key={view}>
+        {view === "doors" ? (
+          <>
+            <PageHeader title={t("title")} lead={t("lead")} />
+            <Doors
+              waiting={invitations.length}
+              archives={workspaces.length}
+              shared={teams.length}
+              onPick={setView}
+            />
+          </>
+        ) : view === "join" ? (
+          <JoinPanel
+            invitations={invitations}
+            onBack={() => setView("doors")}
+            // Joining answers "where did it go" by putting you in front of the
+            // archive you just entered.
+            onJoined={() => setView("mine")}
+          />
+        ) : (
+          <MyTeams
+            teams={teams}
+            mine={mine}
+            accountId={accountId}
+            onBack={() => setView("doors")}
+          />
+        )}
+      </FadeIn>
+    </div>
+  );
+}
+
+// --- The two doors ---
+
+function Doors({
+  waiting,
+  archives,
+  shared,
+  onPick,
+}: {
+  waiting: number;
+  archives: number;
+  shared: number;
+  onPick: (view: View) => void;
+}) {
+  const t = useTranslations("teams");
+
+  return (
+    <div className="grid gap-5 pb-9 md:grid-cols-[1fr_auto_1fr] md:gap-6">
+      <Door
+        title={t("doors.join.title")}
+        note={t("doors.join.note")}
+        onClick={() => onPick("join")}
+        state={
+          waiting ? (
+            <Status tone="proposed">{t("doors.join.waiting", { count: waiting })}</Status>
+          ) : (
+            <span className="text-data text-ink-3">{t("doors.join.empty")}</span>
+          )
+        }
+      />
+
+      {/* The fork in the path: one hairline, the word on it, nothing else. */}
+      <div className="flex items-center justify-center gap-4 md:flex-col">
+        <span aria-hidden="true" className="h-px flex-1 bg-hairline md:h-auto md:w-px" />
+        <span className="text-label uppercase tracking-[0.12em] text-ink-3">{t("or")}</span>
+        <span aria-hidden="true" className="h-px flex-1 bg-hairline md:h-auto md:w-px" />
+      </div>
+
+      <Door
+        title={t("doors.mine.title")}
+        note={t("doors.mine.note")}
+        onClick={() => onPick("mine")}
+        state={
+          <Meta
+            items={[
+              t("doors.mine.archives", { count: archives }),
+              shared ? t("doors.mine.shared", { count: shared }) : t("private"),
+            ]}
+          />
+        }
+      />
+    </div>
+  );
+}
+
+/**
+ * One of the two. A square you press, not a card you read.
+ *
+ * Read top to bottom it is a poster: what is behind the door first - the ochre
+ * count, or the quiet line saying nothing waits - then the name of the door at
+ * the foot of it, where a door's name is. Anchoring both ends is also what
+ * keeps a square from being mostly empty in the middle.
+ *
+ * The name is set by hand in the display serif rather than as an h2, because a
+ * heading is flow content and this is the inside of a button. The button's own
+ * text is its name in the accessibility tree, count and all.
+ */
+function Door({
+  title,
+  note,
+  state,
+  onClick,
+}: {
+  title: string;
+  note: string;
+  state: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex min-h-[220px] w-full flex-col items-start rounded-card border border-hairline bg-surface p-7 text-left shadow-card transition-colors duration-state hover:border-edge hover:bg-surface-2 md:aspect-square"
+    >
+      <span className="flex w-full items-center justify-between gap-4">
+        {state}
+        {/* The one thing that separates a door from a panel: it goes somewhere,
+            and under the pointer the way it goes takes up the thread. */}
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 18 18"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className="shrink-0 text-ink-3 transition-colors duration-state group-hover:text-thread"
+        >
+          <path d="M3.5 9h11M10 4.5 14.5 9 10 13.5" />
+        </svg>
+      </span>
+      <span className="mt-auto pt-7 display-serif text-title text-ink">{title}</span>
+      <span className="max-w-[34ch] pt-3 text-small text-ink-2">{note}</span>
+    </button>
+  );
+}
+
+function BackLink({ onClick }: { onClick: () => void }) {
+  const t = useTranslations("teams");
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="-ml-2 mt-5 inline-flex items-center gap-2 rounded-control px-2 py-1 text-small text-ink-2 transition-colors duration-state hover:text-ink"
+    >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M8.5 3.5 4 8l4.5 4.5M4 8h8" />
+      </svg>
+      {t("back")}
+    </button>
+  );
+}
+
+// --- Behind the first door: what is waiting, and the code you were sent ---
+
+/**
+ * Two ways in, in the order they cost the reader something. An invitation
+ * written to this address is already here and takes one press. A code handed
+ * over by hand has to be typed, so it sits under the hairline - and when nothing
+ * is waiting it is the whole screen, which is the case that had no home at all
+ * before: acceptInvite existed, the wizard and the settings called it, and this
+ * screen offered nowhere to paste one.
+ */
+function JoinPanel({
+  invitations,
+  onBack,
+  onJoined,
+}: {
+  invitations: MyInvite[];
+  onBack: () => void;
+  onJoined: () => void;
+}) {
+  const t = useTranslations("teams");
+  const toast = useToast();
+  const failure = useFailure();
+  const { refreshMembership, refreshProjects } = useApp();
+
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [working, setWorking] = useState<string | null>(null);
 
   const act = async (key: string, run: () => Promise<void>, done: string) => {
     setWorking(key);
@@ -74,19 +281,55 @@ export default function TeamsScreen() {
     }
   };
 
-  // A team is an archive more than one person reaches, or one you were let into.
-  // Everything else is yours alone.
-  const teams = workspaces.filter((w) => w.memberCount > 1 || !w.isOwner);
-  const mine = workspaces.filter((w) => w.memberCount === 1 && w.isOwner);
+  const join = async (invite: MyInvite) =>
+    act(
+      invite.id,
+      async () => {
+        // The code is the key, not the id: accepting is the same act whether the
+        // code arrived by hand or was read off this screen.
+        await acceptInvite(invite.code);
+        await Promise.all([refreshMembership(), refreshProjects()]);
+        onJoined();
+      },
+      t("joined", { team: invite.workspaceName }),
+    );
+
+  const joinByCode = async () => {
+    const typed = code.trim();
+    if (!typed) {
+      setCodeError(t("code.errorEmpty"));
+      return;
+    }
+    setCodeError(null);
+    setWorking("code");
+    try {
+      const workspace = await acceptInvite(typed);
+      setCode("");
+      await Promise.all([refreshMembership(), refreshProjects()]);
+      toast(t("joined", { team: workspace.name }));
+      onJoined();
+    } catch (error) {
+      // A refused code is the reader's mistake to fix while it is still on
+      // screen, so it stays under the field instead of leaving in a toast.
+      if (error instanceof ApiError && (error.status === 404 || error.status === 401)) {
+        setCodeError(t("code.errorBad"));
+      } else {
+        toast(failure(error), "error");
+      }
+    } finally {
+      setWorking(null);
+    }
+  };
 
   return (
-    <div className="mx-auto max-w-[900px]">
-      <PageHeader title={t("title")} lead={t("lead")} />
+    <>
+      <BackLink onClick={onBack} />
+      <PageHeader title={t("doors.join.title")} />
 
-      {invitations?.length ? (
+      {invitations.length ? (
         <section className="pb-9">
           <SectionHeader title={t("waiting")} count={invitations.length} />
-          <ul className="flex flex-col gap-4 pt-4">
+          <ul className="flex flex-col gap-4">
             {invitations.map((invite) => (
               <li key={invite.id}>
                 {/* Ochre, the colour this application already uses for anything
@@ -107,23 +350,7 @@ export default function TeamsScreen() {
                     />
                   </div>
                   <div className="flex flex-wrap gap-3 pt-5">
-                    <Button
-                      loading={working === invite.id}
-                      onClick={() =>
-                        act(
-                          invite.id,
-                          async () => {
-                            // The code is the key, not the id: accepting is the
-                            // same act whether the code arrived by hand or was
-                            // read off this screen.
-                            await acceptInvite(invite.code);
-                            loadInvitations();
-                            await refreshProjects();
-                          },
-                          t("joined", { team: invite.workspaceName }),
-                        )
-                      }
-                    >
+                    <Button loading={working === invite.id} onClick={() => void join(invite)}>
                       {t("join")}
                     </Button>
                     <Button
@@ -134,7 +361,7 @@ export default function TeamsScreen() {
                           invite.id,
                           async () => {
                             await declineInvite(invite.id);
-                            loadInvitations();
+                            await refreshMembership();
                           },
                           t("declined"),
                         )
@@ -150,32 +377,108 @@ export default function TeamsScreen() {
         </section>
       ) : null}
 
+      {/* Under the hairline when something is waiting above it, on its own when
+          nothing is: same field either way, different amount of the screen. */}
+      <section className={invitations.length ? "border-t border-hairline pt-7" : ""}>
+        <SectionHeader title={t("code.title")} />
+        <p className="max-w-[62ch] pb-5 text-body text-ink-2">
+          {invitations.length ? t("code.lead") : t("code.leadAlone")}
+        </p>
+        <div className="max-w-[46ch]">
+          <Input
+            id="invite-code"
+            label={t("code.label")}
+            note={t("code.note")}
+            placeholder={t("code.placeholder")}
+            error={codeError ?? undefined}
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") void joinByCode();
+            }}
+          />
+        </div>
+        <div className="flex max-w-[46ch] justify-end pt-4">
+          <Button loading={working === "code"} onClick={() => void joinByCode()}>
+            {t("join")}
+          </Button>
+        </div>
+      </section>
+    </>
+  );
+}
+
+// --- Behind the second door: the archives you already have ---
+
+function MyTeams({
+  teams,
+  mine,
+  accountId,
+  onBack,
+}: {
+  teams: Workspace[];
+  mine: Workspace[];
+  accountId: string | null;
+  onBack: () => void;
+}) {
+  const t = useTranslations("teams");
+  const { projects, refreshMembership, refreshProjects } = useApp();
+  const [founding, setFounding] = useState(false);
+
+  const changed = useCallback(async () => {
+    await Promise.all([refreshMembership(), refreshProjects()]);
+  }, [refreshMembership, refreshProjects]);
+
+  return (
+    <>
+      <BackLink onClick={onBack} />
+      <PageHeader
+        title={t("doors.mine.title")}
+        actions={
+          <Button variant="secondary" onClick={() => setFounding(!founding)}>
+            {founding ? t("cancel") : t("newTeam")}
+          </Button>
+        }
+      />
+
+      {/* The third act. Not a door and not a section at the bottom of the page:
+          founding an archive is something you do while looking at the ones you
+          already have, so it opens out of the heading that names them. */}
+      <Collapse open={founding}>
+        <div className="pb-7">
+          <NewTeam
+            onCreated={async () => {
+              setFounding(false);
+              await changed();
+            }}
+          />
+        </div>
+      </Collapse>
+
       <section>
-        <SectionHeader title={t("yours")} />
+        <SectionHeader title={t("shared")} count={teams.length || undefined} />
         {teams.length ? (
-          <ul className="flex flex-col gap-4 pt-4">
+          <ul className="flex flex-col gap-4">
             {teams.map((workspace) => (
               <li key={workspace.id}>
                 <TeamCard
                   workspace={workspace}
                   projects={projects ?? []}
                   accountId={accountId}
-                  onChanged={refreshProjects}
+                  onChanged={changed}
                 />
               </li>
             ))}
           </ul>
         ) : (
-          <div className="pt-4">
-            <EmptyState title={t("noTeams")} note={t("noTeamsNote")} />
-          </div>
+          <EmptyState title={t("noTeams")} note={t("noTeamsNote")} />
         )}
       </section>
 
       {mine.length ? (
         <section className="pt-9">
           <SectionHeader title={t("private")} />
-          <p className="max-w-[70ch] pb-4 pt-2 text-small text-ink-2">{t("privateNote")}</p>
+          <p className="max-w-[70ch] pb-4 text-small text-ink-2">{t("privateNote")}</p>
           <ul className="flex flex-col gap-4">
             {mine.map((workspace) => (
               <li key={workspace.id}>
@@ -183,16 +486,14 @@ export default function TeamsScreen() {
                   workspace={workspace}
                   projects={projects ?? []}
                   accountId={accountId}
-                  onChanged={refreshProjects}
+                  onChanged={changed}
                 />
               </li>
             ))}
           </ul>
         </section>
       ) : null}
-
-      <NewTeam onCreated={() => window.location.reload()} />
-    </div>
+    </>
   );
 }
 
@@ -318,8 +619,7 @@ function TeamCard({
                           member.userId,
                           async () => {
                             await removeMember(workspace.id, member.userId);
-                            if (self) window.location.reload();
-                            else loadDetail();
+                            if (!self) loadDetail();
                             await onChanged();
                           },
                           self ? t("left") : t("removed"),
@@ -411,7 +711,7 @@ function TeamCard({
   );
 }
 
-function NewTeam({ onCreated }: { onCreated: () => void }) {
+function NewTeam({ onCreated }: { onCreated: () => Promise<void> | void }) {
   const t = useTranslations("teams");
   const toast = useToast();
   const failure = useFailure();
@@ -424,7 +724,7 @@ function NewTeam({ onCreated }: { onCreated: () => void }) {
       await createWorkspace(name.trim());
       setName("");
       toast(t("teamCreated"));
-      onCreated();
+      await onCreated();
     } catch (error) {
       toast(failure(error), "error");
     } finally {
@@ -433,27 +733,19 @@ function NewTeam({ onCreated }: { onCreated: () => void }) {
   };
 
   return (
-    <section className="pb-9 pt-9">
-      <SectionHeader title={t("newTeam")} />
-      <Card className="mt-4 p-6">
-        <Input
-          id="new-team-name"
-          label={t("newTeamName")}
-          note={t("newTeamNote")}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <div className="flex justify-end pt-4">
-          <Button
-            variant="secondary"
-            disabled={!name.trim()}
-            loading={busy}
-            onClick={() => void create()}
-          >
-            {t("createTeam")}
-          </Button>
-        </div>
-      </Card>
-    </section>
+    <Card className="p-6">
+      <Input
+        id="new-team-name"
+        label={t("newTeamName")}
+        note={t("newTeamNote")}
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+      />
+      <div className="flex justify-end pt-4">
+        <Button disabled={!name.trim()} loading={busy} onClick={() => void create()}>
+          {t("createTeam")}
+        </Button>
+      </div>
+    </Card>
   );
 }

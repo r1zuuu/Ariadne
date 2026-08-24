@@ -516,6 +516,33 @@
   "teams": {
     "title": "Teams",
     "lead": "A team is a shared archive. Whoever belongs to it sees every project inside and everything you have recorded in them.",
+    "or": "or",
+    "back": "Back to the choice",
+    "cancel": "Cancel",
+    "doors": {
+      "join": {
+        "title": "Join a team",
+        "note": "Answer an invitation written to you, or paste a code somebody handed over.",
+        "waiting": "{count, plural, one {# invitation} other {# invitations}}",
+        "empty": "Nothing is waiting. Paste a code here."
+      },
+      "mine": {
+        "title": "My teams",
+        "note": "The archives you belong to: who is in them and which projects they hold.",
+        "archives": "{count, plural, one {# archive} other {# archives}}",
+        "shared": "{count} shared"
+      }
+    },
+    "code": {
+      "title": "You were given a code",
+      "lead": "A code passed to you by hand works here too.",
+      "leadAlone": "Nothing is waiting for your answer right now. If somebody passed you an invitation code, paste it here.",
+      "label": "Invitation code",
+      "placeholder": "invitation-code",
+      "note": "The code is tied to your address. One written for somebody else will not work.",
+      "errorEmpty": "Paste the invitation code.",
+      "errorBad": "That code does not work. Check that it is complete and was written for your address."
+    },
     "waiting": "Waiting for your answer",
     "invitedTo": "An invitation to {team}",
     "invitedBy": "from {who}",
@@ -525,12 +552,12 @@
     "decline": "Decline",
     "joined": "You are in {team}",
     "declined": "Invitation declined",
-    "yours": "Your teams",
+    "shared": "Shared with others",
     "noTeams": "You are not working with anyone yet",
     "noTeamsNote": "Invite somebody to your own archive below and it becomes a team. They will see every project in it and be able to write to them.",
     "private": "Yours alone",
     "privateNote": "Only you can see this archive. Invite somebody and it becomes a team, together with every project already in it.",
-    "projectsIn": "PROJECTS IN THIS ARCHIVE",
+    "projectsIn": "Projects in this archive",
     "noProjects": "No project in here yet.",
     "manage": "Manage",
     "close": "Collapse",
@@ -544,7 +571,7 @@
     "remove": "Remove",
     "left": "You left the team",
     "removed": "Removed from the team",
-    "inviteEmail": "THEIR ADDRESS",
+    "inviteEmail": "Their address",
     "inviteEmailNote": "The code will only work for this address. Leave it empty and it opens for whoever receives it.",
     "inviteEmailPlaceholder": "them@domain.com",
     "createInvite": "Create an invitation",
@@ -556,7 +583,7 @@
     "revoke": "Withdraw",
     "inviteRevoked": "Invitation withdrawn",
     "newTeam": "New team",
-    "newTeamName": "TEAM NAME",
+    "newTeamName": "Name of the archive",
     "newTeamNote": "A separate archive for projects you run with somebody else.",
     "createTeam": "Create the team",
     "teamCreated": "Team created"
