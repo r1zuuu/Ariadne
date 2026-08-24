@@ -117,7 +117,9 @@ export default function ProjectScreen() {
               <ReadView project={project} />
             )}
 
-            <section className="pt-8">
+            {/* The map is the fourth section of the same document, so it takes
+                the same rule above it as the three that come before. */}
+            <section className="mt-7 border-t border-hairline pt-6">
               <SectionHeader title={t("graph")} />
               <p className="pb-4 text-small text-ink-2">{t("graphLead")}</p>
               {graphError ? (
@@ -181,16 +183,26 @@ function ReadView({ project }: { project: Project }) {
     .map((item) => item.trim())
     .filter(Boolean);
 
+  // Three sections over rules, not three cards. This screen is a profile you
+  // read and the one thing you can do to it is up in the header, so a card
+  // around each block was packaging around text - and three identical boxes
+  // down a page is also how a screen ends up with no hierarchy at all. The
+  // headings carry it now: serif at the section step over a hairline, with the
+  // reading measure held at 68 characters instead of running the full width.
   return (
-    <div className="flex flex-col gap-5">
-      <Card className="p-6">
+    <div>
+      <section className="border-t border-hairline pt-6">
         <h2 className="pb-2 text-section text-ink">{t("about")}</h2>
-        <p className={`text-body leading-8 ${project.opis ? "text-ink-2" : "text-ink-3"}`}>
+        <p
+          className={`max-w-[68ch] text-body leading-8 ${
+            project.opis ? "text-ink-2" : "text-ink-3"
+          }`}
+        >
           {project.opis || t("aboutEmpty")}
         </p>
-      </Card>
+      </section>
 
-      <Card className="p-6">
+      <section className="mt-7 border-t border-hairline pt-6">
         <h2 className="pb-3 text-section text-ink">{t("tech")}</h2>
         {stack.length ? (
           // One metadata line, not a row of chips: a stack is a list of names,
@@ -199,22 +211,22 @@ function ReadView({ project }: { project: Project }) {
         ) : (
           <p className="text-body text-ink-3">{t("techEmpty")}</p>
         )}
-      </Card>
+      </section>
 
-      {/* Set apart with the thread colour, because this is the section that
-          steers the agent: everything else describes the project, this one
-          constrains what may be done to it. */}
-      <Card className="border-thread/25 p-6">
+      {/* The rule above this one is the thread rather than a hairline, because
+          this is the section that steers the agent: everything else describes
+          the project, this one constrains what may be done to it. */}
+      <section className="mt-7 border-t border-thread/50 pt-6">
         <h2 className="text-section text-ink">{t("limits")}</h2>
         <p className="pb-3 pt-1 text-small text-ink-3">{t("limitsNote")}</p>
         <p
-          className={`whitespace-pre-wrap text-body leading-8 ${
+          className={`max-w-[68ch] whitespace-pre-wrap text-body leading-8 ${
             project.ograniczenia ? "text-ink-2" : "text-ink-3"
           }`}
         >
           {project.ograniczenia || t("limitsEmpty")}
         </p>
-      </Card>
+      </section>
     </div>
   );
 }
