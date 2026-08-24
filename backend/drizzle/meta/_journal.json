@@ -71,6 +71,13 @@
       "when": 1786630765113,
       "tag": "0009_oauth_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787591763273,
+      "tag": "0010_lexical_search",
+      "breakpoints": true
     }
   ]
 }
