@@ -68,6 +68,32 @@ check("register returns 201", registered.status, 201);
 const token: string = registered.body.token;
 assert.ok(token?.length > 20, "register returns a jwt");
 
+// A fresh account has no key to Google, and since every call to Google is paid
+// for by the account that made it there is no server key behind it either. So
+// this account is given one before anything that embeds, edits or searches -
+// without it those all answer no_gemini_key and the run stops at the first of
+// them, which is where it has been stopping.
+//
+// PUT rather than a direct write, because that route validates the key with one
+// real embed before sealing it: a stale key in .env then fails here, named, and
+// not twenty checks later as a search that returns nothing.
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error(
+    "GEMINI_API_KEY is not set, and the search, embed and edit checks below cannot run without one.",
+  );
+}
+check(
+  "the account is given the key that pays for its calls",
+  (
+    await call("/me/gemini-key", {
+      method: "PUT",
+      token,
+      body: { key: process.env.GEMINI_API_KEY },
+    })
+  ).status,
+  200,
+);
+
 check(
   "same email twice is rejected",
   (await call("/auth/register", { method: "POST", body: { email: MINE, password: PASSWORD } }))
@@ -108,7 +134,15 @@ check("login returns 200", loggedIn.status, 200);
 // Read off the router itself rather than a hand-kept list: a route added later
 // without its prefix in PROTECTED_PREFIXES fails here instead of shipping open.
 const ANY_UUID = "00000000-0000-4000-8000-000000000000";
-const guarded = app.routes.filter((r) => r.method !== "ALL" && !r.path.startsWith("/auth"));
+// The whole open surface, spelled out so that it stays two entries long and so
+// that adding a third is an edit somebody has to justify. /auth is how a person
+// comes by a token at all; /healthz exists to be called by something that has
+// none and never will, since its caller is the timer that keeps Render from
+// putting the service to sleep.
+const PUBLIC = ["/auth", "/healthz"];
+const guarded = app.routes.filter(
+  (r) => r.method !== "ALL" && !PUBLIC.some((prefix) => r.path.startsWith(prefix)),
+);
 assert.ok(guarded.length >= 13, `expected the full route table, saw ${guarded.length}`);
 for (const route of guarded) {
   const path = route.path.replace(/:\w+/g, ANY_UUID);
@@ -426,6 +460,75 @@ check(
     .status,
   400,
 );
+
+// --- The lexical arm (migration 0010) ---
+//
+// This seed is the right place to prove it and the proof rests on one detail:
+// every node above was inserted with the same made-up embedding, so the vector
+// arm ranks them in whatever order the database feels like. Anything that comes
+// back reliably here came back by name, because nothing else in this data can
+// put one row above another.
+//
+// The arithmetic behind "reliably": a row both arms return scores its vector
+// place plus its lexical place, and the worst possible sum of the two still
+// beats the best score any vector-only row can reach. So a literal hit is not
+// merely likelier to surface, it cannot be displaced by one.
+
+const byName = await call("/search", {
+  method: "POST",
+  token,
+  body: { projectId: listProjectId, query: "co ustalilismy przy Drizzle", k: 2 },
+});
+check("a name in the question finds the entries carrying it", byName.status, 200);
+check(
+  "and both of them are about that name, not merely near it",
+  byName.body.every((n: { content: string }) => /drizzle/i.test(n.content)),
+  true,
+);
+// Every row carries the number the screen and the API were promised, including
+// the ones the vector arm would never have ranked this high on its own.
+check(
+  "a hit found by name still says how close it is",
+  byName.body.every((n: { similarity: unknown }) => typeof n.similarity === "number"),
+  true,
+);
+
+// Hono has no shape to recognise: no underscore, no slash, no camel hump, no
+// extension, not hex. The regex cannot reach it and never will, so this is the
+// model's half of the extraction on its own.
+const knowledge = await call("/search", {
+  method: "POST",
+  token,
+  body: { projectId: listProjectId, query: "dlaczego wybralismy Hono", k: 1 },
+});
+check(
+  "a library name is recognised as a name and nothing else comes first",
+  knowledge.body[0]?.content,
+  "Hono trzyma REST i MCP na jednym porcie",
+);
+
+// The arm narrows, it does not widen: Express is in this project, spelled out,
+// and archived. Matching a word is not permission to return a row.
+const putAway = await call("/search", {
+  method: "POST",
+  token,
+  body: { projectId: listProjectId, query: "co z Express", k: 5 },
+});
+check(
+  "a literal match cannot pull an archived entry back into the results",
+  putAway.body.some((n: { content: string }) => n.content.includes("Express")),
+  false,
+);
+
+// A question with no name in it runs one arm and one query, which is the search
+// this was before there was a second one.
+const conceptual = await call("/search", {
+  method: "POST",
+  token,
+  body: { projectId: listProjectId, query: "jak trzymamy stan miedzy sesjami", k: 3 },
+});
+check("a question naming nothing still answers", conceptual.status, 200);
+check("with no more hits than asked for", conceptual.body.length, 3);
 
 const [{ embedding: beforeEdit }] = await db
   .select({ embedding: nodes.embedding })
