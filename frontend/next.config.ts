@@ -6,8 +6,10 @@ import type { NextConfig } from "next";
 // routing needs middleware, and `output: export` forbids it.
 const nextConfig: NextConfig = {
   output: "export",
-  // No image optimizer without a server, and the app ships no raster assets
-  // anyway: every icon is inline SVG.
+  // There is no image optimizer without a server to run it. Every icon is inline
+  // SVG; the one raster asset is the entry screen's art, already sized and
+  // compressed into public/ by scripts/optimise-image.mjs and served as a plain
+  // img with a srcset, so nothing here has anything left to do.
   images: { unoptimized: true },
 };
 
