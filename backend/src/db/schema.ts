@@ -25,7 +25,8 @@ export const users = pgTable("users", {
   allPermission: boolean("all_permission").notNull().default(false),
   // The person's own key to Google's API, sealed with AES-GCM (see crypto.ts):
   // a dump of this table must not hand anyone a working key to a paid service.
-  // Null means the account has none and falls back to the server's, if it has one.
+  // Null means the account cannot reach Google at all: there is no server-wide
+  // key behind this one, so writing an entry and both chats refuse until it is set.
   geminiKey: text("gemini_key"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
