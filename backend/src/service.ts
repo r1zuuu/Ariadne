@@ -29,7 +29,7 @@ import {
   workspaces,
 } from "./db/schema.js";
 import { open, seal } from "./crypto.js";
-import { embed, findConflicts, summarize } from "./gemini.js";
+import { embed, extractLiterals, findConflicts, summarize } from "./gemini.js";
 
 // Business logic lives here once; MCP tools and REST endpoints are thin
 // wrappers over these functions (plan section 2).
@@ -539,8 +539,92 @@ async function attachAnchors<T extends { id: string }>(rows: T[]) {
   }));
 }
 
+// How many each arm brings back before they are merged. Larger than any k a
+// caller may ask for, because a merge over two lists of five is barely a merge:
+// the overlap decides everything and there is nothing underneath it to promote.
+const SEARCH_CANDIDATES = 20;
+
+// The 60 of Reciprocal Rank Fusion, from the paper that named it. It flattens
+// the top of the curve: without it first place would be worth twice second, and
+// one arm's confident wrong answer would outweigh both arms agreeing on the
+// right one a little lower down.
+const RRF_DAMPING = 60;
+
 /**
- * Semantic search over one project's archive.
+ * The names in a question that are recognisable by shape alone.
+ *
+ * Free, deterministic, and permanently correct for anything written the way code
+ * is written. Its companion in gemini.ts covers what shape cannot say - that
+ * Hono is a library - and the two are unioned, never chained: short-circuiting
+ * on "the regex already found something" loses Hono out of a question that names
+ * both it and normalizeRepoRef, which is what a question about code looks like.
+ *
+ * Five tests and no more. A sixth, for a capitalised word mid-sentence, is the
+ * tempting one and it is where this stops paying: it would take Hono and it
+ * would equally take Ariadne and Postgres, which are in every entry and narrow
+ * nothing. If this ever needs that rule, delete the whole function and keep the
+ * model, rather than growing a rule list that has to be maintained against a
+ * language.
+ */
+function literalsByShape(query: string): string[] {
+  return query
+    .split(/\s+/)
+    // Sentence punctuation only: the edges, and never a dot between letters,
+    // so "service.ts." loses its full stop and stays service.ts.
+    .map((token) => token.replace(/^[^\w/]+|[^\w/]+$/g, ""))
+    .filter(
+      (token) =>
+        /[_/]/.test(token) || // snake_case, a path
+        /[a-z][A-Z]/.test(token) || // camelCase
+        /\.[a-z]{2,4}$/.test(token) || // a file
+        /^[0-9a-f]{7,40}$/.test(token), // a commit
+    );
+}
+
+/** Never the reason a search fails: without names, hybrid search is the search
+ *  it was before there was a second arm. */
+async function literalsOrNothing(key: string, query: string): Promise<string[]> {
+  try {
+    return await extractLiterals(key, query);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Two ranked lists into one, by position and never by score.
+ *
+ * The scores cannot be compared and no weighting fixes that: one arm answers in
+ * cosine similarity, bounded and clustered near the top, the other in ts_rank_cd,
+ * unbounded and calibrated against nothing. Position is the one thing both lists
+ * mean the same way. An entry both arms rank highly beats an entry either one
+ * loves alone, which is the whole point of asking twice.
+ */
+function fuseByRank<T extends { id: string }>(...ranked: T[][]): T[] {
+  const fused = new Map<string, { row: T; score: number }>();
+  for (const list of ranked) {
+    list.forEach((row, position) => {
+      const score = 1 / (RRF_DAMPING + position + 1);
+      const seen = fused.get(row.id);
+      if (seen) seen.score += score;
+      else fused.set(row.id, { row, score });
+    });
+  }
+  return [...fused.values()].sort((a, b) => b.score - a.score).map((entry) => entry.row);
+}
+
+/**
+ * Search over one project's archive, by meaning and by name at once.
+ *
+ * Two arms because they fail at opposite things. Vectors read meaning and blur
+ * identity: normalizeRepoRef reaches them as roughly "something about tidying a
+ * repository address", so a note that never says the name scores level with the
+ * one that does. Literal matching is the mirror image - it will never confuse
+ * those two and it cannot see that "which ORM" and "we picked Drizzle" are the
+ * same question. Neither is a better search; each covers the other's hole.
+ *
+ * A question naming nothing skips the second arm entirely and this is exactly
+ * the search it has always been.
  *
  * `channel` says who is asking, and it changes what comes back. Not a filter for
  * tidiness: a coder reading its own unapproved proposals is the approval screen
@@ -569,52 +653,94 @@ export async function searchNodes(input: {
   // tell apart from "nothing recorded yet".
   const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
-  const queryVector = await embed(await geminiKey(input.userId), input.query, "RETRIEVAL_QUERY");
+  const key = await geminiKey(input.userId);
+  // Both calls go to Google and neither needs the other, so they go together.
+  // Naming the words costs about as long as embedding the sentence, which makes
+  // the second arm free in time and roughly two hundredths of a cent in money.
+  const [queryVector, named] = await Promise.all([
+    embed(key, input.query, "RETRIEVAL_QUERY"),
+    literalsOrNothing(key, input.query),
+  ]);
+  const literals = [...new Set([...literalsByShape(input.query), ...named])];
+
   const distance = cosineDistance(nodes.embedding, queryVector);
   const toCoder = input.channel === "coder";
 
   // Metadata filters BEFORE similarity: they narrow, vectors rank (plan section 7).
-  const found = await db
-    .select({
-      id: nodes.id,
-      type: nodes.type,
-      content: nodes.content,
-      // What a citation under an answer is labelled with: ten words beat the
-      // first 140 characters of a paragraph for saying which entry this is.
-      summary: nodes.summary,
-      status: nodes.status,
-      source: nodes.source,
-      createdAt: nodes.createdAt,
-      // An address is for the person reading the review screen, who knows their
-      // teammates. A coder has no use for one and every result it reads becomes
-      // part of a prompt, so the team's addresses stay out of it.
-      author: toCoder ? sql<null>`null` : users.email,
-      similarity: sql<number>`1 - (${distance})`,
-    })
+  // Held in a variable rather than written inline, because both arms are scoped
+  // by the same rule and a second copy of it is a second place to forget.
+  const filters = [
+    eq(nodes.workspaceId, workspaceId),
+    eq(nodes.projectId, input.projectId),
+    ne(nodes.status, "archived"),
+    // Everything a coder gets back has been through a person, either because
+    // someone approved it or because the account turned that requirement off
+    // and its entries are written settled.
+    toCoder ? eq(nodes.status, "confirmed") : undefined,
+    // A session summary is a note about a working session, useful to a person
+    // asking what happened last week and noise to a coder asking which ORM
+    // this project uses. The boot index already leaves them out; this is the
+    // same rule, applied where it was missed.
+    toCoder ? inArray(nodes.type, ["decision", "note"]) : undefined,
+  ];
+
+  const columns = {
+    id: nodes.id,
+    type: nodes.type,
+    content: nodes.content,
+    // What a citation under an answer is labelled with: ten words beat the
+    // first 140 characters of a paragraph for saying which entry this is.
+    summary: nodes.summary,
+    status: nodes.status,
+    source: nodes.source,
+    createdAt: nodes.createdAt,
+    // An address is for the person reading the review screen, who knows their
+    // teammates. A coder has no use for one and every result it reads becomes
+    // part of a prompt, so the team's addresses stay out of it.
+    author: toCoder ? sql<null>`null` : users.email,
+    // Carried by both arms, so a row found by name still answers "how close is
+    // this" the way the screen and the API have always been told it would.
+    similarity: sql<number>`1 - (${distance})`,
+  };
+
+  const byMeaning = await db
+    .select(columns)
     .from(nodes)
     // Left, not inner: an entry whose author closed their account is still part
     // of the archive, and an inner join would quietly drop it from every search.
     .leftJoin(users, eq(users.id, nodes.authorId))
-    .where(
-      and(
-        eq(nodes.workspaceId, workspaceId),
-        eq(nodes.projectId, input.projectId),
-        ne(nodes.status, "archived"),
-        // Everything a coder gets back has been through a person, either because
-        // someone approved it or because the account turned that requirement off
-        // and its entries are written settled.
-        toCoder ? eq(nodes.status, "confirmed") : undefined,
-        // A session summary is a note about a working session, useful to a person
-        // asking what happened last week and noise to a coder asking which ORM
-        // this project uses. The boot index already leaves them out; this is the
-        // same rule, applied where it was missed.
-        toCoder ? inArray(nodes.type, ["decision", "note"]) : undefined,
-      ),
-    )
+    .where(and(...filters))
     .orderBy(distance)
-    .limit(k);
+    .limit(SEARCH_CANDIDATES);
 
-  return attachAnchors(found);
+  // OR, not AND: one name the model got wrong would take an AND query to zero
+  // and lose the arm, where under OR it simply matches nothing and the names
+  // that were right still rank. Safe because only proper names are ever in
+  // here, and a proper name is rare enough to carry a row on its own - which is
+  // also how this sidesteps Postgres full-text search having no notion of how
+  // rare a word is.
+  //
+  // websearch_to_tsquery and not to_tsquery: it is the only one of the family
+  // that cannot raise a syntax error, and a name is free to contain a colon or
+  // an ampersand, which to_tsquery would read as operators.
+  //
+  // ponytail: the default parser keeps backend/src/service.ts as one token, so
+  // a question naming only service.ts does not reach it. The cure is a second
+  // shape of the column, not a cleverer query.
+  const tsquery = sql`websearch_to_tsquery('simple', ${literals.join(" OR ")})`;
+  const byName = literals.length
+    ? await db
+        .select(columns)
+        .from(nodes)
+        .leftJoin(users, eq(users.id, nodes.authorId))
+        .where(and(...filters, sql`"nodes"."search_text" @@ ${tsquery}`))
+        .orderBy(desc(sql`ts_rank_cd("nodes"."search_text", ${tsquery})`))
+        .limit(SEARCH_CANDIDATES)
+    : [];
+
+  // Anchors after the cut, not before: they are a second query and there is no
+  // reason to run it over forty rows to keep five.
+  return attachAnchors(fuseByRank(byMeaning, byName).slice(0, k));
 }
 
 // Everything recorded in one project, newest first, for the screens that list
