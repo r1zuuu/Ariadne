@@ -200,6 +200,12 @@ export const nodes = pgTable(
       onDelete: "set null",
     }),
     embedding: vector("embedding", { dimensions: 768 }).notNull(),
+    // Not listed here, and on purpose: a generated `search_text` tsvector column
+    // and its GIN index live in migration 0010. Drizzle has no tsvector type and
+    // a customType for one column would be this repo's first, so searchNodes
+    // reads it through a raw sql fragment instead. drizzle-kit never introspects
+    // a live database, so a column it has not heard of is never proposed for
+    // dropping - the same standing the policies of 0008 have.
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
