@@ -5,3 +5,7 @@ node_modules/
 .env*.local
 dist/
 setup.md
+
+# Wyniki pomiaru wyszukiwania: generowane przez scripts/eval-*.ts.
+# Zrodlem zestawu pytan jest scripts/eval-questions.ts, nie ten katalog.
+backend/eval/
