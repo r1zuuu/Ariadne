@@ -99,9 +99,14 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     "search_context",
     {
       description:
-        "Search past decisions, notes and session summaries of this project by meaning. " +
-        "Use it instead of guessing why something was built the way it is. Treat results " +
-        "with status 'proposed' as revisable and 'confirmed' as settled.",
+        "Search past decisions and notes of this project by meaning and by name. " +
+        // Everything that comes back has been through a person, so there is no
+        // status to weigh: the sentence about 'proposed' that used to stand here
+        // described results this tool has not returned since searchNodes started
+        // filtering the coder channel down to confirmed entries.
+        "Use it instead of guessing why something was built the way it is. " +
+        "Naming a file, a function or a library in the query helps: those are matched " +
+        "literally as well as by meaning.",
       inputSchema: {
         repo_ref: repoRef,
         query: z.string().describe("what you want to know, in plain words"),
