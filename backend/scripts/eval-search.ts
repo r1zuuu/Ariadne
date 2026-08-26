@@ -79,22 +79,21 @@ async function ask(question: Question, arms: Arm[]): Promise<Hit> {
 const runs = new Map<string, Hit[]>(VARIANTS.map((v) => [v.name, []]));
 
 /**
- * Odstep miedzy pytaniami. Tempo, nie ponowienie, i to jest jedyny powod, dla
- * ktorego ten skrypt sam z siebie czeka.
+ * Odstep miedzy pytaniami, czyli tempo, a nie ponowienie.
  *
- * searchNodes wola dwa rozne modele: embedding pytania i tani model wyciagajacy
- * z niego nazwy wlasne. Kazdy ma wlasny limit na minute. Embedding przy limicie
- * rzuca bledem, ktory patiently zlapie i ponowi. Tani model jest w service.ts
- * owiniety w literalsOrNothing, ktore polyka kazdy blad, zeby wyszukiwanie nie
- * padalo przez nieudane rozpoznanie nazwy. W produkcji to zachowanie sluszne, w
- * pomiarze zabojcze: przy limicie ramie leksykalne dostaje pusta liste nazw,
- * wypada gorzej niz jest naprawde, a w wyniku nie ma po tym ani sladu.
+ * Liczby w eval/results.md powstaly przy dziewieciu sekundach i wtedy bylo po co:
+ * searchNodes wolal jeszcze wtedy dwa modele, a ten drugi, wyciagajacy z pytania
+ * nazwy wlasne, byl w service.ts owiniety w polykanie bledow, zeby wyszukiwanie
+ * nie padalo przez nieudane rozpoznanie nazwy. W produkcji sluszne, w pomiarze
+ * zabojcze: limit dawal puste nazwy, ramie leksykalne wypadalo gorzej niz jest, a
+ * w wyniku nie bylo po tym sladu.
  *
- * Jedno pytanie to trzy embeddingi i dwa wywolania taniego modelu, wiec dziewiec
- * sekund trzyma oba pod najciasniejszym z limitow darmowego progu. Cena to okolo
- * dziesieciu minut przebiegu, ktora placi sie raz.
+ * Tego modelu juz nie ma, nazwy czyta sam regex. Zostaje jeden limit, na
+ * embeddingi, ktory patiently i tak zlapie, wiec trzy sekundy na pytanie tylko
+ * oszczedzaja czekanie na 429 zamiast ratowac pomiar. Kto wroci do porownan z
+ * modelem, wraca tez do dziewieciu.
  */
-const PACE_MS = 9_000;
+const PACE_MS = 3_000;
 
 console.log(`${set.questions.length} pytan x ${VARIANTS.length} warianty na ${set.corpus} wpisach\n`);
 for (const [i, question] of set.questions.entries()) {
@@ -143,10 +142,14 @@ const counted = (kind: Kind) => set.questions.filter((q) => q.kind === kind).len
  * Kontrola rzetelnosci pomiaru, nie wynik.
  *
  * Pytanie niosace identyfikator, na ktore ramie nazw nie zwrocilo ani jednego
- * wiersza, ma dwa mozliwe zrodla: nazwa nie wystepuje w archiwum, albo tani
- * model zostal uciszony limitem i lista nazw przyszla pusta. Pierwsze jest
- * wynikiem, drugie bledem pomiaru, a rozroznic ich w samej tabeli nie sposob.
- * Liczba stoi wiec w raporcie i ma byc czytana przed kazda inna.
+ * wiersza. W przebiegu, z ktorego pochodzi eval/results.md, taka cisza miala dwa
+ * mozliwe zrodla: nazwy nieobecnej w archiwum albo taniego modelu uciszonego
+ * limitem Google. Pierwsze bylo wynikiem, drugie bledem pomiaru, a w samej
+ * tabeli nie do odroznienia, wiec liczba stanela w raporcie i wypadla zero.
+ *
+ * Po usunieciu tego modelu zostaje juz tylko pierwsze zrodlo, czyli nazwa, ktorej
+ * ksztaltu regex nie rozpoznaje. Liczba wiec nadal cos znaczy, tylko co innego:
+ * mierzy zasieg samego regexa.
  */
 const silentOnNamed = set.questions.filter(
   (question, i) => question.kind === "identyfikator" && runs.get("nazwy")![i].returned === 0,
@@ -201,10 +204,8 @@ const report = [
   "## Kontrola rzetelnosci",
   "",
   `Pytan z identyfikatorem, na ktore ramie nazw nie zwrocilo niczego: ${silentOnNamed}`,
-  `z ${counted("identyfikator")}. Kazde takie pytanie to albo nazwa nieobecna w archiwum,`,
-  "albo tani model wyciagajacy nazwy uciszony limitem Google, bo service.ts polyka jego",
-  "bledy, zeby wyszukiwanie nie padalo przez nieudane rozpoznanie nazwy. Liczba wyraznie",
-  "wieksza od zera podwaza wszystko, co stoi w wierszu nazw i w wierszu hybrydy.",
+  `z ${counted("identyfikator")}. Zero znaczy, ze zaden wiersz w tabelach powyzej nie jest`,
+  "niski dlatego, ze ramieniu leksykalnemu zabraklo nazw do szukania.",
   "",
   "## Pozycja wlasciwego wpisu, pytanie po pytaniu",
   "",

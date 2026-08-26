@@ -417,6 +417,15 @@ to jedno pytanie.
 1. rownolegle: embedding pytania tym samym modelem oraz wyciagniecie nazw
    wlasnych z pytania (regex na ksztalt: snake_case, sciezki, camelCase, pliki,
    hash commita; plus tani LLM na to, czego ksztalt nie zdradza, jak "Hono"),
+
+   Tani LLM wypadl 26.08.2026, po pomiarze opisanym w docs/rag-case-study.md.
+   Lapal nazwy bez charakterystycznego ksztaltu (React Flow, CORS, RLS) i to
+   dzialalo, ale dokladal okolo 500 ms do kazdego wyszukiwania, takze do tych
+   czterech na piec, ktore nie nazywaja niczego i nic z tego czekania nie mialy.
+   Zostaje sam regex, a razem z LLM znika rownoleglosc: nie ma juz drugiego
+   wywolania, na ktore trzeba czekac. Nazwy, ktorych ksztalt nie zdradza, nie sa
+   dzis znajdowane wcale i jest to swiadomie przyjeta polowa tej wymiany.
+
 2. ramie znaczeniowe: dwadziescia kandydatow po cosine distance,
 3. ramie doslowne: dwadziescia kandydatow po search_text, przez
    websearch_to_tsquery('simple', ...) laczone przez OR i sortowane ts_rank_cd.
