@@ -26,6 +26,7 @@ const { memberships, nodes, users, projects, workspaces } = await import("../src
 const { eq } = await import("drizzle-orm");
 const { embed } = await import("../src/gemini.js");
 const { seal } = await import("../src/crypto.js");
+const { patiently } = await import("./eval-retry.js");
 
 const EMAIL = "eval@ariadne.local";
 // setup.md is deliberately absent. It is in .gitignore because it carries a
@@ -109,27 +110,6 @@ function chunk(markdown: string, doc: string): string[] {
   }
   flush();
   return chunks;
-}
-
-/**
- * Google liczy zapytania na minute, osobno dla kazdego modelu, a korpus to
- * kilkaset wywolan pod rzad. Odmierzanie tempa z gory wymagaloby jednej
- * zgadnietej liczby na model; odpowiedz 429 niesie czas, ktory sam sobie zyczy,
- * wiec taniej jest zapytac raz i poczekac tyle, ile kazano.
- */
-async function patiently<T>(call: () => Promise<T>): Promise<T> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      return await call();
-    } catch (err) {
-      const message = (err as Error).message;
-      if (attempt >= 5 || !message.includes("429")) throw err;
-      const asked = /"retryDelay": "(d+)s"/.exec(message);
-      const wait = (asked ? Number(asked[1]) : 30) + 2;
-      console.log(`  limit Gemini, czekam ${wait}s`);
-      await new Promise((done) => setTimeout(done, wait * 1000));
-    }
-  }
 }
 
 const corpus = DOCS.flatMap((path) => {

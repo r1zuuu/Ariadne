@@ -20,9 +20,21 @@ process.env.DATABASE_URL_APP = `postgresql://${POSTGRES_USER}:${POSTGRES_PASSWOR
 
 const { readFileSync, writeFileSync } = await import("node:fs");
 const service = await import("../src/service.js");
+const { patiently, sleep } = await import("./eval-retry.js");
 
 type Arm = "vector" | "lexical";
-type Question = { question: string; node_id: string; doc: string; answer: string };
+type Kind = "proza" | "identyfikator";
+type Question = { question: string; kind: Kind; node_id: string; doc: string; answer: string };
+
+// Rodzaje pytan, kazdy liczony osobno. Jedna liczba na wymieszanym zestawie
+// zalezy od proporcji prozy do nazw, ktorej nikt tu nie zmierzyl: aplikacja nie
+// ma jeszcze ruchu, z ktorego dalo by sie ja odczytac. Rozbite tabele sa od tej
+// proporcji niezalezne, a srednia wazona dowolnym podzialem liczy sie z nich
+// pozniej, bez wydawania ani jednego embeddingu.
+const KINDS: { kind: Kind; title: string }[] = [
+  { kind: "proza", title: "Pytania proza, nie nazywajace niczego po imieniu" },
+  { kind: "identyfikator", title: "Pytania nazywajace rzecz po imieniu" },
+];
 
 const VARIANTS: { name: string; arms: Arm[] }[] = [
   { name: "wektor", arms: ["vector"] },
@@ -66,22 +78,32 @@ async function ask(question: Question, arms: Arm[]): Promise<Hit> {
 
 const runs = new Map<string, Hit[]>(VARIANTS.map((v) => [v.name, []]));
 
+/**
+ * Odstep miedzy pytaniami. Tempo, nie ponowienie, i to jest jedyny powod, dla
+ * ktorego ten skrypt sam z siebie czeka.
+ *
+ * searchNodes wola dwa rozne modele: embedding pytania i tani model wyciagajacy
+ * z niego nazwy wlasne. Kazdy ma wlasny limit na minute. Embedding przy limicie
+ * rzuca bledem, ktory patiently zlapie i ponowi. Tani model jest w service.ts
+ * owiniety w literalsOrNothing, ktore polyka kazdy blad, zeby wyszukiwanie nie
+ * padalo przez nieudane rozpoznanie nazwy. W produkcji to zachowanie sluszne, w
+ * pomiarze zabojcze: przy limicie ramie leksykalne dostaje pusta liste nazw,
+ * wypada gorzej niz jest naprawde, a w wyniku nie ma po tym ani sladu.
+ *
+ * Jedno pytanie to trzy embeddingi i dwa wywolania taniego modelu, wiec dziewiec
+ * sekund trzyma oba pod najciasniejszym z limitow darmowego progu. Cena to okolo
+ * dziesieciu minut przebiegu, ktora placi sie raz.
+ */
+const PACE_MS = 9_000;
+
 console.log(`${set.questions.length} pytan x ${VARIANTS.length} warianty na ${set.corpus} wpisach\n`);
 for (const [i, question] of set.questions.entries()) {
   for (const variant of VARIANTS) {
-    let hit: Hit;
-    try {
-      hit = await ask(question, variant.arms);
-    } catch (err) {
-      // A rate limit turned into a miss would be a wrong number reported as a
-      // right one, so it gets one retry and then stops the run.
-      console.log(`  ${(err as Error).message} - druga proba za 10s`);
-      await new Promise((done) => setTimeout(done, 10_000));
-      hit = await ask(question, variant.arms);
-    }
-    runs.get(variant.name)!.push(hit);
+    // Limit zamieniony w nietrafienie bylby zla liczba podana jako dobra.
+    runs.get(variant.name)!.push(await patiently(() => ask(question, variant.arms)));
   }
   console.log(`  ${i + 1}/${set.questions.length} ${question.question.slice(0, 70)}`);
+  if (i < set.questions.length - 1) await sleep(PACE_MS);
 }
 
 const share = (hits: Hit[], test: (hit: Hit) => boolean) =>
@@ -94,30 +116,48 @@ const mrr = (hits: Hit[]) => hits.reduce((sum, h) => sum + (h.rank ? 1 / h.rank 
 const median = (values: number[]) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 
 const pct = (value: number) => (value * 100).toFixed(0) + "%";
-const rows = VARIANTS.map((variant) => {
-  const hits = runs.get(variant.name)!;
-  return [
-    variant.name,
-    ...CUTOFFS.map((k) => pct(recallAt(hits, k))),
-    mrr(hits).toFixed(3),
-    pct(share(hits, (h) => h.returned === 0)),
-    median(hits.map((h) => h.ms)) + " ms",
-  ];
-});
 
 const table = (head: string[], body: string[][]) =>
   [head, head.map(() => "---"), ...body].map((row) => `| ${row.join(" | ")} |`).join("\n");
 
-const summary = table(
-  ["wariant", ...CUTOFFS.map((k) => `recall@${k}`), "MRR", "pusty wynik", "mediana czasu"],
-  rows,
-);
+/** Jedna tabela, liczona na tych pytaniach, ktore przejda przez `keep`. */
+const summaryFor = (keep: (question: Question) => boolean) =>
+  table(
+    ["wariant", ...CUTOFFS.map((k) => `recall@${k}`), "MRR", "pusty wynik", "mediana czasu"],
+    VARIANTS.map((variant) => {
+      const hits = runs.get(variant.name)!.filter((_, i) => keep(set.questions[i]));
+      return [
+        variant.name,
+        ...CUTOFFS.map((k) => pct(recallAt(hits, k))),
+        mrr(hits).toFixed(3),
+        pct(share(hits, (h) => h.returned === 0)),
+        median(hits.map((h) => h.ms)) + " ms",
+      ];
+    }),
+  );
+
+const summary = summaryFor(() => true);
+const counted = (kind: Kind) => set.questions.filter((q) => q.kind === kind).length;
+
+/**
+ * Kontrola rzetelnosci pomiaru, nie wynik.
+ *
+ * Pytanie niosace identyfikator, na ktore ramie nazw nie zwrocilo ani jednego
+ * wiersza, ma dwa mozliwe zrodla: nazwa nie wystepuje w archiwum, albo tani
+ * model zostal uciszony limitem i lista nazw przyszla pusta. Pierwsze jest
+ * wynikiem, drugie bledem pomiaru, a rozroznic ich w samej tabeli nie sposob.
+ * Liczba stoi wiec w raporcie i ma byc czytana przed kazda inna.
+ */
+const silentOnNamed = set.questions.filter(
+  (question, i) => question.kind === "identyfikator" && runs.get("nazwy")![i].returned === 0,
+).length;
 
 const detail = table(
-  ["pytanie", "dokument", ...VARIANTS.map((v) => v.name)],
+  ["pytanie", "rodzaj", "dokument", ...VARIANTS.map((v) => v.name)],
   set.questions.map((question, i) => [
     // A pipe or a newline in a cell would break the table it is printed into.
     question.question.replace(/[|\n]/g, " "),
+    question.kind,
     question.doc,
     ...VARIANTS.map((v) => {
       const { rank } = runs.get(v.name)![i];
@@ -129,12 +169,19 @@ const detail = table(
 const report = [
   "# Wyniki: co wnosi kazde ramie wyszukiwania",
   "",
-  `Korpus: ${set.corpus} wpisow. Pytan: ${set.questions.length}. k = ${K}.`,
+  `Korpus: ${set.corpus} wpisow. Pytan: ${set.questions.length}, w tym ${counted("proza")} proza`,
+  `i ${counted("identyfikator")} nazywajacych rzecz po imieniu. k = ${K}.`,
   "Kazde pytanie zadane trzy razy, roznica tylko w tym, ktore ramie odpowiada.",
   "",
-  "## Podsumowanie",
+  "## Podsumowanie, caly zestaw",
   "",
   summary,
+  "",
+  `Ta tabela wazy proze do identyfikatorow jak ${counted("proza")} do ${counted("identyfikator")}, bo tyle ich`,
+  "napisano, a nie dlatego, ze tak wyglada ruch. Ruchu nie ma czym zmierzyc: aplikacja",
+  "nie ma jeszcze uzytkownikow. Liczby ponizej, rozbite na rodzaje, sa od tej proporcji",
+  "niezalezne i to z nich nalezy czytac wniosek. Sredniej wazonej dowolnym innym",
+  "podzialem nie trzeba mierzyc, wystarczy policzyc z dwoch tabel.",
   "",
   "recall@k to odsetek pytan, w ktorych wlasciwy wpis znalazl sie w pierwszych k wynikach.",
   "MRR to srednia z odwrotnosci pozycji: miejsce 1 daje 1.0, miejsce 4 daje 0.25, brak daje 0.",
@@ -144,6 +191,20 @@ const report = [
   "Kazdy wariant liczy wektor pytania, takze ten po samych nazwach: kolumna similarity",
   "jest czescia wyniku niezaleznie od tego, ktore ramie wiersz znalazlo. Wiersz nazw",
   "niesie wiec koszt, ktorego w produkcji by nie mial.",
+  "",
+  ...KINDS.flatMap(({ kind, title }) => [
+    `## ${title}: ${counted(kind)} pytan`,
+    "",
+    summaryFor((question) => question.kind === kind),
+    "",
+  ]),
+  "## Kontrola rzetelnosci",
+  "",
+  `Pytan z identyfikatorem, na ktore ramie nazw nie zwrocilo niczego: ${silentOnNamed}`,
+  `z ${counted("identyfikator")}. Kazde takie pytanie to albo nazwa nieobecna w archiwum,`,
+  "albo tani model wyciagajacy nazwy uciszony limitem Google, bo service.ts polyka jego",
+  "bledy, zeby wyszukiwanie nie padalo przez nieudane rozpoznanie nazwy. Liczba wyraznie",
+  "wieksza od zera podwaza wszystko, co stoi w wierszu nazw i w wierszu hybrydy.",
   "",
   "## Pozycja wlasciwego wpisu, pytanie po pytaniu",
   "",
@@ -159,6 +220,11 @@ if (VARIANTS.every((v) => recallAt(runs.get(v.name)!, K) === 0)) {
 }
 
 writeFileSync("eval/results.md", report);
-console.log("\n" + summary);
+for (const { kind, title } of KINDS) {
+  console.log(`\n${title}: ${counted(kind)} pytan`);
+  console.log(summaryFor((question) => question.kind === kind));
+}
+console.log("\nCaly zestaw");
+console.log(summary);
 console.log("\neval/results.md");
 process.exit(0);

@@ -37,8 +37,16 @@ const EMAIL = "eval@ariadne.local";
  * `czego szukac` to kawalek tekstu wystepujacy w dokladnie jednym wpisie
  * korpusu. Nie jest to fraza z pytania i nie ma prawa nia byc: sluzy tylko do
  * odnalezienia wiersza, a wyszukiwarka nigdy go nie oglada.
+ *
+ * Zestaw dzieli sie na dwa rodzaje i to jest cala metodologia tego pomiaru.
+ * Proza to pytania, ktore nie nazywaja niczego po imieniu, wiec ramie
+ * leksykalne z zasady na nie milczy. Nazwy to pytania, w ktorych pada
+ * identyfikator: kolumna, tabela, plik, narzedzie MCP, biblioteka. Osobno
+ * liczone daja dwie liczby niezalezne od tego, jak czesto uzytkownik naprawde
+ * pisze jedne albo drugie. Wymieszane w jedna liczbe daja odpowiedz na pytanie
+ * o proporcje, ktorej nikt tu nie zmierzyl.
  */
-const PARY: { pytanie: string; czegoSzukac: string }[] = [
+const PARY_PROZA: { pytanie: string; czegoSzukac: string }[] = [
   // --- plan-ariadne.md ---
   {
     pytanie: "Na czym stoi klient desktopowy Ariadne i co jest w tym systemie jedynym zrodlem prawdy?",
@@ -206,6 +214,130 @@ const PARY: { pytanie: string; czegoSzukac: string }[] = [
   },
 ];
 
+/**
+ * Ten sam korpus, pytania nazywajace rzecz po imieniu.
+ *
+ * Kazde z nich niesie identyfikator, ktory naprawde wystepuje we wpisie
+ * bedacym odpowiedzia: kolumne, tabele, plik, narzedzie MCP albo biblioteke.
+ * To jest zapytanie, dla ktorego drugie ramie w ogole powstalo, i jedyne
+ * miejsce, w ktorym da sie sprawdzic, czy sie do czegos przydaje.
+ *
+ * Ksztalty sa tu wymieszane celowo, bo `literalsByShape` w service.ts lapie
+ * tylko czesc z nich: snake_case i sciezka po znaku, camelCase po zmianie
+ * wielkosci liter, plik po rozszerzeniu. Nazwy takie jak React Flow czy CORS
+ * przechodza wylacznie przez tani model, wiec zestaw mierzy obie drogi naraz.
+ */
+const PARY_NAZWY: { pytanie: string; czegoSzukac: string }[] = [
+  // --- plan-ariadne.md, schemat bazy ---
+  {
+    pytanie: "Dlaczego kolumna search_text uzywa konfiguracji simple, a nie slownika jezykowego?",
+    czegoSzukac: "zero stemmingu i zero stopwordow",
+  },
+  {
+    pytanie: "Dlaczego password_hash w tabeli users dopuszcza NULL i czym sa te hasla hashowane?",
+    czegoSzukac: "argon2id; NULL na koncie z samego OAuth",
+  },
+  {
+    pytanie: "Dlaczego author_id i confirmed_by maja ON DELETE SET NULL zamiast CASCADE?",
+    czegoSzukac: "przezywa osobe, ktora je wypelniala",
+  },
+  {
+    pytanie: "Jakie pola trzyma kolumna source w formacie jsonb, poza session_id i commit_sha?",
+    czegoSzukac: "oryginalny surowy wpis usera przed obrobka przez tani LLM",
+  },
+  {
+    pytanie: "W ktorej migracji doszla tabela oauth_accounts i co poza nia ma backend w oauth.ts?",
+    czegoSzukac: "tabele oauth_accounts (migracja 0009)",
+  },
+  // --- plan-ariadne.md, kontrakt MCP ---
+  {
+    pytanie: "Jakie pola projektu zwraca get_project_context: dla_kogo, grupa_odbiorcza i co jeszcze?",
+    czegoSzukac: "dla_kogo, grupa_odbiorcza, konwencje_ref",
+  },
+  {
+    pytanie: "Co add_context przyjmuje na wejsciu i po co jest tam replaces_node_id?",
+    czegoSzukac: "source: { session_id: string, commit_sha?: string }, replaces_node_id?: uuid",
+  },
+  {
+    pytanie: "Co zwraca update_context, kiedy all_permission jest ustawione na false?",
+    czegoSzukac: "update_context",
+  },
+  {
+    pytanie: "Dlaczego tani model wola search_context, zanim rozbije wpis usera na wezly?",
+    czegoSzukac: "najpierw wola search_context, zeby wiedziec co juz jest w bazie",
+  },
+  // --- plan-ariadne.md, reszta ---
+  {
+    pytanie: "Jakie ksztalty tokenow lapie regex wyciagajacy nazwy wlasne: snake_case, camelCase i co dalej?",
+    czegoSzukac: "regex na ksztalt: snake_case, sciezki, camelCase, pliki",
+  },
+  {
+    pytanie: "Jak liczone sa krawedzie grafu ze wspolnych code_anchors?",
+    czegoSzukac: "JOIN code_anchors a2 ON a1.path = a2.path",
+  },
+  {
+    pytanie: "Jaki sufit oznaczono komentarzem ponytail przy BY_FILE_SIZE i co robic po jego przekroczeniu?",
+    czegoSzukac: "BY_FILE_SIZE",
+  },
+  {
+    pytanie: "Dlaczego wiadomosc trzyma nodeId i pendingActionId, zamiast kopiowac status propozycji?",
+    czegoSzukac: "pendingActionId",
+  },
+  {
+    pytanie: "Dlaczego stan onboardingu siedzi w localStorage, a nie w kolumnie tabeli users?",
+    czegoSzukac: "kolumna w users dla flagi bylaby zmiana schematu dla jednego boola",
+  },
+  {
+    pytanie: "Ktora biblioteka rysuje graf i ktore dwie odpadly: react-force-graph oraz co jeszcze?",
+    czegoSzukac: "react-force-graph i d3-force byly po drodze",
+  },
+  {
+    pytanie: "Dlaczego loopback odpadl przy logowaniu przez Google i co przyjmuje sesje zamiast niego?",
+    czegoSzukac: "GET /auth/handoff/:id",
+  },
+  {
+    pytanie: "Co musialo przejsc w MCP Inspector, zeby krok 3 uznac za zrobiony?",
+    czegoSzukac: "MCP Inspector przechodzi wszystkie narzedzia",
+  },
+  {
+    pytanie: "Ktore tabele obejmuja polityki RLS i dlaczego brak ustawionej tozsamosci daje zero wierszy?",
+    czegoSzukac: "Brak ustawionej tozsamosci polityki czytaja jako",
+  },
+  {
+    pytanie: "Dlaczego brakowalo CORS, skoro front stal na 3001, a API na 3000?",
+    czegoSzukac: "front na 3001 wola API na 3000",
+  },
+  // --- DESIGN.md ---
+  {
+    pytanie: "Which primitives live in components/ui.tsx, and which pieces get their own file instead?",
+    czegoSzukac: "components/ui.tsx",
+  },
+  {
+    // Nie samo "MotionConfig": ta nazwa stoi takze w bloku tokenow na poczatku
+    // DESIGN.md, ktory jest odpowiedzia na inne pytanie z tego zestawu. Klucz
+    // celuje w sekcje Motion, a pytanie dopyta o to, co dzieje sie mimo wylaczonego
+    // ruchu, czego blok tokenow nie mowi.
+    pytanie: "What does prefers-reduced-motion stop, and what still happens once MotionConfig has turned motion off per component?",
+    czegoSzukac: "globally in CSS, per-component via",
+  },
+  {
+    pytanie: "What is explained at /onboarding-tour, and what does the Two Explanations Rule allow a screen to do?",
+    czegoSzukac: "/onboarding-tour",
+  },
+];
+
+/**
+ * Oba rodzaje w jednym zestawie, kazdy z etykieta, ktora niesie sie az do tabel.
+ *
+ * Etykieta brzmi "identyfikator", a nie "nazwy", bo "nazwy" nazywa sie juz jeden
+ * z trzech mierzonych wariantow. Tabela z wierszem "nazwy" pod naglowkiem
+ * "nazwy" nie mowi, ktore z dwoch znaczen ma sie czytac.
+ */
+const PARY = [
+  ...PARY_PROZA.map((para) => ({ ...para, rodzaj: "proza" as const })),
+  ...PARY_NAZWY.map((para) => ({ ...para, rodzaj: "identyfikator" as const })),
+];
+
 const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, EMAIL));
 if (!user) throw new Error(`brak konta ${EMAIL} - odpal najpierw scripts/eval-corpus.ts`);
 const [project] = await db
@@ -219,7 +351,7 @@ const corpus = await db
   .from(nodes)
   .where(and(eq(nodes.projectId, project.id), eq(nodes.status, "confirmed")));
 
-const questions = PARY.map(({ pytanie, czegoSzukac }) => {
+const questions = PARY.map(({ pytanie, czegoSzukac, rodzaj }) => {
   const found = corpus.filter((row) => row.content.includes(czegoSzukac));
   if (found.length === 0) {
     throw new Error(`zaden wpis nie zawiera "${czegoSzukac}" (pytanie: ${pytanie})`);
@@ -231,6 +363,7 @@ const questions = PARY.map(({ pytanie, czegoSzukac }) => {
   }
   return {
     question: pytanie,
+    kind: rodzaj,
     node_id: found[0].id,
     doc: found[0].content.split("\n")[0],
     answer: found[0].content,
@@ -255,7 +388,11 @@ for (const q of questions) {
   const doc = q.doc.split(" / ")[0];
   perDoc[doc] = (perDoc[doc] ?? 0) + 1;
 }
+const perKind: Record<string, number> = {};
+for (const q of questions) perKind[q.kind] = (perKind[q.kind] ?? 0) + 1;
+
 console.log(`${questions.length} pytan na korpusie ${corpus.length} wpisow`);
+console.log(`rodzaje: ${JSON.stringify(perKind)}`);
 console.log(`rozklad: ${JSON.stringify(perDoc)}`);
 console.log("eval/questions.json");
 process.exit(0);
