@@ -10,6 +10,12 @@ const { db } = await import("../src/db/client.js");
 const { memberships, nodes, users, projects, workspaces } = await import("../src/db/schema.js");
 const { eq } = await import("drizzle-orm");
 const service = await import("../src/service.js");
+const { seal } = await import("../src/crypto.js");
+
+// The service reads the key off the account, not off the environment: without
+// this the first createNode below throws no_gemini_key.
+const geminiKey = process.env.GEMINI_API_KEY;
+if (!geminiKey) throw new Error("GEMINI_API_KEY is not set (add it to ../.env)");
 
 const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, "verify@ariadne.local"));
 if (existing) await db.delete(users).where(eq(users.id, existing.id));
@@ -20,6 +26,7 @@ const [user] = await db
     email: "verify@ariadne.local",
     passwordHash: "not-a-real-hash",
     profile: "Stas, junior dev, uczy sie budujac; preferuje proste rozwiazania",
+    geminiKey: seal(geminiKey),
   })
   .returning({ id: users.id });
 

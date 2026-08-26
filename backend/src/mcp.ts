@@ -99,9 +99,18 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     "search_context",
     {
       description:
-        "Search past decisions, notes and session summaries of this project by meaning. " +
-        "Use it instead of guessing why something was built the way it is. Treat results " +
-        "with status 'proposed' as revisable and 'confirmed' as settled.",
+        "Search past decisions and notes of this project by meaning and by name. " +
+        // Everything that comes back has been through a person, so there is no
+        // status to weigh: the sentence about 'proposed' that used to stand here
+        // described results this tool has not returned since searchNodes started
+        // filtering the coder channel down to confirmed entries.
+        "Use it instead of guessing why something was built the way it is. " +
+        // Written the way code writes it, and not merely "a library": the model
+        // that recognised React Flow as a name is gone, so what is matched
+        // literally is now exactly what a regex can see is an identifier.
+        "Writing a name the way code writes it helps - search_text, service.ts, " +
+        "@xyflow/react, normalizeRepoRef - because those are matched letter by " +
+        "letter as well as by meaning.",
       inputSchema: {
         repo_ref: repoRef,
         query: z.string().describe("what you want to know, in plain words"),

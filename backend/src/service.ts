@@ -29,7 +29,7 @@ import {
   workspaces,
 } from "./db/schema.js";
 import { open, seal } from "./crypto.js";
-import { embed, extractLiterals, findConflicts, summarize } from "./gemini.js";
+import { embed, findConflicts, summarize } from "./gemini.js";
 
 // Business logic lives here once; MCP tools and REST endpoints are thin
 // wrappers over these functions (plan section 2).
@@ -519,17 +519,16 @@ const RRF_DAMPING = 60;
  * The names in a question that are recognisable by shape alone.
  *
  * Free, deterministic, and permanently correct for anything written the way code
- * is written. Its companion in gemini.ts covers what shape cannot say - that
- * Hono is a library - and the two are unioned, never chained: short-circuiting
- * on "the regex already found something" loses Hono out of a question that names
- * both it and normalizeRepoRef, which is what a question about code looks like.
+ * is written. It is also, since the model that used to read the query beside it
+ * was removed, the whole of the lexical arm: what shape does not give away -
+ * that Hono is a library, that React Flow is two words and one name - is no
+ * longer found at all, and that is the accepted half of the trade.
  *
  * Five tests and no more. A sixth, for a capitalised word mid-sentence, is the
  * tempting one and it is where this stops paying: it would take Hono and it
  * would equally take Ariadne and Postgres, which are in every entry and narrow
- * nothing. If this ever needs that rule, delete the whole function and keep the
- * model, rather than growing a rule list that has to be maintained against a
- * language.
+ * nothing. The right answer to wanting those names back is the model, measured
+ * against its half second again, not a rule list maintained against a language.
  */
 function literalsByShape(query: string): string[] {
   return query
@@ -546,16 +545,6 @@ function literalsByShape(query: string): string[] {
         /\.[a-z]{2,4}$/.test(token) || // a file
         /^[0-9a-f]{7,40}$/.test(token), // a commit
     );
-}
-
-/** Never the reason a search fails: without names, hybrid search is the search
- *  it was before there was a second arm. */
-async function literalsOrNothing(key: string, query: string): Promise<string[]> {
-  try {
-    return await extractLiterals(key, query);
-  } catch {
-    return [];
-  }
 }
 
 /**
@@ -605,6 +594,12 @@ export async function searchNodes(input: {
   query: string;
   k?: number;
   channel: "coder" | "app";
+  /**
+   * Which halves to ask. Both by default, which is the search itself. A single
+   * arm exists so scripts/eval-search.ts can measure what each one contributes
+   * against the same corpus, a number no amount of reading the code produces.
+   */
+  arms?: ("vector" | "lexical")[];
 }) {
   assertUuid(input.userId, "userId");
   assertUuid(input.projectId, "projectId");
@@ -620,15 +615,22 @@ export async function searchNodes(input: {
   // tell apart from "nothing recorded yet".
   const workspaceId = await workspaceOfProject(input.userId, input.projectId);
 
+  const arms = input.arms ?? ["vector", "lexical"];
   const key = await geminiKey(input.userId);
-  // Both calls go to Google and neither needs the other, so they go together.
-  // Naming the words costs about as long as embedding the sentence, which makes
-  // the second arm free in time and roughly two hundredths of a cent in money.
-  const [queryVector, named] = await Promise.all([
-    embed(key, input.query, "RETRIEVAL_QUERY"),
-    literalsOrNothing(key, input.query),
-  ]);
-  const literals = [...new Set([...literalsByShape(input.query), ...named])];
+  // The vector is fetched even when its arm is off: the similarity column is
+  // part of what a result is, and a caller asking only by name still gets told
+  // how close each row landed.
+  const queryVector = await embed(key, input.query, "RETRIEVAL_QUERY");
+
+  // One reading of the query, by shape, and it costs nothing. A model used to
+  // read it a second time and catch the names no shape gives away - React Flow,
+  // CORS, RLS - which is real and was measured: eval/results.md has it lifting
+  // recall@1 on questions that name something from 77% to 91%. It also put half
+  // a second on every search, including the four in five that name nothing at
+  // all and got nothing back for the wait. The archive this searches is full of
+  // snake_case and paths, so the regex already answers most of it, and the trade
+  // was refused deliberately. docs/rag-case-study.md is the whole argument.
+  const literals = arms.includes("lexical") ? literalsByShape(input.query) : [];
 
   const distance = cosineDistance(nodes.embedding, queryVector);
   const toCoder = input.channel === "coder";
@@ -670,15 +672,18 @@ export async function searchNodes(input: {
     similarity: sql<number>`1 - (${distance})`,
   };
 
-  const byMeaning = await db
-    .select(columns)
-    .from(nodes)
-    // Left, not inner: an entry whose author closed their account is still part
-    // of the archive, and an inner join would quietly drop it from every search.
-    .leftJoin(users, eq(users.id, nodes.authorId))
-    .where(and(...filters))
-    .orderBy(distance)
-    .limit(SEARCH_CANDIDATES);
+  const byMeaning = arms.includes("vector")
+    ? await db
+        .select(columns)
+        .from(nodes)
+        // Left, not inner: an entry whose author closed their account is still
+        // part of the archive, and an inner join would quietly drop it from
+        // every search.
+        .leftJoin(users, eq(users.id, nodes.authorId))
+        .where(and(...filters))
+        .orderBy(distance)
+        .limit(SEARCH_CANDIDATES)
+    : [];
 
   // OR, not AND: one name the model got wrong would take an AND query to zero
   // and lose the arm, where under OR it simply matches nothing and the names

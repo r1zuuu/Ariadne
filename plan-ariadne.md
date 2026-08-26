@@ -1,23 +1,23 @@
 # Ariadne. Plan wykonawczy
 
-Warstwa pamieci dla LLM coderow. Nic ariadny: wychodzisz z sesji i wracasz dokladnie tam, gdzie skonczyles. Baza Postgres + pgvector na VPS jako jedyne zrodlo prawdy, aplikacja desktopowa Tauri 2 + Next.js jako klient, komunikacja coderow przez MCP, wyszukiwanie przez RAG z cytowaniem.
+Warstwa pamieci dla LLM coderow. Nic ariadny: wychodzisz z sesji i wracasz dokladnie tam, gdzie skonczyles. Baza Postgres + pgvector jako jedyne zrodlo prawdy (Neon, sekcja 12), aplikacja desktopowa Tauri 2 + Next.js jako klient, komunikacja coderow przez MCP, wyszukiwanie przez RAG z cytowaniem.
 
-## 0. Gdzie jestesmy, stan na 09.08.2026
+## 0. Gdzie jestesmy, stan na 11.08.2026
 
-Na main sa zmergowane kroki 1 do 5d razem z redesignem UI (PR #1 do #10). Do scalenia zostaja dwa branche: feature/workspaces-backend (wlasnosc przeniesiona z usera na workspace) i wychodzacy z niego feature/screen-8-settings (ekran 8 i zespol w interfejsie). MVP z sekcji 11 jest kompletne: osiem ekranow na osiem.
+Na main sa zmergowane kroki 1 do 5g razem z oboma redesignami UI (PR #1 do #12). MVP z sekcji 11 jest kompletne. Liczba ekranow: patrz nizej i sekcja 11.
 
 Zrobione i sprawdzone:
 - Kroki 1 do 4 zamkniete. Krok 4 potwierdzony na prawdziwym repo portfolio: coder laduje boot context, zapisuje decyzje, podsumowuje sesje, a nastepna sesja odpowiada z tego podsumowania i siega po search_context dzieki indexowi.
 - Krok 5a: 16 endpointow REST, auth na argon2id i JWT HS256, tokeny, projekty, feed do zatwierdzenia. scripts/verify-rest.ts, 58 sprawdzen przez app.request() Hono. REST i MCP na jednym porcie.
 - Krok 5a.1: cztery endpointy czytania i poprawiania wpisow, zmergowane. verify-rest.ts urosl do 97 sprawdzen.
-- Krok 5b, ekrany 1 i 2: logowanie, rejestracja, trzy kroki onboardingu. Przejscie od rejestracji do skopiowanego polecenia przeklikane w przegladarce, a token z tego przejscia autoryzuje sie na /mcp i zwraca wpisany profil oraz zalozona karte. Kryterium 5b w tej czesci spelnione.
+- Krok 5b, ekrany 1 i 2: logowanie, rejestracja, trzy kroki onboardingu (czwarty, klucz Gemini, doszedl w kroku 5f). Przejscie od rejestracji do skopiowanego polecenia przeklikane w przegladarce, a token z tego przejscia autoryzuje sie na /mcp i zwraca wpisany profil oraz zalozona karte. Kryterium 5b w tej czesci spelnione.
 - Projekt wizualny z Claude Design zaimportowany: PRODUCT.md i DESIGN.md w korzeniu, spec w design/. Tokeny przepisane do @theme, fonty w paczce lokalnie.
 - Krok 5b, powloka: src-tauri stoi, okno bez dekoracji z wlasnym paskiem tytulu. Przeciaganie, minimalizacja i maksymalizacja sprawdzone w oknie. Caly przebieg od logowania do skopiowanego polecenia MCP przeklikany juz nie w przegladarce, tylko w aplikacji.
 
-Jak uruchomic: docker compose up -d dla bazy, npm run dev w backend (port 3000), npm run tauri dev w frontend (podnosi Next na 3001 i otwiera okno; samo npm run dev daje ten sam frontend w przegladarce, tylko bez przyciskow okna). Konto stanislaw@rayzacher.pl, haslo 1234 (ustawione skryptem, wiec omija walidacje osmiu znakow z rejestracji; do zmiany przed VPS).
+Jak uruchomic: docker compose up -d dla bazy, npm run dev w backend (port 3000), npm run tauri dev w frontend (podnosi Next na 3001 i otwiera okno; samo npm run dev daje ten sam frontend w przegladarce, tylko bez przyciskow okna). Konto lokalne zaklada scripts/seed-account.ts, haslo podaje sie mu argumentem; ustawione tak omija walidacje osmiu znakow z rejestracji.
 
 - Ekran 3 (glowny): data ostatniego wejscia, zmiany w projekcie najnowsze na gorze, lista projektow z licznikami. GET /projects dowozi teraz nodeCount i pendingCount jednym zapytaniem. Nadpisywanie profilu przez powtorny onboarding naprawione: pusta lista projektow to warunek pierwszego uruchomienia, sprawdzany i na ekranie wejscia, i w samym onboardingu.
-- Fonty wymienione na trzy glosy: Marcellus na trzy stopnie naglowkowe (skanowane), Geist na wszystko czytane zdanie po zdaniu, Martian Mono bez zmian na dane. Literata wypadla, a z nia grecki subset, ktorego zaden ekran nie renderowal.
+- Fonty wymienione na trzy glosy: Marcellus na trzy stopnie naglowkowe (skanowane), Geist na wszystko czytane zdanie po zdaniu, Martian Mono bez zmian na dane. Literata wypadla, a z nia grecki subset, ktorego zaden ekran nie renderowal. Nieaktualne od redesignu 2: Marcellus i Martian Mono tez wypadly, obowiazujace kroje sa w DESIGN.md.
 
 - Kroki 5c i 5d: GET /projects/:id/graph, POST /chat/query (streaming NDJSON), POST /chat/edit. Ekrany 4, 5, 6 i 7 stoja, plus kolumna nawigacji i wylogowanie. Caly lancuch przeklikany w oknie: pytanie do asystenta dostaje odpowiedz z cytowaniami, rozmowa z baza tworzy propozycje, a ekran zatwierdzania je rozstrzyga.
 
@@ -29,17 +29,21 @@ Czego brakuje w 5b: nic. Krok domkniety.
 - Ekran 8 (ustawienia): konto z profilem, zmiana hasla, przelacznik jezyka, automatyczne zatwierdzanie, tokeny z lista i odwolywaniem, zespol z czlonkami i zaproszeniami. GET /tokens i DELETE /tokens/:id istnialy od 5a i do teraz nie mialy w aplikacji zadnego wywolania.
 - Doszly tez: limit prob logowania (licznik w pamieci procesu, 10 na 15 minut na adres) i PUT /me/password.
 
-Zostaje z MVP: nic. Ekranow jest siedem, nie osiem: chat RAG przestal byc osobnym
-ekranem i mieszka na przegladzie (sekcja 11).
+Zostaje z MVP: nic. Ekranow numerowanych jest siedem, nie osiem: chat RAG przestal
+byc osobnym ekranem i mieszka na przegladzie (sekcja 11). W powloce aplikacji zyje
+szesc tras, bo logowanie i onboarding stoja poza powloka - stad szesc w DESIGN.md
+i siedem tutaj, przy tym samym produkcie.
 
 - Redesign 2 (branch feature/ui-redesign-2, po merge'u #11 i #12): nowy jezyk
   wizualny - ciepla kosc zamiast chlodnej szarosci, Bodoni Moda na naglowkach
-  (Marcellus wypadl), Geist Mono tylko dla outputu maszyny (Martian Mono
+  (Marcellus wypadl; Bodoni utrzymal sie jedno popoludnie i ustapil Playfair
+  Display, patrz DESIGN.md), Geist Mono tylko dla outputu maszyny (Martian Mono
   wypadl), jeden akcent marki: madderowa nic (przyciski primary sa atramentowe).
   Powloka przeniesiona do route group (shell) z trwalym layoutem i AppProviderem:
   zero window.location.reload, zmiana projektu dzieje sie w miejscu, marker
   nawigacji plynie. Graf przepisany na d3-force (jedyna nowa zaleznosc) z
-  ksztaltami statusow i legenda. Naprawione wieczne "Wczytuje..." na /project
+  ksztaltami statusow i legenda; nieaktualne, graf stoi dzis na React Flow
+  (sekcja 12). Naprawione wieczne "Wczytuje..." na /project
   (konto z jednym projektem nie zapisywalo activeProject) i na /settings przy
   padnietym fetchu - oba maja stany bledu z retry. DESIGN.md przepisany.
   Druga fala tego samego brancha, 09.08.2026, juz z klikania: pole z pytaniem
@@ -82,8 +86,8 @@ ekranem i mieszka na przegladzie (sekcja 11).
   przez wszystkie polityki z migracji 0008. Musi powstac z SQL, czyli tak, jak
   robi to migracja.
 
-Jedna decyzja czeka na usera:
-1. Logowanie przez Google: zaprojektowane na ekranie 01, ale nie ma go ani w sekcji 10, ani w backendzie, ani w kodzie frontu (grep po "google" trafia tylko w skrypt do fontow). Rekomendacja: zapisac w sekcji 14 jako swiadomie odlozone, bo OAuth w Tauri to loopback albo deep link plus endpoint providera, a konto na haslo dziala.
+Decyzja, ktora czekala na usera, zostala podjeta:
+1. Logowanie przez Google: ZROBIONE, razem z GitHubem. Backend ma oauth.ts, tabele oauth_accounts (migracja 0009) i cztery trasy wyliczone w sekcji 10. Haslo zostalo jako droga rownorzedna, wiec users.password_hash jest od tej pory nullowalny.
 
 Czego swiadomie nie ma po redesignie: przycisku "Zatwierdz wszystkie" (brak endpointu wsadowego, a hurtowe zatwierdzanie nieprzeczytanej wiedzy kloci sie z zasada, ze nic nie trafia do pamieci bez swiadomej zgody). Sekcja "ostatnia aktywnosc" zlozona z updatedAt i createdAt, bez tabeli zdarzen.
 
@@ -105,7 +109,7 @@ Claude Code / Codex          Aplikacja Tauri (klient)
         |                            |
         +-------------+--------------+
                       |
-              Backend na VPS (Node/TS)
+              Backend na Render (Node/TS)
               jedna warstwa serwisowa,
               dwa transporty (MCP + REST)
                       |
@@ -113,13 +117,13 @@ Claude Code / Codex          Aplikacja Tauri (klient)
         |                            |
   Postgres + pgvector          Gemini API
   (zrodlo prawdy)              (embeddingi: gemini-embedding-001 (output_dimensionality: 768),
-                                tani LLM: gemini-2.5-flash-lite)
+                                tani LLM: gemini-3.5-flash-lite)
 ```
 
 Zasady architektoniczne:
 - Logika biznesowa istnieje raz, w warstwie serwisowej. Narzedzia MCP i endpointy REST to cienkie wrappery na te same funkcje.
 - Embeddingi liczy zawsze serwer. Klient (coder, aplikacja) przysyla czysty tekst.
-- Tauri: Next.js w trybie static export (output: "export"). Zero SSR, zero API routes w aplikacji. Wszystkie dane przez REST do VPS.
+- Tauri: Next.js w trybie static export (output: "export"). Zero SSR, zero API routes w aplikacji. Wszystkie dane przez REST do backendu.
 - Kod projektu nigdy nie laduje w bazie. Baza trzyma notatki, decyzje, podsumowania i wskazniki (sciezki, symbole, SHA).
 
 ## 3. Schemat bazy (gotowy SQL)
@@ -130,11 +134,21 @@ CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TABLE users (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email         text UNIQUE NOT NULL,
-  password_hash text NOT NULL,              -- argon2id
+  password_hash text,                       -- argon2id; NULL na koncie z samego OAuth
   profile       text NOT NULL DEFAULT '',   -- lekki profil: kim jest, jak lubi pracowac
   all_permission boolean NOT NULL DEFAULT false,
   gemini_key    text,                       -- wlasny klucz do Google, zapieczetowany AES-256-GCM
   created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+-- Ktora tozsamosc zewnetrzna otwiera ktore konto. Wiersz na dostawce, nie para
+-- kolumn na users, bo jedna osoba moze miec haslo, Google i GitHuba naraz.
+CREATE TABLE oauth_accounts (
+  provider         text NOT NULL CHECK (provider IN ('google','github')),
+  provider_user_id text NOT NULL,
+  user_id          uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (provider, provider_user_id)
 );
 
 -- Wlasciciel archiwum. Kazde konto dostaje swoj prywatny przy rejestracji,
@@ -215,14 +229,22 @@ CREATE TABLE nodes (
   status     text NOT NULL DEFAULT 'proposed'
                CHECK (status IN ('proposed','confirmed','contradicted','archived')),
   source     jsonb NOT NULL DEFAULT '{}',   -- patrz format nizej
+  -- Wpis, ktory ten uniewaznil. Ustawiany razem ze statusem contradicted; bez
+  -- niego status mowi "juz nieprawda" i nie mowi, co weszlo na jego miejsce.
+  superseded_by uuid REFERENCES nodes(id) ON DELETE SET NULL,
   embedding  vector(768) NOT NULL,
+  -- Leksykalna polowa wyszukiwania (sekcja 7). Kolumna generowana, konfiguracja
+  -- 'simple': zero stemmingu i zero stopwordow, bo archiwum jest dwujezyczne, a
+  -- do tego indeksu trafiaja wylacznie nazwy wlasne.
+  search_text tsvector GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX nodes_lookup ON nodes (user_id, project_id, status, created_at DESC);
+CREATE INDEX nodes_lookup ON nodes (workspace_id, project_id, status, created_at DESC);
 CREATE INDEX nodes_embedding_hnsw ON nodes
   USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX nodes_search_gin ON nodes USING gin (search_text);
 
 CREATE TABLE code_anchors (
   id      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -247,6 +269,19 @@ CREATE TABLE pending_actions (
                  CHECK (status IN ('pending','approved','rejected')),
   created_at   timestamptz NOT NULL DEFAULT now(),
   resolved_at  timestamptz
+);
+
+-- Historia rozmow, obu rodzajow (sekcja 11b). Zostaje przy user_id, bo rozmowa
+-- jest wlasnoscia osoby, nie zespolu.
+CREATE TABLE conversations (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  kind       text NOT NULL CHECK (kind IN ('ask','memory')),
+  title      text NOT NULL DEFAULT '',
+  messages   jsonb NOT NULL DEFAULT '[]',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 -- KROK 2, nie MVP:
@@ -281,7 +316,7 @@ Format kolumny source (jsonb):
 | proposed | contradicted | nowy add_context z replaces_node_id wskazujacym ten wezel |
 | confirmed | contradicted | jak wyzej (potwierdzone tez mozna odwrocic nowa decyzja) |
 | proposed lub confirmed | contradicted | rozstrzygniecie wykrytej sprzecznosci: czlowiek mowi, ktory wpis zostaje |
-| contradicted | archived | klik usera w feedzie ALBO automatycznie po 7 dniach bez reakcji |
+| contradicted | archived | klik usera w feedzie |
 | dowolny | archived | zatwierdzone delete_context |
 
 Wpis napisany w aplikacji nie zaczyna od proposed. Status bierze sie z kanalu:
@@ -295,21 +330,21 @@ usuniec proponowanych przez czat pamieci: dzieja sie od razu.
 Zasady:
 - Zapis nigdy nie jest blokowany. Wszystko wchodzi od razu, status niesie zaufanie.
 - Nic nie kasujemy fizycznie. archived znika z wynikow RAG (filtr w zapytaniu), ale zostaje w bazie.
-- Odczyt RAG zwraca status przy kazdym wezle, a instrukcja w snippecie (sekcja 6) kaze coderowi traktowac proposed jako rewidowalne, confirmed jako pewnik.
-- Awansowanie "przez przezycie" (proposed starsze niz N sesji -> confirmed automatycznie): PO MVP, na start tylko klik.
+- Odczyt RAG zwraca status przy kazdym wezle. Coder nie dostaje wpisow proposed w ogole: search_context zawezony do confirmed, wiec wszystko, co coder czyta, przeszlo juz przez czlowieka albo przez all_permission.
+- Awansowanie "przez przezycie" (proposed starsze niz N sesji -> confirmed automatycznie): PO MVP, na start tylko klik. Zadnego automatu czasowego w bazie nie ma, w zadna strone.
 
 ## 5. Dwie drogi wejscia
 
 Droga 1, coder przez MCP: oddaje gotowe, jednomyslowe wezly. Bez taniego LLM po drodze (slabszy model nie moze psuc outputu mocniejszego). Kontrakt wymusza schema narzedzia; odrzucony input wraca z konkretnym bledem i coder ponawia.
 
-Droga 2, user w aplikacji: surowy tekst dowolnej jakosci trafia do taniego LLM (gemini-2.5-flash-lite), ktory:
+Droga 2, user w aplikacji: surowy tekst dowolnej jakosci trafia do taniego LLM (gemini-3.5-flash-lite), ktory:
 1. najpierw wola search_context, zeby wiedziec co juz jest w bazie,
 2. rozbija wpis na jednomyslowe wezly,
 3. dla kazdego proponuje: type, project, anchors, oraz operacje (dodaj nowy / edytuj istniejacy / usun),
-4. dodania wykonuje od razu (laduja jako proposed), edycje i usuniecia wrzuca do pending_actions,
+4. dodania, edycje i usuniecia wykonuje od razu: user czyta je na ekranie w chwili, gdy powstaja (sekcja 4),
 5. oryginalny wpis zawsze laduje w source.raw_input.
 
-Brama walidacji (kod, nie LLM), wspolna dla obu drog: pola wypelnione, content niepusty i krotszy niz 4000 znakow, project istnieje i nalezy do usera z tokena, status wymuszony na proposed, anchors maja poprawny format sciezki.
+Brama walidacji (kod, nie LLM), wspolna dla obu drog: pola wypelnione, content niepusty i krotszy niz 4000 znakow, project istnieje i nalezy do przestrzeni z tokena, status bierze sie z kanalu (sekcja 4), anchors maja poprawny format sciezki.
 
 ## 6. Petla sesji codera i snippet
 
@@ -358,8 +393,6 @@ W trakcie pracy:
 - Jesli nowa decyzja odwraca wczesniejsza, podaj replaces_node_id.
 - Gdy potrzebujesz kontekstu z przeszlosci, uzyj search_context
   zamiast zgadywac.
-- Wyniki search_context ze statusem proposed traktuj jako rewidowalne,
-  confirmed jako pewnik.
 
 Przed zakonczeniem sesji: zapisz przez add_context krotkie podsumowanie
 (type=session_summary): co zrobiono, gdzie skonczono, co dalej.
@@ -374,25 +407,45 @@ Zapis wezla:
 2. serwer liczy embedding content przez gemini-embedding-001 z output_dimensionality: 768,
 3. INSERT do nodes + anchors w jednej transakcji.
 
-Odczyt (search_context):
-1. embedding pytania tym samym modelem,
-2. zapytanie:
-```sql
-SELECT n.id, n.type, n.content, n.status, n.source, n.created_at,
-       1 - (n.embedding <=> $query_vec) AS similarity
-FROM nodes n
-WHERE n.user_id = $user_id
-  AND n.project_id = $project_id
-  AND n.status != 'archived'
-ORDER BY n.embedding <=> $query_vec
-LIMIT 5;
-```
-3. dociagniecie anchors dla znalezionych wezlow jednym zapytaniem,
-4. zwrotka per wezel: { id, type, content, status, similarity, source, anchors[], created_at }.
+Odczyt (search_context) pyta dwa razy o to samo, bo wektory i nazwy wlasne
+psuja sie na odwrotnych rzeczach. Embedding czyta sens i zaciera tozsamosc:
+notatka, ktora nigdy nie pada nazwy funkcji, lezy tak samo blisko pytania o nia
+jak ta, ktora ja wymienia. Dopasowanie doslowne jest lustrzanym odbiciem, nigdy
+nie pomyli tych dwoch i nigdy nie zobaczy, ze "ktory ORM" i "wybralismy Drizzle"
+to jedno pytanie.
+
+1. rownolegle: embedding pytania tym samym modelem oraz wyciagniecie nazw
+   wlasnych z pytania (regex na ksztalt: snake_case, sciezki, camelCase, pliki,
+   hash commita; plus tani LLM na to, czego ksztalt nie zdradza, jak "Hono"),
+
+   Tani LLM wypadl 26.08.2026, po pomiarze opisanym w docs/rag-case-study.md.
+   Lapal nazwy bez charakterystycznego ksztaltu (React Flow, CORS, RLS) i to
+   dzialalo, ale dokladal okolo 500 ms do kazdego wyszukiwania, takze do tych
+   czterech na piec, ktore nie nazywaja niczego i nic z tego czekania nie mialy.
+   Zostaje sam regex, a razem z LLM znika rownoleglosc: nie ma juz drugiego
+   wywolania, na ktore trzeba czekac. Nazwy, ktorych ksztalt nie zdradza, nie sa
+   dzis znajdowane wcale i jest to swiadomie przyjeta polowa tej wymiany.
+
+2. ramie znaczeniowe: dwadziescia kandydatow po cosine distance,
+3. ramie doslowne: dwadziescia kandydatow po search_text, przez
+   websearch_to_tsquery('simple', ...) laczone przez OR i sortowane ts_rank_cd.
+   Pytanie bez ani jednej nazwy wlasnej pomija ten krok i wtedy calosc jest
+   dokladnie tym wyszukiwaniem, ktorym byla przed dolozeniem drugiego ramienia,
+4. scalenie po pozycji, nie po wyniku (RRF, damping 60): cosine jest ograniczone
+   i sciesnione przy gornym koncu, ts_rank_cd nieograniczone i wykalibrowane
+   wzgledem niczego, wiec zadne wazenie ich nie pogodzi. Pozycja to jedyna
+   rzecz, ktora obie listy rozumieja tak samo,
+5. przyciecie do k, dociagniecie anchors dla tego, co zostalo, jednym zapytaniem,
+6. zwrotka per wezel: { id, type, content, summary, status, similarity, source,
+   author, anchors[], created_at }. Dla kanalu coder author jest zawsze null.
+
+Oba ramiona sa zawezone tym samym filtrem: workspace z tokena, projekt, nie
+archived, a dla kanalu coder dodatkowo tylko confirmed i tylko typy decision
+oraz note.
 
 Zasady:
 - Filtr metadanych zawsze PRZED podobienstwem. Metadane zawezaja, wektory trafiaja.
-- k = 5 domyslnie, parametr narzedzia pozwala 1..10.
+- k = 5 domyslnie, parametr narzedzia pozwala 1..10. Kandydatow kazde ramie zbiera dwadziescia: scalanie dwoch piatek to nie scalanie, tylko przeciecie.
 - archived nigdy w wynikach.
 - Cytowanie robi konsument (coder / LLM w aplikacji) z pola source i created_at ("to z sesji z wtorku, commit abc123").
 
@@ -411,8 +464,8 @@ JOIN nodes n2 ON n2.id = a2.node_id
 WHERE n1.project_id = $project_id AND n2.project_id = $project_id
   AND n1.status != 'archived' AND n2.status != 'archived';
 ```
-- Podobienstwo embeddingow liczone w locie do wizualizacji, tylko pary powyzej progu 0.75, max 3 najblizszych sasiadow na wezel (bez progu graf robi sie klebkiem).
-- Wizualizacja w aplikacji: react-force-graph albo d3-force, kolor wezla = status, klik = podglad tresci i anchors.
+- Podobienstwo embeddingow liczone w locie do wizualizacji, tylko pary powyzej progu krawedzi 0.75, max 3 najblizszych sasiadow na wezel (bez progu graf robi sie klebkiem). To inna liczba niz prog wykrywania sprzecznosci przy zapisie, ktory wynosi 0.7 (krok 5f).
+- Wizualizacja w aplikacji: React Flow (@xyflow/react), status niesiony ksztaltem markera, nie samym kolorem (DESIGN.md), klik = podglad tresci i anchors.
 
 Krok 2:
 - Tabela edges, typ replaces tworzony automatycznie przy add_context z replaces_node_id.
@@ -420,22 +473,24 @@ Krok 2:
 
 ## 9. Kontrakt MCP (pelne schematy)
 
-Serwer: MCP streamable HTTP na VPS, endpoint /mcp. Auth: naglowek Authorization: Bearer <token>; serwer haszuje token i szuka w api_tokens; user_id z tokena scopuje kazda operacje.
+Serwer: MCP streamable HTTP na Render, endpoint /mcp. Auth: naglowek Authorization: Bearer <token>; serwer haszuje token i szuka w api_tokens. Token nalezy do przestrzeni, wiec scope idzie po workspace_id, a user_id z tokena sluzy do podpisania wpisu.
 
 get_project_context
 - input: { repo_ref: string }
-- output: { profile: string, project: { name, opis, stack, dla_kogo, grupa_odbiorcza, konwencje_ref, ograniczenia, etap }, last_summary: { content, created_at } | null, index: [ { node_id, type, headline } ] }
-- index: naglowki (pierwsza linia content, max 120 znakow) dziesieciu najnowszych wezlow typu decision i note, bez tresci. Powod istnienia i sufit: sekcja 6. Bez tego coder nie wola search_context w ogole.
+- output: { profile: string, project: { name, opis, stack, dla_kogo, grupa_odbiorcza, konwencje_ref, ograniczenia, etap }, last_summary: { content, created_at } | null, index: { total, showing, by_file: [ { path, entries } ], headlines: [ { node_id, type, headline } ] } }
+- index: od 11.08.2026 obiekt, nie tablica. Naglowki (pierwsza linia content, max 120 znakow) dziesieciu najnowszych wezlow confirmed typu decision i note, plus total i showing, ktore mowia wprost, ze to probka, plus by_file z dwudziestoma plikami o najwiekszej liczbie wpisow. Powod istnienia i sufit: sekcja 6. Bez tego coder nie wola search_context w ogole.
 - blad gdy repo nieznane: { error: "unknown_repo", message: "Zaloz projekt w aplikacji Ariadne i podaj repo_ref: <znormalizowany url>" }
 
 search_context
 - input: { repo_ref: string, query: string, k?: number (1..10, default 5) }
-- output: { results: [ { id, type, content, status, similarity, source, anchors: [{path, symbol, sha}], created_at } ] }
+- output: { results: [ { id, type, content, summary, status, similarity, source, author, anchors: [{path, symbol, sha}], created_at } ] }
+- coder widzi wylacznie wpisy confirmed typu decision i note, a author wraca do niego jako null: adresy zespolu nie maja po co wchodzic do promptu
 
 add_context
 - input: { repo_ref: string, type: "decision"|"note"|"session_summary", content: string (max 4000), anchors?: [{path, symbol?, sha?}], source: { session_id: string, commit_sha?: string }, replaces_node_id?: uuid }
 - source.channel nie jest polem wejsciowym: wejscie przez MCP oznacza codera, wiec serwer wpisuje "coder" sam
-- output: { node_id: uuid, status: "proposed", contradicted_node_id?: uuid }
+- output: { node_id: uuid, status: "proposed" | "confirmed", conflicts_with: uuid[], contradicted_node_id?: uuid }
+- status "confirmed" wraca tylko na koncie z wlaczonym all_permission; domyslnie wpis codera czeka w kolejce
 - efekt replaces_node_id: wskazany wezel dostaje status contradicted (w kroku 2 dodatkowo krawedz replaces)
 
 update_context
@@ -458,7 +513,7 @@ Auth: POST /auth/register (email, haslo), POST /auth/login -> JWT, haslo hashowa
 - PUT  /me/profile            edycja profilu
 - PUT  /me/all-permission     przelacznik trybu
 - POST /tokens                generacja tokenu MCP (zwrocony raz), GET /tokens lista, DELETE /tokens/:id
-- GET  /projects              lista projektow usera
+- GET  /projects              lista projektow przestrzeni
 - POST /projects              zalozenie projektu (karta)
 - PUT  /projects/:id          edycja karty
 - GET  /projects/:id/graph    wezly + krawedzie wyliczone (sekcja 8) do wizualizacji
@@ -469,7 +524,7 @@ Auth: POST /auth/register (email, haslo), POST /auth/login -> JWT, haslo hashowa
 - POST /nodes/:id/archive     odrzucenie / archiwizacja
 - POST /nodes/:id/conflicts/resolve  rozstrzygniecie sprzecznosci: new, old albo both
 - PUT  /me/gemini-key         wlasny klucz do Gemini (sprawdzany jednym embed przed zapisem)
-- DELETE /me/gemini-key       powrot na klucz serwera, jesli instancja go ma
+- DELETE /me/gemini-key       usuniecie klucza; nie ma zadnego klucza serwerowego pod spodem, wiec konto bez wlasnego nie zapisze wpisu ani nie zada pytania
 - POST /chat/query            pytanie do asystenta RAG (streaming odpowiedzi)
 - POST /chat/edit             konwersacyjny edytor bazy (tani LLM z narzedziami)
 - PUT  /me/password           zmiana hasla (obecne + nowe)
@@ -481,6 +536,16 @@ Auth: POST /auth/register (email, haslo), POST /auth/login -> JWT, haslo hashowa
 - POST /workspaces/:id/invites             nowy kod, opcjonalnie zwiazany z adresem
 - DELETE /invites/:id                      uniewaznienie
 - POST /invites/:code/accept               dolaczenie zalogowanego konta
+- GET  /auth/providers                     ktore logowania zewnetrzne sa wlaczone
+- GET  /auth/:provider/start               poczatek OAuth (google | github)
+- GET  /auth/:provider/callback            powrot od dostawcy
+- GET  /auth/handoff/:id                   odbior sesji przez aplikacje
+- GET  /projects/:id/nodes                 listowanie z filtrami i kursorem (5a.1)
+- POST /search                             to samo co search_context, dla aplikacji (5a.1)
+- PUT  /nodes/:id                          poprawka tresci przez czlowieka (5a.1)
+- POST /nodes/:id/contradict               uniewaznienie wpisu nastepca (5a.1)
+- GET/POST /conversations, GET/PUT/DELETE /conversations/:id   historie rozmow (11b)
+- GET  /healthz                            jedyna trasa nietykajaca bazy
 
 Wszystkie endpointy poza /auth/* wymagaja JWT. Scope idzie po workspace przez join do memberships, nie po user_id: projekt widzi kazdy czlonek przestrzeni, do ktorej projekt nalezy. Wyjatkiem sa /me/*, /tokens i /conversations, ktore sa osobiste.
 
@@ -490,20 +555,20 @@ Ustalenia z realizacji (krok 5a):
 - Ciało zapytania ograniczone do 64 kB. Limit jest wpiety tylko na prefiksy REST, nie na "*": /mcp oddaje surowy strumien transportowi SDK, a middleware czytajace body pierwsze zostawiloby transportowi puste wejscie.
 - JWT: HS256 przypiety po obu stronach (weryfikator ufajacy naglowkowi tokenu to droga do ataku na podmiane alg), waznosc 30 dni, bez refresh tokenow i bez listy odwolan.
 - GET /projects/:id nie istnieje. Lista zwraca pelne karty, wiec osobny odczyt jednego projektu byl by endpointem na zapas. Wroci w 5d razem z ekranem grafu, jesli okaze sie potrzebny.
-- REST i MCP dziela jeden port i jeden proces: /mcp jest trasa tej samej aplikacji Hono. Jedna rzecz do wystawienia na VPS.
+- REST i MCP dziela jeden port i jeden proces: /mcp jest trasa tej samej aplikacji Hono. Jedna rzecz do wystawienia.
 
 ## 11. Ekrany aplikacji (komplet MVP)
 
 1. Logowanie / rejestracja.
-2. Onboarding (tylko pierwszy raz): (a) kreator profilu, 3-4 pytania, wynik jako tekst edytowalny; (b) zalozenie pierwszego projektu, formularz karty; (c) podpiecie codera: wybor z listy (Claude Code / Codex / inny), wygenerowany token, gotowy snippet do skopiowania i dokladna instrukcja gdzie go wkleic, krok po kroku dla nietechnicznych.
+2. Onboarding (tylko pierwszy raz): (a) kreator profilu, 3-4 pytania, wynik jako tekst edytowalny; (b) zalozenie pierwszego projektu, formularz karty; (c) podpiecie codera: wybor z listy (Claude Code / Codex / inny), wygenerowany token, gotowy snippet do skopiowania i dokladna instrukcja gdzie go wkleic, krok po kroku dla nietechnicznych; (d) klucz Gemini, dodany w kroku 5f, zeby nikt nie zgadywal, czemu czat milczy.
 3. Ekran glowny: lista projektow + 4 akcje: wybierz projekt, zapytaj asystenta, rozmawiaj z baza, do potwierdzenia (z licznikiem oczekujacych).
 4. Widok projektu: karta projektu (edytowalna) + graf (sekcja 8) + lista ostatnich wezlow.
 5. Chat RAG: NIE JEST OSOBNYM EKRANEM od 09.08.2026. Rozmowa zyje na ekranie 3, bo composer na przegladzie i tak tylko przerzucal pytanie na ekran 5 przez sessionStorage: jeden silnik, dwoje drzwi, dwa naglowki i dwa zestawy podpowiedzi do trzymania w zgodzie. Pytanie, odpowiedz z cytowaniami i historia rozmow sa teraz w components/ask.tsx, osadzonym w ekranie 3. Cytowane sa wylacznie te wpisy, na ktore odpowiedz sie powolala, jedna cicha linijka na wpis; piec kart pod kazda odpowiedzia mowilo "to dotyczy wszystkich pieciu", co bylo nieprawda.
-6. Rozmawiaj z baza: chat z tanim LLM, ktory dodaje / proponuje edycje / proponuje usuniecia; propozycje destrukcyjne widoczne od razu jako karty do zatwierdzenia.
+6. Dodaj do pamieci: chat z tanim LLM, ktory dodaje, poprawia i usuwa wpisy. Wszystkie trzy operacje wykonuja sie od razu (sekcja 4), a historia rozmowy pokazuje, co z nich powstalo.
 7. Do potwierdzenia: feed pending_actions oraz wezlow proposed i contradicted; przyciski potwierdz / odrzuc; nieblokujacy, mozna ignorowac.
 8. Ustawienia: konto (profil, zmiana hasla, jezyk), klucz Gemini, automatyczne zatwierdzanie, tokeny MCP z lista i odwolywaniem, zespol (przestrzenie, czlonkowie, zaproszenia, wyjscie, wpisanie kodu).
 
-Nietechniczny user zyje w ekranach 3 i 6. Techniczny dodatkowo w 4 i 7. Nic wiecej w wersji pierwszej.
+Nietechniczny user zyje w ekranach 3 i 6, czyli w przegladzie z asystentem i w dodawaniu do pamieci. Techniczny dodatkowo w 4 i 7. Nic wiecej w wersji pierwszej.
 
 Zespol nie dostal osobnego ekranu. Jest sekcja ekranu 8, bo to ustawienie zmieniane dwa razy i zapominane, a osobna pozycja w kolumnie mowilaby, ze to miejsce, w ktorym sie pracuje. Osoba zaproszona do cudzej przestrzeni nie ma wlasnego projektu, wiec ekran wejscia wysyla ja do onboardingu; krok z karta projektu ma odnosnik do ustawien, inaczej zaproszenie konczy sie na formularzu zakladania projektu, ktorego ta osoba nie zamierzala zakladac.
 
@@ -562,11 +627,15 @@ co user napisal, co Ariadne zaproponowala i biezacy status.
 
 ## 11c. Jezyk wizualny, druga iteracja
 
-Metadane (typ, data, kanal, technologie) to mono w wersalikach rozdzielone kropka
-srodkowa, nie kolorowe pigulki. Kolor zostaje wylacznie dla statusu, ktory czeka
-na decyzje. Zrodlo: system Geist, gdzie mono w wersalikach pelni role "developer
-console voice". Powod produktowy: cztery lozenges obok siebie daly metadanym te
-sama wage co zdaniu, ktore opisuja.
+Metadane (typ, data, kanal, technologie) to jedna linia rozdzielona kropka
+srodkowa, nie kolorowe pigulki. Powod produktowy: cztery lozenges obok siebie
+daly metadanym te sama wage co zdaniu, ktore opisuja.
+
+Nieaktualny jest tylko glos tej linii. Ta iteracja stawiala ja w mono w
+wersalikach za systemem Geist ("developer console voice"); trzecia zdjela mono,
+bo data nie jest wyjsciem maszyny i w wersalikach czytala sie jak debug.
+Obowiazuje DESIGN.md: 13px Geist zwyklymi literami, mono wylacznie dla tego, co
+naprawde wypisala maszyna.
 
 Karta oznacza jednostke dzialania. Wpis z przyciskami jest karta, wpis do samego
 czytania to sekcja miedzy hairline'ami. Dziesiec bialych prostokatow, w ktorych
@@ -602,11 +671,11 @@ zadnego przeplywu.
 - Tani LLM: gemini-3.5-flash-lite. Plan zakladal gemini-2.5-flash-lite, ale API odmawia go nowym kluczom ("no longer available to new users"), choc nadal wymienia go na liscie modeli. Przypiety do wersji, nie do aliasu -latest, zeby odpowiedzi nie zmienialy ksztaltu w terminie Google. Ponizsze koszty sa z 2.5 i nie byly przeliczane.
 - Stary zapis kosztow: gemini-2.5-flash-lite (0.10 USD wejscie, 0.40 USD wyjscie za 1M tokenow), ten sam klucz. Szacowany laczny koszt Gemini przy codziennym uzyciu: rzad 1-1.5 USD miesiecznie; istnieje darmowy tier Flash (tresci z darmowego tieru Google wykorzystuje do ulepszania produktow - decyzja swiadoma).
 - Indeks: HNSW vector_cosine_ops.
-- Backend: Node/TS. ORM: Drizzle (znany userowi stack). Framework HTTP: Hono (wybrane w kroku 5a). Fastify odrzucony: system pluginow, dekoratorow i wlasny walidator schematow to wiecej pojec do nauki na te same 18 endpointow. Hono ma JWT i obsluge bledow w standardzie, a walidacja idzie przez zoda, ktory juz jest w projekcie, wiec nie doszedl zaden validator middleware.
+- Backend: Node/TS. ORM: Drizzle (znany userowi stack). Framework HTTP: Hono (wybrane w kroku 5a). Fastify odrzucony: system pluginow, dekoratorow i wlasny walidator schematow to wiecej pojec do nauki na te same kilkanascie endpointow. Hono ma JWT i obsluge bledow w standardzie, a walidacja idzie przez zoda, ktory juz jest w projekcie, wiec nie doszedl zaden validator middleware.
 - Hasla: @node-rs/argon2, nie pakiet argon2. Ten sam argon2id, ale z prebuildami na Windows, wiec setup nie wymaga node-gyp ani Visual Studio Build Tools.
 - MCP: oficjalne SDK @modelcontextprotocol/sdk, transport streamable HTTP.
 - Hasla: argon2id. Tokeny MCP: 32 bajty losowe, w bazie sha256.
-- Tauri 2 + Next.js static export. Graf: react-force-graph.
+- Tauri 2 + Next.js static export. Graf: React Flow (@xyflow/react); react-force-graph i d3-force byly po drodze i oba wypadly.
 - Deploy: backend na Render, baza na Neon, oba na darmowym planie. Migracje Drizzle ida z laptopa po polaczeniu bezposrednim, nie z serwera. Docker Compose na VPS byl planem do 11.08.2026 i odpadl: Oracle Always Free nie wydal maszyny ARM ("Out of capacity"), a firewall, systemd i Caddy to godzina konfiguracji za efekt, ktory obie uslugi zarzadzane daja bez niej. Docker zostaje tam, gdzie byl przydatny, czyli jako lokalna baza deweloperska.
 
 ## 13. Kolejnosc budowy z kryteriami "gotowe gdy"
@@ -668,7 +737,7 @@ Krok 5. REST + aplikacja Tauri. Rozbity na cztery czesci, bo jako jeden branch t
 Krok 5a. Backend REST bez czatow. GOTOWY.
 - Auth (rejestracja, login, argon2id, JWT), /me, tokeny MCP, projekty, feed do potwierdzenia. Bez /projects/:id/graph i bez /chat/*.
 - Gotowe gdy: przejscie rejestracja -> login -> token -> projekt dziala bez recznego dotykania bazy. Spelnione: scripts/verify-rest.ts, 58 sprawdzen przez app.request() Hono, bez portu i bez curla.
-- Dwa sprawdzenia sa tam z konkretnego powodu, nie dla liczby. Pierwsze czyta tablice tras z routera i wola kazda bez tokenu: trasa dopisana kiedys bez swojego prefiksu w PROTECTED_PREFIXES wywali sie tutaj, zamiast pojechac otwarta. Drugie dobija sie do kazdego zasobu tokenem drugiego uzytkownika i oczekuje 404, bo scope po user_id w warstwie serwisowej to jedyna rzecz miedzy dwoma kontami do czasu RLS w kroku 6.
+- Dwa sprawdzenia sa tam z konkretnego powodu, nie dla liczby. Pierwsze czyta tablice tras z routera i wola kazda bez tokenu: trasa dopisana kiedys bez swojego prefiksu w PROTECTED_PREFIXES wywali sie tutaj, zamiast pojechac otwarta. Drugie dobija sie do kazdego zasobu tokenem drugiego uzytkownika i oczekuje 404, bo scope w warstwie serwisowej byl wtedy jedyna rzecza miedzy dwoma kontami. RLS doszedl w kroku 5g i jest dzis drugim zamkiem.
 - Znalezione w self-review: brak limitu rozmiaru body, plain text w bledach generowanych przez framework, POST /tokens odrzucajacy puste body, middleware JWT wpiete w srodku pliku (w Hono middleware owija tylko trasy zarejestrowane po nim, wiec trasa dopisana w luce pojechala by bez autoryzacji), oraz argon2 liczony przed sprawdzeniem czy email jest zajety.
 
 Krok 5a.1. Endpointy, ktorych sekcja 10 nie przewidziala. Znalezione przez audyt projektowy, nie przez implementacje.
@@ -676,7 +745,7 @@ Krok 5a.1. Endpointy, ktorych sekcja 10 nie przewidziala. Znalezione przez audyt
 - POST /search: to samo co search_context w MCP, ale dla aplikacji, ze similarity w zwrotce.
 - POST /nodes/:id/contradict z polem supersededBy. Status contradicted istnieje w modelu i nic go nie nadaje, a bez odnosnika do wpisu, ktory odwolal, ten status jest nieczytelny.
 - PUT /nodes/:id: czlowiek musi moc poprawic literowke. Proszenie o to modelu jest absurdem. Bez historii wersji, ale z data modyfikacji i kanalem edycji.
-- Dlaczego to blokuje: piec z osmiu ekranow zyje z listowania i szukania wpisow, a API ma tylko confirm i archive. Ekrany 3, 4, 5, 6 i 7 nie maja z czego zyc.
+- Dlaczego to blokuje: piec z siedmiu ekranow zyje z listowania i szukania wpisow, a API ma tylko confirm i archive. Ekrany 3, 4, 5, 6 i 7 nie maja z czego zyc.
 
 Krok 5b. Powloka Tauri, logowanie, onboarding.
 - Ekrany 1 i 2 sekcji 11.
@@ -685,7 +754,7 @@ Krok 5b. Powloka Tauri, logowanie, onboarding.
 - Powloka Tauri GOTOWA. Okno bez dekoracji, wlasny pasek tytulu z trzema przyciskami, caly przebieg przeklikany w aplikacji az do polecenia claude mcp add.
 - Czego nie widac z kodu, a zjadlo czas: domyslny zbior uprawnien core:window daje same gettery. Minimalizacja, maksymalizacja, zamkniecie i przeciaganie okna wymagaja czterech osobnych wpisow w capabilities, inaczej przyciski rzucaja "not allowed" dopiero na kliknieciu. Do tego isTauri() wolane w renderze rozjezdza hydracje, bo statyczny eksport prerenderuje sie w Node, gdzie powloki nie ma.
 - Zostaje decyzja o logowaniu przez Google. Spec zaprojektowal je jako druga rownorzedna droge na ekranie 01, ale nie ma tego ani w sekcji 10, ani w backendzie, a OAuth w Tauri wymaga loopbacku albo deep linku plus endpointu po stronie serwera. Ekran zbudowany bez tego.
-- Znalezione przez otwarcie aplikacji, nie przez czytanie kodu: brak CORS (front na 3001 wola API na 3000, wiec kazde zapytanie bylo cross-origin i ekran mowil, ze serwer nie odpowiada), etykiety monospace lamiace sie na dwie linie w kolumnie 132 px, oraz stykajace sie dywizy w Martian Mono, przez ktore --scope czyta sie jak -scope.
+- Znalezione przez otwarcie aplikacji, nie przez czytanie kodu: brak CORS (front na 3001 wola API na 3000, wiec kazde zapytanie bylo cross-origin i ekran mowil, ze serwer nie odpowiada), etykiety monospace lamiace sie na dwie linie w kolumnie 132 px, oraz stykajace sie dywizy w owczesnym Martian Mono, przez ktore --scope czytalo sie jak -scope.
 - Uwaga z kroku 4, do przemyslenia zanim powstanie ekran 2c: token w zmiennej srodowiskowej to najtrudniejszy moment calego onboardingu. setx nie dziala na juz otwarte procesy, terminal w VS Code dziedziczy env z chwili startu edytora, a serwery MCP z .mcp.json wymagaja jednorazowej zgody, ktorej brak nie daje zadnego bledu, tylko brak serwera. Alternatywa: token wpisany wprost do .mcp.json, kosztem sekretu w pliku projektu.
 
 Krok 5c. Chat RAG.
@@ -726,10 +795,10 @@ Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezy
 Dlaczego to jest prawdopodobnie wlasciwy produkt, a wersja jednoosobowa prototypem: solo Ariadne konkuruje z wlasna pamiecia usera, ktory polowe decyzji z zeszlego tygodnia i tak pamieta. W zespole ta konkurencja znika, bo decyzja kolegi z wtorku nie jest w polowie zapamietana, ona jest calkowicie niewidzialna. CLAUDE.md w repo trzyma reguly, nie powody, i nikt go nie aktualizuje po rozmowie na Slacku. Do tego kazda osoba ma wlasnego agenta, a kazdy agent startuje od zera: piec osob to piec agentow codziennie odgadujacych ten sam kontekst. Oszczednosc mnozy sie przez liczbe ludzi.
 
 Czego to kosztuje, zeby nie wygladalo na dolozenie tabelki:
-- Model danych stoi na zalozeniu "wszystko nalezy do jednego usera". projects ma unikalnosc na (user_id, repo_ref), nodes maja user_id, kazda funkcja w service.ts filtruje po user_id. Wlasciciel projektu przenosi sie z usera na zespol, dochodzi tabela czlonkostw i zaproszenia, a kazde zapytanie idzie do przepisania. To nie zmiana dodajaca, to przepisanie modelu bezpieczenstwa.
+- Model danych stal na zalozeniu "wszystko nalezy do jednego usera": projects mial unikalnosc na (user_id, repo_ref), nodes mialy user_id, kazda funkcja w service.ts filtrowala po user_id. Wlasciciel projektu przeniosl sie z usera na zespol, doszly czlonkostwa i zaproszenia, a kazde zapytanie poszlo do przepisania. To nie byla zmiana dodajaca, to przepisanie modelu bezpieczenstwa. Wykonane w kroku 5e.
 - scripts/verify-rest.ts ma blok, ktory dobija sie do kazdego zasobu tokenem drugiego usera i wymaga 404. Tryb zespolowy odwraca to twierdzenie, wiec ten blok tez idzie do przepisania. To dobre miejsce, zeby zobaczyc skale zmiany.
-- Row-Level Security przestaje byc "miloby bylo" z kroku 6 i staje sie wymogiem. Przy jednym userze blad w scope przecieka jego dane do niego samego. W zespole przecieka miedzy ludzmi, przy wielu zespolach miedzy firmami.
-- Hosting przestaje byc lokalnym Dockerem: prawdziwy serwer, zaproszenia, mail, reset hasla, w koncu rozliczenia.
+- Row-Level Security przestalo byc "miloby bylo" z kroku 6 i stalo sie wymogiem (zrobione w kroku 5g). Przy jednym userze blad w scope przecieka jego dane do niego samego. W zespole przecieka miedzy ludzmi, przy wielu zespolach miedzy firmami.
+- Hosting przestal byc lokalnym Dockerem: Render plus Neon, a dalej zaproszenia, mail, reset hasla i w koncu rozliczenia.
 
 Najtrudniejszy problem nie jest techniczny, jest znaczeniowy. Statusy zakladaja jedna osobe decydujaca: proposed to "nikt tego nie ocenil", confirmed to "ja potwierdzilem". W zespole natychmiast pada pytanie, kto potwierdza. Jesli kazdy, to confirmed nic nie znaczy, bo junior potwierdzi decyzje architektoniczna, ktorej nie rozumie. Jesli tylko wlasciciel, to jest waskim gardlem i kolejka rosnie do stu pozycji. Do tego dwie osoby zapisza tego samego dnia dwie sprzeczne decyzje, obie proposed, obie szczere, i nie ma automatu, ktory to rozstrzygnie. Bez odpowiedzi na to pytanie tryb zespolowy nie ma sensu, choćby cala schema byla gotowa.
 
@@ -739,7 +808,7 @@ Czego w trybie zespolowym NIE robimy na start: uprawnien per rola. Wartosc siedz
 
 Uboczny skutek: spis treści w boot contextcie (sekcja 6) ma sufit przy okolo stu wezlach. Solo dobije sie do niego po miesiacach, w piecioosobowym zespole po tygodniu. Tryb zespolowy przyspiesza problem, ktory jest juz zapisany.
 
-Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym: uklad rekordu pokazuje autora wpisu obok zrodla, daty i projektu. Dopisanie tego teraz jest darmowe, doklejanie kolumny "kto" do osmiu gotowych ekranow pozniej nie jest. I nie jest to projektowanie na zapas, bo PRODUCT.md juz stanowi, ze kazdy rekord nosi swoja metryczke, a autor jest brakujacym elementem tej metryczki.
+Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym: uklad rekordu pokazuje autora wpisu obok zrodla, daty i projektu. Dopisanie tego teraz jest darmowe, doklejanie kolumny "kto" do siedmiu gotowych ekranow pozniej nie jest. I nie jest to projektowanie na zapas, bo PRODUCT.md juz stanowi, ze kazdy rekord nosi swoja metryczke, a autor jest brakujacym elementem tej metryczki.
 
 ## 14. Swiadomie odlozone
 
@@ -749,8 +818,8 @@ Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym
 - Row-Level Security: ZROBIONE 11.08.2026, patrz krok 5g. Scope stoi teraz na dwoch zamkach: warstwa serwisowa filtruje, a baza odmawia niezaleznie od tego, czy filtr byl. Zapomniany where-clause przestal byc wyciekiem.
 - Historia wersji tresci wezla: gdy okaze sie potrzebna.
 - Coderzy bez MCP: gdy zajdzie potrzeba.
-- Wlasny klucz Gemini per user: ZROBIONE 09.08.2026, patrz krok 5f. Kolejnosc jest taka: klucz konta, a gdy go nie ma, klucz serwera z .env. Bez zadnego z nich zapis wpisu i oba czaty zwracaja no_gemini_key, a aplikacja tlumaczy to na zdanie z odnosnikiem do ustawien.
-- Wysylka zaproszen mailem: dopiero z VPS-em. Zaproszenie to dzis kod do skopiowania, kolumna invites.email juz jest i wiaze kod z adresem, wiec dolozenie nadawcy to jeden endpoint na gotowej kolumnie. Bez publicznego adresu link z maila nie ma dokad prowadzic.
+- Wlasny klucz Gemini per user: ZROBIONE 09.08.2026, patrz krok 5f. Klucza serwerowego pod spodem nie ma i nie bedzie: kazde wywolanie do Google placi konto, ktore o nie poprosilo. Bez klucza konta zapis wpisu i oba czaty zwracaja no_gemini_key, a aplikacja tlumaczy to na zdanie z odnosnikiem do ustawien.
+- Wysylka zaproszen mailem: dopiero z publicznym adresem. Zaproszenie to dzis kod do skopiowania, kolumna invites.email juz jest i wiaze kod z adresem, wiec dolozenie nadawcy to jeden endpoint na gotowej kolumnie. Bez publicznego adresu link z maila nie ma dokad prowadzic.
 - Usuniecie przestrzeni i przekazanie wlasnosci: nie ma. Wlasciciel nie moze wyjsc z wlasnej przestrzeni, a zalozonej nie da sie skasowac z aplikacji. Do zrobienia, gdy ktos zalozy druga przez pomylke.
 - Nazwa wyswietlana usera: autora pokazujemy mailem, a scislej czescia przed malpa. Kolumna dojdzie, gdy adresy przestana wystarczac.
 - Uniewaznienie JWT po zmianie hasla: nie ma denylisty, token wygasa po 30 dniach.
@@ -760,7 +829,7 @@ Co zrobiono na zapas: w kodzie nic, swiadomie. Jedna rzecz w projekcie wizualnym
 Labirynt z ekranu wejscia usuniety razem z redesignem UI. Ekran logowania to teraz split screen z obrazem (dlon i zlota nic) w public/, a rozswietlanie kursorem nie ma juz nosnika. Gdyby kiedys wrocil: warunkiem wstepnym byla prawdziwa topologia labiryntu kretenskiego, bo rozswietlanie zaprasza do wodzenia wzrokiem, a falszywy meander wtedy klamie.
 
 Inne pozycje frontendu, ktore czekaja na decyzje albo na dane:
-- Logowanie przez Google: zaprojektowane na ekranie 01, nie ma go w sekcji 10 ani w backendzie. OAuth w Tauri wymaga loopbacku albo deep linku plus endpointu providera.
-- Przelacznik motywu: spec go zabrania, ale aplikacja desktopowa na systemie ustawionym na ciemny bedzie razic. Do przegadania, gdy beda wszystkie ekrany, nie na sucho.
+- Logowanie przez Google: ZROBIONE, razem z GitHubem, patrz sekcja 10. Loopback odpadl na rzecz handoffu: aplikacja otwiera przegladarke, a potem odbiera sesje przez GET /auth/handoff/:id.
+- Przelacznik motywu: spec go zabrania i po redesignie 2 aplikacja jest ciemna zawsze, wiec dawny argument (jasne okno na ciemnym systemie razi) sam sie odwrocil. Pytanie zostaje otwarte dla odwrotnego przypadku i nie jest pilne.
 - Zachowanie na bardzo szerokim oknie: tekst jest ograniczony do 68 znakow, wiec przy 3440 px zostaje duzo pustego tynku. Spec nie mowi, co ma sie tam dziac.
 - Przelacznik jezyka: zrobiony, siedzi w ekranie 8 nad sekcja automatycznego zatwierdzania. Dalej trzyma wybor w localStorage, bo to preferencja tego okna, nie konta.

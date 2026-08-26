@@ -1,9 +1,5 @@
 # Product
 
-## Register
-
-product
-
 ## Users
 
 Four audiences read the same archive, and none is optional.
@@ -14,9 +10,9 @@ Four audiences read the same archive, and none is optional.
 
 **The teammate.** Someone invited into the same workspace. They did not make the decision they are reading, were not in the room, and their own agent has never seen this project. What the archive owes them is attribution: every entry says who recorded it and, once settled, whose judgement settled it. Anyone in a workspace may confirm, so a status without a name on it would mean only that somebody, once, agreed.
 
-**The non-technical person.** The reason the product exists rather than a config file. Sees only the output of an LLM and has no way to tell it what was already decided. Lives on three screens: the project list, the assistant chat, and talking to the archive. Never touches the graph, never types a uuid, and will abandon setup the moment it asks for an environment variable. Step 4 proved how real that risk is: connecting a coder cost the owner half a day, with a terminal and help at hand.
+**The non-technical person.** The reason the product exists rather than a config file. Sees only the output of an LLM and has no way to tell it what was already decided. Lives on two screens: the overview, where the project switcher and the assistant sit side by side, and add-to-memory. Never touches the graph, never types a uuid, and will abandon setup the moment it asks for an environment variable. Step 4 proved how real that risk is: connecting a coder cost the owner half a day, with a terminal and help at hand.
 
-The job, for all three: stop paying for the same context twice.
+The job, for all four: stop paying for the same context twice.
 
 ## Product Purpose
 

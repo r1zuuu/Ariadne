@@ -4,7 +4,7 @@ register: product
 personality: [attributed, deliberate, quiet]
 theme: dark-first, always
 color:
-  plaster:        "#181d24"   # canvas, the darkest ground
+  plaster:        "#181d24"   # the app ground
   plaster-sunk:   "#222831"   # sidebar, title bar, large structure
   surface:        "#2c323b"   # cards, inputs
   surface-2:      "#393e46"   # hover, elevated
@@ -26,7 +26,7 @@ color:
   ochre:          "#c3a15a"   # warning antique gold, proposed
   iron:           "#c66b62"   # error oxide, contradicted
   stone:          "#948979"   # archived, faded text
-  canvas:         "#14181e"   # the command block sinks below the canvas
+  canvas:         "#14181e"   # the command block, the one well below the ground
   canvas-ink:     "#f0e7d9"
 type:
   heading: Playfair Display, latin-ext, variable wght, headline steps only
@@ -40,7 +40,6 @@ motion:
   state:  120ms cubic-bezier(0.22,1,0.36,1)
   enter:  200ms cubic-bezier(0.22,1,0.36,1)
   thread: 420ms cubic-bezier(0.16,1,0.3,1)
-  breathe: 2.6s ease-in-out infinite, opacity only, one dot
   library: motion (m + LazyMotion domMax, strict), MotionConfig reducedMotion="user"
 a11y: WCAG 2.2 AA, status never colour-only, reduced-motion honoured
 ---
@@ -55,7 +54,7 @@ whether a human has vouched for it.
 
 **The Dark-First Rule.** Ariadne is a dark-first application. Contrast and
 hierarchy problems are never solved by converting surfaces to a light theme;
-they are solved through controlled luminance differences between canvas
+they are solved through controlled luminance differences between the ground
 (#181D24), surfaces, borders and typography. Text is parchment, not white.
 
 **The Instrument Rule.** Nothing on screen celebrates a number; every number is
@@ -68,8 +67,8 @@ its status in the same eyeful.
 it is and what to do next, so the reader never has to infer meaning from a
 colour, an icon or a position.
 
-**The Persistent Shell Rule.** The frame renders once. The six app screens live
-in a route group whose layout owns the shell and an AppProvider with the shared
+**The Persistent Shell Rule.** The frame renders once. The six in-shell screens
+live in a route group whose layout owns the shell and an AppProvider with the shared
 data (projects, active project, review queue, server state). Screens are only
 their content; switching projects re-reads state in place. window.location.reload
 as an invalidation strategy is banned.
@@ -77,15 +76,16 @@ as an invalidation strategy is banned.
 # Colors
 
 **Elevation Is Luminance.** On a dark ground nothing floats on a shadow alone:
-the closer a surface sits to the reader, the lighter it is (canvas 181D24 →
+the closer a surface sits to the reader, the lighter it is (ground 181D24 →
 structure 222831 → card 2C323B → hover/elevated 393E46). Shadows are black
 and only anchor what genuinely floats.
 
 **The Two Accents Rule.** Terracotta is the thread: the user's path, action
-and guidance - the nav marker, the focused input, the drawn line, the primary
-CTA, the active node. Aegean is intelligence: citations, info states, what
-Ariadne knows. Neither is decoration, neither covers a large surface, and
-together they stay in single percents of any screen.
+and guidance - the nav marker, the focused input, the drawn line, the active
+node. It marks the path and never fills a button; primary buttons are ink.
+Aegean is intelligence: citations, info states, what Ariadne knows. Neither is
+decoration, neither covers a large surface, and together they stay in single
+percents of any screen.
 
 Statuses: olive is `confirmed`, antique gold is `proposed`, oxide is
 `contradicted`, and `archived` is the muted stone - faded text, which is what
@@ -101,7 +101,7 @@ face. (Bodoni Moda held this role for an afternoon; its hairline strokes
 dissolved into grey at interface sizes, and a heading you squint at is not a
 heading.)
 
-**The Scanned Serif Rule.** Playfair sets only what is scanned: display (46,
+**The Scanned Serif Rule.** Playfair sets only what is scanned: display (64,
 weight 700), title (34) and section (27) at weight 600, tracking zero, never
 tighter. It never goes below the section step and never sets a sentence
 someone reads word by word.
@@ -129,7 +129,7 @@ cards because every one of them is a form.
 
 **The Composer Is the Hero.** The one typing surface is the most important
 object in the product and the one card that floats at rest: focus pulls its
-left edge taut in the sand thread. Suggestions under it are lines with a dot
+left edge taut in the thread. Suggestions under it are lines with a dot
 that takes up the thread on hover - never chips.
 
 **The Empty State Has a Loose End.** No dashed wireframe boxes. An empty state
@@ -144,21 +144,25 @@ place.
 Primitives live in `components/ui.tsx`: Button, IconButton, Input, Textarea,
 Card, Meta, Status, EmptyState, PageHeader, SectionHeader, Banner, Field,
 Label. Stateful pieces have their own files: AppShell, AppProvider, Composer,
-EntryCard, NodeGraph, Toast, ScreenHint, CommandBlock, the motion wrappers.
+EntryCard, MemoryGraph, Toast, CommandBlock, the motion wrappers.
 
 **The Shape Plus Word Rule.** Every status renders as marker shape plus its
 written name: open circle proposed, filled square confirmed, cross
-contradicted, dash archived. The same four shapes mark the graph's nodes and
-its legend, so greyscale and every colour blindness keep the archive legible.
+contradicted, dash archived. The same four shapes mark the graph's nodes, so
+greyscale and every colour blindness keep the archive legible.
 
-**The Navigation Is Two Groups.** Work (overview, project, ask, add to memory)
-and account (queue, settings) under a hairline. The active row is a surface
+**The Navigation Is Two Groups.** Work (overview, project, add to memory) and
+account (queue, team, settings) under a hairline. Asking is not a row: it lives
+on the overview. Login and onboarding stand outside the shell entirely, which is
+why this counts six screens where the plan counts seven. The active row is a surface
 card whose left edge is the thread; one layoutId marker glides between rows
 because the shell never remounts.
 
 **The Hint Is an Aside.** A screen explains itself once, in one quiet line
 under the heading - a thread dot, one sentence, "Rozumiem" in words. It stopped
-being a tinted banner that pushed every page's content down a row.
+being a tinted banner that pushed every page's content down a row. (Removed from
+the build during redesign 2 along with its ScreenHint component; kept here as
+the intent for when per-screen help comes back.)
 
 **The Map Shows the Entries.** The entry map is React Flow with real cards as
 nodes - status chip, first line, type and date - laid out oldest to newest
@@ -172,14 +176,16 @@ in the words the reader would use.
 
 **The Two Explanations Rule.** The model is explained once at
 `/onboarding-tour` (three vertically centred, display-set steps along the
-drawn thread); each screen then explains itself once via ScreenHint.
+drawn thread); a screen that explains itself does it once, as an aside.
 
 # Motion
 
-Three durations, one perpetual exception, and nothing else. `state` 120ms for
-colour under the pointer, `enter` 200ms for arrival, `thread` 420ms for the one
-long move where watching the line get drawn is the point. `breathe` (2.6s,
-opacity only) exists for exactly one 6px dot saying the server is alive.
+Three durations and nothing else. `state` 120ms for colour under the pointer,
+`enter` 200ms for arrival, `thread` 420ms for the one long move where watching
+the line get drawn is the point. A fourth value invented in a component is the
+end of the system. (`breathe`, a 2.6s opacity loop, was the one exception; it
+existed for a 6px dot reporting the server, and went when that dot left the
+title bar.)
 
 Motion happens where it answers "where did this come from" or "where did it
 go": the navigation marker glides between rows; page content fades up 4px
@@ -203,7 +209,7 @@ machine output. Do keep the queue ignorable and say so in words.
 
 Don't gradient text. Don't nest a card in a card. Don't put a card around
 something nobody can act on. Don't fill a button with the thread. Don't set a
-paragraph in Bodoni or a date in mono. Don't put a pill around a label. Don't
+paragraph in the display serif or a date in mono. Don't put a pill around a label. Don't
 invent a fifth accent for a fifth meaning; add a shape instead. Don't leave a
 button click without a sentence saying what happened. Don't write an empty
 state that only says a list is empty. Don't explain a screen twice.
