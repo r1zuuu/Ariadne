@@ -124,7 +124,7 @@ function ControlButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`grid h-[38px] w-11 place-items-center text-ink-2 transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-aegean ${
+      className={`grid h-[38px] w-11 place-items-center text-ink-2 transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-thread ${
         danger ? "hover:text-iron" : "hover:text-ink"
       }`}
     >

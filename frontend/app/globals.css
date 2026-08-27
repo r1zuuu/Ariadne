@@ -9,49 +9,73 @@
 
 @theme {
   /* Colour. Ariadne is a dark-first application: contrast and hierarchy are
-     solved through controlled luminance steps between canvas, surfaces,
-     borders and type - never by lightening the theme. Text is parchment
-     (#F0E7D9), not white. Two accents with meaning, not decoration:
-     terracotta is the thread - the user's path, action, guidance - and
-     aegean is intelligence - context, information, what Ariadne knows. */
-  --color-plaster: #181d24; /* canvas, the darkest ground */
-  --color-plaster-raised: #222831;
-  --color-plaster-sunk: #222831; /* sidebar, title bar, large structural surfaces */
+     solved through controlled luminance steps between ground, surfaces,
+     borders and type - never by lightening the theme.
 
-  --color-surface: #2c323b; /* cards, inputs */
-  --color-surface-2: #393e46; /* hover, elevated cards */
-  --color-elevated: #393e46; /* the composer, a menu, a toast */
+     This was parchment on charcoal with a terracotta thread, an aegean teal
+     and three earth-toned statuses. Every one of those was a good colour and
+     together they said heritage: an archive, a museum, a beautifully set book.
+     Ariadne is developer infrastructure that happens to carry a myth's name,
+     so the myth now lives in the name, the mark, the thread and the motion,
+     and nowhere in the palette. What is left is a near-monochrome graphite
+     base, cool white type, and one electric blue that means something every
+     time it appears.
 
-  --color-ink: #f0e7d9; /* text primary, parchment, never #fff */
-  --color-ink-2: #c7bba9; /* text secondary */
-  --color-ink-3: #948979; /* text muted: metadata, dates */
-  --color-edge: #4b515a; /* border default, controls */
-  --color-edge-strong: #666a6d; /* border strong, secondary focus */
-  --color-hairline: #353b44; /* border subtle, separators */
+     The budget that keeps it that way: roughly 85-90% of any screen is black
+     and graphite, 8-12% is type, and 1-3% is blue. Blue marks the path - the
+     focused field, the primary action, the active node, the thread drawn
+     between two entries, a link to a source. It is a signal, not a finish.
 
-  /* The thread. Terracotta, the brand: the nav marker, the focused input,
-     the drawn line, the primary CTA, the active node. Never a red sidebar,
-     never a large surface. */
-  --color-thread: #c76f4f;
-  --color-thread-deep: #d78260; /* hover rises on a dark ground */
-  --color-thread-press: #724536; /* pressed */
-  --color-thread-soft: #3e2d29; /* selected/active dark fill */
-  --color-thread-lift: #e69a78; /* bright cut: decor lines, map edges */
+     Elevation is luminance, and it is the one thing a near-black base can get
+     wrong. Dropped straight onto a #090B0F ground, a #131821 card stands 1.11:1
+     above it - which is to say it does not stand above it at all, and every
+     card on every screen went flat. The ground keeps its near-black, because
+     that is where the character is; the surfaces above it were lifted until the
+     ladder reads again: 1.12 to the shell, 1.30 to a card, 1.16 to a hovered
+     one. The old parchment palette ran 1.13 / 1.37 / 1.20, so this is the same
+     staircase in a colder stone. */
+  --color-plaster: #090b0f; /* the ground, near black */
+  --color-plaster-raised: #141922;
+  --color-plaster-sunk: #141922; /* sidebar, title bar, large structural surfaces */
 
-  /* Aegean: intelligence, context, information. Citations, info states,
-     knowledge accents - single percents of the interface. */
-  --color-aegean: #67a6a1;
-  --color-aegean-deep: #487b78;
+  --color-surface: #1e2635; /* cards, inputs - 1.30 over the ground */
+  --color-surface-2: #283141; /* hover, elevated cards - 1.16 over a card */
+  --color-elevated: #283141; /* the composer, a menu, a toast */
 
-  /* Statuses, dusty on purpose; badge fills are their own dark tints. */
-  --color-laurel: #899a6d; /* success olive, confirmed */
-  --color-ochre: #c3a15a; /* warning antique gold, proposed */
-  --color-ochre-mark: #c3a15a;
-  --color-iron: #c66b62; /* error oxide, contradicted, deletions */
-  --color-stone: #948979; /* archived reads as faded text, which is what it is */
+  --color-ink: #f7f8fa; /* text primary, cool white - 18.5:1 */
+  --color-ink-2: #b8c0cc; /* text secondary - 10.7:1 */
+  --color-ink-3: #929cab; /* text muted: metadata, dates - 7.2:1, 5.5 on a card */
+  --color-edge: #384456; /* border default, controls */
+  --color-edge-strong: #4d5b71; /* border strong, secondary focus */
+  --color-hairline: #2a3341; /* border subtle, separators */
 
-  --color-canvas: #14181e; /* the command block sinks below the canvas */
-  --color-canvas-ink: #f0e7d9;
+  /* The thread, and the only true brand accent: the nav marker, the focused
+     input, the drawn line, the primary button, the active node. Written on the
+     ground it is 6.2:1; the ground written on it is the same 6.2:1, which is
+     why a full-blue button carries a near-black label rather than a white one.
+     Never a blue sidebar, never a large surface. */
+  --color-thread: #5b8cff;
+  --color-thread-deep: #78a3ff; /* hover rises on a dark ground */
+  --color-thread-press: #335fd1; /* pressed */
+  --color-thread-soft: #101a31; /* selected/active dark fill */
+  --color-thread-lift: #a8c2ff; /* bright cut: decor lines, map edges */
+
+  /* Context and citation: what Ariadne knows. Kept in the thread's own family
+     rather than opening a second brand colour for it. */
+  --color-aegean: #8bb4ff;
+  --color-aegean-deep: #557dcc;
+
+  /* Statuses. The only colours in the system that are not the base or the
+     thread, and they appear only where a status is the thing being read: a
+     mark and a word carry the meaning, the hue only confirms it. */
+  --color-laurel: #5fcf92; /* confirmed */
+  --color-ochre: #e5b454; /* proposed */
+  --color-ochre-mark: #e5b454;
+  --color-iron: #f16d75; /* contradicted, deletions */
+  --color-stone: #929cab; /* archived reads as faded text, which is what it is */
+
+  --color-canvas: #06080c; /* the command block sinks below the ground */
+  --color-canvas-ink: #f7f8fa;
 
   /* Type. Three voices split by what the reader does with the text. Playfair
      Display sets what is scanned: the headline steps, applied through the

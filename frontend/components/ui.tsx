@@ -20,7 +20,7 @@ import type { ReactNode } from "react";
 type ButtonVariant = "primary" | "secondary" | "quiet" | "destructive";
 type ButtonSize = "md" | "lg";
 
-// Primary is the thread: the terracotta belongs to the strongest action on
+// Primary is the thread: the one brand colour belongs to the strongest action on
 // the screen and to nothing decorative, which is what keeps it precious.
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary:
@@ -100,7 +100,7 @@ export function Input({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-aegean focus:ring-2 focus:ring-aegean/25 ${
+        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/25 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -130,7 +130,7 @@ export function Textarea({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-aegean focus:ring-2 focus:ring-aegean/25 ${
+        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/25 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -203,7 +203,7 @@ export function PageHeader({
 // The icon is a finding aid, never the name. It rides beside the heading in the
 // metadata tone so the section is locatable on the second visit without the
 // mark ever competing with the word it sits next to - and without spending one
-// of the two accents on structure, which neither of them means. It belongs on
+// accent on structure, which the accent does not mean. It belongs on
 // the screens you scroll looking for one section, and nowhere else; the rule is
 // written down in DESIGN.md so the next screen does not decide for itself.
 //

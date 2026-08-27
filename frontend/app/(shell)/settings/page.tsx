@@ -178,7 +178,7 @@ function AccountSection({
       <div className="flex flex-wrap items-center gap-4 pt-6">
         <p className="text-small font-medium text-ink">{t("language")}</p>
         {/* The active language is a selected state, not a call to action:
-            a terracotta fill here outshouted every real CTA on the page. */}
+            a full brand fill here outshouted every real CTA on the page. */}
         {LOCALES.map((code) => {
           const selected = code === locale;
           return (
@@ -549,7 +549,7 @@ function TokensSection({ toast }: { toast: Toast }) {
               id="settings-token-workspace"
               value={workspaceId}
               onChange={(event) => setWorkspaceId(event.target.value)}
-              className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none transition-colors duration-state focus:border-aegean focus:ring-2 focus:ring-aegean/25"
+              className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none transition-colors duration-state focus:border-thread focus:ring-2 focus:ring-thread/25"
             >
               {workspaces.map((workspace) => (
                 <option key={workspace.id} value={workspace.id}>

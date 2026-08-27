@@ -8,7 +8,7 @@ import { m } from "motion/react";
 // No headless kit ships a stepper at all - Radix, Headless UI and shadcn have
 // none - and the ones that do (Material, Mantine, Chakra) arrive with a theme
 // engine and a look of their own; dropped between a Playfair heading and a
-// parchment palette they read as borrowed from another application. The headless
+// graphite palette they read as borrowed from another application. The headless
 // packages that do exist hand over step state and no visuals, which is the half
 // that was never the problem.
 //

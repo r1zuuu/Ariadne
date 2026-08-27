@@ -4,30 +4,30 @@ register: product
 personality: [attributed, deliberate, quiet]
 theme: dark-first, always
 color:
-  plaster:        "#181d24"   # the app ground
-  plaster-sunk:   "#222831"   # sidebar, title bar, large structure
-  surface:        "#2c323b"   # cards, inputs
-  surface-2:      "#393e46"   # hover, elevated
-  elevated:       "#393e46"   # composer, menus, toasts
-  ink:            "#f0e7d9"   # text primary, parchment, never #fff
-  ink-2:          "#c7bba9"   # text secondary
-  ink-3:          "#948979"   # text muted: metadata, dates
-  edge:           "#4b515a"   # border default
-  edge-strong:    "#666a6d"   # border strong
-  hairline:       "#353b44"   # border subtle
-  thread:         "#c76f4f"   # terracotta, the brand: path, action, guidance
-  thread-deep:    "#d78260"   # hover
-  thread-press:   "#724536"   # pressed
-  thread-soft:    "#3e2d29"   # selected dark fill
-  thread-lift:    "#e69a78"   # bright cut: decor lines, map edges
-  aegean:         "#67a6a1"   # intelligence: citations, info, context
-  aegean-deep:    "#487b78"
-  laurel:         "#899a6d"   # success olive, confirmed
-  ochre:          "#c3a15a"   # warning antique gold, proposed
-  iron:           "#c66b62"   # error oxide, contradicted
-  stone:          "#948979"   # archived, faded text
-  canvas:         "#14181e"   # the command block, the one well below the ground
-  canvas-ink:     "#f0e7d9"
+  plaster:        "#090b0f"   # the app ground, near black
+  plaster-sunk:   "#141922"   # sidebar, title bar, large structure
+  surface:        "#1e2635"   # cards, inputs
+  surface-2:      "#283141"   # hover, elevated
+  elevated:       "#283141"   # composer, menus, toasts
+  ink:            "#f7f8fa"   # text primary, cool white
+  ink-2:          "#b8c0cc"   # text secondary
+  ink-3:          "#929cab"   # text muted: metadata, dates
+  edge:           "#384456"   # border default
+  edge-strong:    "#4d5b71"   # border strong
+  hairline:       "#2a3341"   # border subtle
+  thread:         "#5b8cff"   # electric blue, the brand: path, action, guidance
+  thread-deep:    "#78a3ff"   # hover
+  thread-press:   "#335fd1"   # pressed
+  thread-soft:    "#101a31"   # selected dark fill
+  thread-lift:    "#a8c2ff"   # bright cut: decor lines, map edges
+  aegean:         "#8bb4ff"   # context and citation, the thread's own family
+  aegean-deep:    "#557dcc"
+  laurel:         "#5fcf92"   # confirmed
+  ochre:          "#e5b454"   # proposed
+  iron:           "#f16d75"   # contradicted, deletions
+  stone:          "#929cab"   # archived, faded text
+  canvas:         "#06080c"   # the command block, the one well below the ground
+  canvas-ink:     "#f7f8fa"
 type:
   heading: Playfair Display, latin-ext, variable wght, headline steps only
   prose:   Geist, latin-ext, weights 100-900
@@ -46,16 +46,21 @@ a11y: WCAG 2.2 AA, status never colour-only, reduced-motion honoured
 
 # Overview
 
-Ariadne is a desktop window over a research archive, kept in the dark:
-parchment text on a charcoal ground, a display serif for what is scanned, a
-terracotta thread that marks where you are, and an aegean accent for what
-Ariadne knows. It shows what a coding agent decided, when, in which files, and
-whether a human has vouched for it.
+Ariadne is a desktop window over a research archive, kept in the dark: cool
+white type on a near-black graphite ground, a display serif for what is
+scanned, and one electric blue that marks where you are. It shows what a coding
+agent decided, when, in which files, and whether a human has vouched for it.
+
+The palette was parchment on charcoal with a terracotta thread, an aegean teal
+and three earth-toned statuses. Each of those was a good colour and together
+they said heritage: an archive, a museum, a beautifully set book. Ariadne is
+developer infrastructure that happens to carry a myth's name, so the myth lives
+in the name, the mark, the thread and the motion, and nowhere in the palette.
 
 **The Dark-First Rule.** Ariadne is a dark-first application. Contrast and
 hierarchy problems are never solved by converting surfaces to a light theme;
 they are solved through controlled luminance differences between the ground
-(#181D24), surfaces, borders and typography. Text is parchment, not white.
+(#090B0F), surfaces, borders and typography.
 
 **The Instrument Rule.** Nothing on screen celebrates a number; every number is
 a reading you can act on.
@@ -76,21 +81,34 @@ as an invalidation strategy is banned.
 # Colors
 
 **Elevation Is Luminance.** On a dark ground nothing floats on a shadow alone:
-the closer a surface sits to the reader, the lighter it is (ground 181D24 →
-structure 222831 → card 2C323B → hover/elevated 393E46). Shadows are black
-and only anchor what genuinely floats.
+the closer a surface sits to the reader, the lighter it is (ground 090B0F →
+structure 141922 → card 1E2635 → hover/elevated 283141). Shadows are black and
+only anchor what genuinely floats.
 
-**The Two Accents Rule.** Terracotta is the thread: the user's path, action
-and guidance - the nav marker, the focused input, the drawn line, the active
-node. It marks the path and never fills a button; primary buttons are ink.
-Aegean is intelligence: citations, info states, what Ariadne knows. Neither is
-decoration, neither covers a large surface, and together they stay in single
-percents of any screen.
+The steps are the rule, not the hexes. A near-black base makes this the easiest
+thing in the system to get wrong: the first draft of this palette put a
+#131821 card on the #090B0F ground, which is 1.11:1, and every card on every
+screen went flat. The ladder runs 1.12 to the shell, 1.30 to a card and 1.16 to
+a hovered one, which is the staircase the parchment palette had at 1.13 / 1.37
+/ 1.20. Lighten the ground to fix a flat screen and the whole character goes
+with it; lift the surfaces instead.
 
-Statuses: olive is `confirmed`, antique gold is `proposed`, oxide is
-`contradicted`, and `archived` is the muted stone - faded text, which is what
-an archived entry is. Badge fills are dark desaturated tints of their hue; the
-shapes and words carry the meaning.
+**The One Accent Rule.** The thread is electric blue and it is the only brand
+colour: the nav marker, the focused input, the drawn line, the primary button,
+the active node, a link to a source. It is a signal rather than a finish, and
+the budget that keeps it one is roughly 85-90% black and graphite, 8-12% type,
+1-3% blue on any screen. Aegean is no longer a second accent, only a lighter
+step of the same blue for citation and context.
+
+A full-blue button carries a near-black label, not a white one. The thread is
+6.2:1 on the ground and the ground is 6.2:1 on the thread, so the near-black
+reads better and looks like the tool it belongs to.
+
+Statuses are the only colours that are neither base nor thread, and they appear
+only where a status is the thing being read: green is `confirmed`, amber is
+`proposed`, red is `contradicted`, and `archived` is the muted stone, faded
+text, which is what an archived entry is. Badge fills are dark tints of their
+own hue; the shapes and words carry the meaning.
 
 # Typography
 

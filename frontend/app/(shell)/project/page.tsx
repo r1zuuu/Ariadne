@@ -282,7 +282,7 @@ function ReadView({ project }: { project: Project }) {
 
       {/* This rule was the thread, on the argument that the block under it is
           the one that steers the agent. On a screen this wide the argument came
-          out as a terracotta line running the better part of nine hundred
+          out as a saturated line running the better part of nine hundred
           pixels, which is a large surface in the one colour the system keeps
           for marking a path. The heading, its mark and the words carry the
           weight; the rule goes back to being a rule. */}
@@ -369,7 +369,7 @@ function EditCard({
           id="etap"
           value={draft.etap}
           onChange={set("etap")}
-          className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-aegean focus:ring-2 focus:ring-aegean/25"
+          className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-thread focus:ring-2 focus:ring-thread/25"
         >
           {/* The full sentence here, the one word on the badge above: this is
               where the choice is made and the badge is only read back. */}
