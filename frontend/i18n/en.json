@@ -230,7 +230,6 @@
     "memory": "Add to memory",
     "pending": "To approve",
     "settings": "Settings",
-    "tour": "Show me around",
     "signOut": "Sign out",
     "needsProject": "Choose a project first",
     "noProject": "No project",
@@ -238,28 +237,6 @@
     "showNav": "Show menu",
     "newProject": "New project",
     "teams": "Teams"
-  },
-  "tour": {
-    "step": "step {current} of {total}",
-    "skip": "Skip",
-    "back": "Back",
-    "next": "Next",
-    "start": "Ask your first question",
-    "remembers": {
-      "label": "REMEMBERS",
-      "title": "Ariadne remembers",
-      "body": "You tell Ariadne about the project's decisions, agreements and constraints. Each one is recorded with its date and its source, so you can check later where it came from."
-    },
-    "answers": {
-      "label": "ANSWERS",
-      "title": "Ariadne answers",
-      "body": "Later you ask why something was done or what you agreed on. The answer is built only from recorded entries, and you see which ones underneath it."
-    },
-    "youDecide": {
-      "label": "YOU DECIDE",
-      "title": "You decide",
-      "body": "Nothing enters the project's memory without your say-so. Every proposal waits on the To approve screen until you accept it or reject it."
-    }
   },
   "assistant": {
     "placeholder": "What would you like to ask?",

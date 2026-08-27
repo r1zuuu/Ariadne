@@ -174,9 +174,10 @@ is banned in this product.
 **The Feedback Rule.** Every action that writes says what happened, in a toast,
 in the words the reader would use.
 
-**The Two Explanations Rule.** The model is explained once at
-`/onboarding-tour` (three vertically centred, display-set steps along the
-drawn thread); a screen that explains itself does it once, as an aside.
+**The One Explanation Rule.** Nothing explains the model in the abstract. The
+three-step tour that used to sit at `/onboarding-tour` was removed: it stood
+between a new reader and the app, said what the screens already say, and got
+skipped. A screen that needs explaining explains itself, once, as an aside.
 
 # Motion
 
@@ -192,7 +193,7 @@ go": the navigation marker glides between rows; page content fades up 4px
 keyed on the pathname; lists cascade in 50ms steps capped at 200ms; sources
 grow out of their answer; a settled queue card leaves visibly (AnimatePresence
 exit) instead of the list snapping shorter; buttons press down (scale 0.98) on
-:active; the tour thread draws itself.
+:active; the wizard thread draws itself.
 
 `prefers-reduced-motion` stops all of it - globally in CSS, per-component via
 MotionConfig - and every state change still happens, so no information lives in

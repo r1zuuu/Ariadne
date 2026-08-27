@@ -230,7 +230,6 @@
     "memory": "Dodaj do pamięci",
     "pending": "Do zatwierdzenia",
     "settings": "Ustawienia",
-    "tour": "Oprowadź mnie",
     "signOut": "Wyloguj się",
     "needsProject": "Najpierw wybierz projekt",
     "noProject": "Brak projektu",
@@ -238,28 +237,6 @@
     "showNav": "Pokaż menu",
     "newProject": "Nowy projekt",
     "teams": "Zespoły"
-  },
-  "tour": {
-    "step": "krok {current} z {total}",
-    "skip": "Pomiń",
-    "back": "Wstecz",
-    "next": "Dalej",
-    "start": "Zadaj pierwsze pytanie",
-    "remembers": {
-      "label": "PAMIĘTA",
-      "title": "Ariadne pamięta",
-      "body": "Mówisz Ariadne o decyzjach, ustaleniach i ograniczeniach projektu. Każde zapisuje razem z datą i źródłem, żeby dało się później sprawdzić, skąd się wzięło."
-    },
-    "answers": {
-      "label": "ODPOWIADA",
-      "title": "Ariadne odpowiada",
-      "body": "Później pytasz, dlaczego coś zostało zrobione albo co ustaliliście. Odpowiedź powstaje wyłącznie z zapisanych wpisów, a pod nią widzisz, z których."
-    },
-    "youDecide": {
-      "label": "DECYDUJESZ",
-      "title": "Ty decydujesz",
-      "body": "Nic nie trafia do pamięci projektu bez Twojej zgody. Każda propozycja czeka na ekranie Do zatwierdzenia, dopóki jej nie przyjmiesz albo nie odrzucisz."
-    }
   },
   "assistant": {
     "placeholder": "O co chcesz zapytać?",

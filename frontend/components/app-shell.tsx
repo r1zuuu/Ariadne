@@ -10,7 +10,6 @@ import { MemberMarks, useProjectPlacement } from "@/components/project-marks";
 import { enterTransition } from "@/components/motion";
 import { TitleBar } from "@/components/title-bar";
 import { clearToken, type Project } from "@/lib/api";
-import { resetTour } from "@/lib/first-run";
 
 // The frame every screen inside the app sits in: title bar, a column on the
 // left, content on the right.
@@ -190,23 +189,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 className="mt-2 border-t border-hairline pt-3"
               />
 
-              <div className="mt-auto flex flex-col gap-1">
-                {/* Next to sign out because it is the same kind of thing: a door out
-                    of the work, not part of it. resetTour clears the per-screen
-                    notes too, so asking to be shown around brings all of it back. */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    resetTour();
-                    router.push("/onboarding-tour");
-                  }}
-                  title={t("tour")}
-                  className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-ink"
-                >
-                  <IconTour />
-                  <span className="hidden lg:inline">{t("tour")}</span>
-                </button>
-
+              <div className="mt-auto">
                 <button
                   type="button"
                   onClick={signOut}
@@ -485,17 +468,6 @@ function IconSettings() {
       <path d="M2.5 6h9M14 6h1.5M2.5 12h4M9 12h6.5" />
       <circle cx="12.5" cy="6" r="1.6" />
       <circle cx="7.5" cy="12" r="1.6" />
-    </svg>
-  );
-}
-
-// Two points and the thread between them, which is the product in one glyph.
-function IconTour() {
-  return (
-    <svg {...stroke}>
-      <circle cx="4" cy="4" r="1.6" />
-      <circle cx="14" cy="14" r="1.6" />
-      <path d="M4 5.6C4 10 14 8 14 12.4" />
     </svg>
   );
 }

@@ -50,7 +50,7 @@ export function StepMarker({
       initial={false}
       animate={{ opacity: 1 }}
     >
-      {/* Opaque under everything: the tour runs its thread behind this column
+      {/* Opaque under everything: the wizard runs its thread behind this column
           and it showed through as a line across each hollow marker. */}
       <circle cx="12" cy="12" r="11" fill={behind} />
 
