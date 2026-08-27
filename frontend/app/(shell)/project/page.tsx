@@ -280,10 +280,13 @@ function ReadView({ project }: { project: Project }) {
         ) : null}
       </dl>
 
-      {/* The rule above this one is the thread rather than a hairline, because
-          this is the block that steers the agent: everything above describes the
-          project, this one constrains what may be done to it. */}
-      <section className="mt-8 border-t border-thread/50 pt-6">
+      {/* This rule was the thread, on the argument that the block under it is
+          the one that steers the agent. On a screen this wide the argument came
+          out as a terracotta line running the better part of nine hundred
+          pixels, which is a large surface in the one colour the system keeps
+          for marking a path. The heading, its mark and the words carry the
+          weight; the rule goes back to being a rule. */}
+      <section className="mt-8 border-t border-hairline pt-6">
         <SectionHeader title={t("limits")} icon={<IconLimits />} note={t("limitsNote")} />
         <p
           className={`max-w-[68ch] whitespace-pre-wrap text-body leading-8 ${

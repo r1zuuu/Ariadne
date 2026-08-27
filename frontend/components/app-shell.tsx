@@ -133,11 +133,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-full flex-col">
-      <TitleBar
-        project={active?.name}
-        navOpen={navPinned}
-        onToggleNav={toggleNav}
-      />
+      <TitleBar navOpen={navPinned} onToggleNav={toggleNav} />
 
       <div
         className="relative flex min-h-0 flex-1"
