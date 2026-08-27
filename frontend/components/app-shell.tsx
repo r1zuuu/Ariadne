@@ -9,6 +9,15 @@ import { useApp } from "@/components/app-provider";
 import { MemberMarks, useProjectPlacement } from "@/components/project-marks";
 import { enterTransition } from "@/components/motion";
 import { TitleBar } from "@/components/title-bar";
+import {
+  IconAdd,
+  IconHome,
+  IconProject,
+  IconQueue,
+  IconSettings,
+  IconSignOut,
+  IconTeams,
+} from "@/components/icons";
 import { clearToken, type Project } from "@/lib/api";
 
 // The frame every screen inside the app sits in: title bar, a column on the
@@ -392,90 +401,11 @@ function ProjectSwitcher({ projects, active }: { projects: Project[]; active: Pr
             onClick={(event) => event.currentTarget.closest("details")?.removeAttribute("open")}
             className="flex w-full items-center gap-3 rounded-control px-4 py-3 text-left text-small text-thread transition-colors duration-state hover:bg-surface-2"
           >
-            <svg {...stroke} aria-hidden="true">
-              <path d="M9 4v10M4 9h10" />
-            </svg>
+            <IconAdd />
             {t("newProject")}
           </Link>
         </li>
       </ul>
     </details>
-  );
-}
-
-function IconTeams() {
-  return (
-    <svg {...stroke}>
-      <circle cx="7" cy="6.5" r="2.6" />
-      <path d="M2.5 15c0-2.3 2-3.8 4.5-3.8s4.5 1.5 4.5 3.8" />
-      <path d="M12.3 4.4a2.6 2.6 0 0 1 0 4.9M13.5 11.6c1.3.5 2.2 1.7 2.2 3.4" />
-    </svg>
-  );
-}
-
-// Line icons at 18px, one weight, no fills. They exist to make the column
-// scannable at the narrow width where the labels are gone, not for decoration.
-const stroke = {
-  width: 18,
-  height: 18,
-  viewBox: "0 0 18 18",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.5,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-  "aria-hidden": true,
-};
-
-function IconHome() {
-  return (
-    <svg {...stroke}>
-      <path d="M2.5 7.2 9 2.5l6.5 4.7V15a.5.5 0 0 1-.5.5h-4v-5H7v5H3a.5.5 0 0 1-.5-.5Z" />
-    </svg>
-  );
-}
-
-function IconProject() {
-  return (
-    <svg {...stroke}>
-      <rect x="2.5" y="3.5" width="13" height="11" rx="1.5" />
-      <path d="M2.5 7h13M6 3.5v3.5" />
-    </svg>
-  );
-}
-
-function IconAdd() {
-  return (
-    <svg {...stroke}>
-      <path d="M9 3.5v11M3.5 9h11" />
-    </svg>
-  );
-}
-
-function IconQueue() {
-  return (
-    <svg {...stroke}>
-      <path d="M3 5h12M3 9h12M3 13h7" />
-    </svg>
-  );
-}
-
-// A dial rather than the usual cogwheel: the settings here are a handful of
-// switches, and a gear promises machinery that is not behind it.
-function IconSettings() {
-  return (
-    <svg {...stroke}>
-      <path d="M2.5 6h9M14 6h1.5M2.5 12h4M9 12h6.5" />
-      <circle cx="12.5" cy="6" r="1.6" />
-      <circle cx="7.5" cy="12" r="1.6" />
-    </svg>
-  );
-}
-
-function IconSignOut() {
-  return (
-    <svg {...stroke}>
-      <path d="M11 12.5v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M7.5 9h8m0 0-2.5-2.5M15.5 9 13 11.5" />
-    </svg>
   );
 }

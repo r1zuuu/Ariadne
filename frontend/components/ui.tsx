@@ -200,18 +200,25 @@ export function PageHeader({
   );
 }
 
+// The icon is a finding aid, never the name. It rides beside the heading in the
+// metadata tone so the section is locatable on the second visit without the
+// mark ever competing with the word it sits next to - and without spending one
+// of the two accents on structure, which neither of them means.
 export function SectionHeader({
   title,
   count,
+  icon,
   action,
 }: {
   title: string;
   count?: number;
+  icon?: ReactNode;
   action?: ReactNode;
 }) {
   return (
     <div className="flex items-baseline justify-between gap-4 pb-4">
       <h2 className="flex items-baseline gap-3 text-section text-ink">
+        {icon ? <span className="self-center text-ink-2">{icon}</span> : null}
         {title}
         {count !== undefined ? (
           <span className="font-prose text-data tabular text-ink-3">{count}</span>

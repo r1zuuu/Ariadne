@@ -105,7 +105,7 @@ export function ProjectPlacement({ project }: { project: Project }) {
   return (
     <span className="flex min-w-0 items-center gap-2">
       {shared ? <MemberMarks emails={workspace.members ?? []} /> : null}
-      <span className="truncate text-data text-ink-3">
+      <span className="truncate">
         {shared ? t("sharedIn", { name: workspace.name }) : workspace.name}
       </span>
     </span>

@@ -332,11 +332,8 @@
     "graphLabel": "Map: {nodes} entries, {edges} links",
     "edit": "Edit project",
     "cancel": "Cancel",
-    "about": "About the project",
     "aboutEmpty": "No description. Say in one sentence what this project is for.",
-    "tech": "Technologies",
     "techEmpty": "No stack recorded yet.",
-    "repo": "Repository",
     "limits": "Constraints and rules",
     "limitsNote": "The agent reads this before every session.",
     "limitsEmpty": "No constraints. Put the rules the agent should follow here.",
@@ -384,7 +381,9 @@
       "title": "This repository sits in two archives",
       "body": "The address {repo} also belongs to: {where}. A coder picks the archive from the token it connects with, so it reaches only one of them and will not tell you which.",
       "fix": "Keep the address on one project and change it on the other, or delete that project. To write to the team, generate a token for the shared archive in settings and swap it into your coder configuration."
-    }
+    },
+    "entries": "Entries",
+    "archive": "Archive"
   },
   "entry": {
     "type": {

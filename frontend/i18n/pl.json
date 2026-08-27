@@ -332,11 +332,8 @@
     "graphLabel": "Mapa: {nodes} wpisów, {edges} połączeń",
     "edit": "Edytuj projekt",
     "cancel": "Anuluj",
-    "about": "O projekcie",
     "aboutEmpty": "Brak opisu. Napisz w jednym zdaniu, po co jest ten projekt.",
-    "tech": "Technologie",
     "techEmpty": "Nie wpisano jeszcze stacku.",
-    "repo": "Repozytorium",
     "limits": "Ograniczenia i ważne zasady",
     "limitsNote": "To czyta agent przed każdą sesją.",
     "limitsEmpty": "Brak ograniczeń. Tu wpisz zasady, których agent ma się trzymać.",
@@ -384,7 +381,9 @@
       "title": "To repozytorium jest w dwóch archiwach",
       "body": "Adres {repo} należy też do: {where}. Coder wybiera archiwum po tokenie, którym się łączy, więc trafi tylko w jedno z nich i nie powie ci w które.",
       "fix": "Zostaw ten adres w jednym projekcie, a w drugim zmień go albo usuń projekt. Jeśli chcesz pisać do zespołu, wygeneruj w ustawieniach token dla wspólnego archiwum i podmień go w konfiguracji codera."
-    }
+    },
+    "entries": "Wpisy",
+    "archive": "Archiwum"
   },
   "entry": {
     "type": {

@@ -6,13 +6,18 @@ import { LOCALES, useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { useFailure } from "@/components/failure";
 import { CommandBlock } from "@/components/command-block";
+import {
+  IconAccount,
+  IconAutoApprove,
+  IconKey,
+  IconToken,
+} from "@/components/icons";
 import { useToast } from "@/components/toast";
 import {
   Button,
   Card,
   EmptyState,
   Input,
-  Label,
   Meta,
   PageHeader,
   SectionHeader,
@@ -138,7 +143,7 @@ function AccountSection({
 
   return (
     <section className="pt-8">
-      <SectionHeader title={t("account")} />
+      <SectionHeader title={t("account")} icon={<IconAccount />} />
 
       {/* Read-only facts get a hairline, not a card: there is nothing here to
           decide about. */}
@@ -317,24 +322,22 @@ function GeminiSection({
 
   return (
     <section className="mt-8 border-t border-hairline pt-7">
-      <SectionHeader title={t("gemini")} />
+      <SectionHeader title={t("gemini")} icon={<IconKey />} />
 
       <Card className="p-6">
         <p className="max-w-[62ch] text-small text-ink-2">{t(`geminiState.${source}`)}</p>
 
         {stored ? (
           <div className="flex flex-wrap items-center justify-between gap-4 pt-5">
-            <div className="min-w-0">
-              <Label htmlFor="settings-gemini-state">{t("geminiLabel")}</Label>
-              {/* Dots, not the key. It never comes back from the server and the
-                  point of this row is that something is there, not what. */}
-              <p id="settings-gemini-state" className="flex items-center gap-3 pt-2">
-                <span aria-hidden="true" className="font-mono text-body text-ink-3">
-                  ••••••••••••••••
-                </span>
-                <span className="text-small text-laurel">{t("geminiStored")}</span>
-              </p>
-            </div>
+            {/* Three tellings of one fact went to one. The heading two lines
+                up already reads "Gemini key", the paragraph above says whose
+                key is paying, and a row of dots stood in for a value that
+                never comes back from the server anyway. A key mark and the
+                word is the whole state. */}
+            <p className="flex min-w-0 items-center gap-3 text-small text-laurel">
+              <IconKey />
+              {t("geminiStored")}
+            </p>
             <div className="flex gap-3">
               <Button type="button" variant="secondary" onClick={() => setEditing(true)}>
                 {t("geminiReplace")}
@@ -436,7 +439,7 @@ function PermissionSection({
 
   return (
     <section className="mt-8 border-t border-hairline pt-7">
-      <SectionHeader title={t("autoApprove")} />
+      <SectionHeader title={t("autoApprove")} icon={<IconAutoApprove />} />
       <Card className="flex flex-wrap items-center justify-between gap-5 p-6">
         <p className="max-w-[54ch] text-small text-ink-2">
           {account.allPermission ? t("autoApproveIsOn") : t("autoApproveIsOff")}
@@ -505,7 +508,7 @@ function TokensSection({ toast }: { toast: Toast }) {
 
   return (
     <section className="mt-8 border-t border-hairline pt-7">
-      <SectionHeader title={t("tokens")} count={tokens?.length} />
+      <SectionHeader title={t("tokens")} count={tokens?.length} icon={<IconToken />} />
       <p className="pb-5 text-small text-ink-2">{t("tokensLead")}</p>
 
       {/* Shown once and never again, so it sits above the list where it cannot

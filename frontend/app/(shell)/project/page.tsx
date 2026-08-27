@@ -2,8 +2,17 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useApp } from "@/components/app-provider";
+import {
+  IconEntries,
+  IconLimits,
+  IconMap,
+  IconRepo,
+  IconStack,
+  IconStage,
+  IconTeams,
+} from "@/components/icons";
 import { MemoryGraph } from "@/components/memory-graph";
 import { ProjectPlacement, useProjectPlacement } from "@/components/project-marks";
 import { useToast } from "@/components/toast";
@@ -13,7 +22,6 @@ import {
   EmptyState,
   Input,
   Meta,
-  PageHeader,
   SectionHeader,
   Textarea,
 } from "@/components/ui";
@@ -59,7 +67,7 @@ export default function ProjectScreen() {
   }, [project?.id, loadGraph]);
 
   return (
-    <div className="mx-auto max-w-[900px]">
+    <div className="mx-auto max-w-[1080px]">
         {project === null ? (
           server === "down" ? (
             // A dead backend used to park this screen on "loading" forever.
@@ -80,24 +88,31 @@ export default function ProjectScreen() {
           )
         ) : (
           <>
-            <div className="flex flex-wrap items-end justify-between gap-5 pb-8 pt-6">
+            <div className="flex flex-wrap items-start justify-between gap-5 pb-7 pt-6">
               <div className="min-w-0">
-                <h1 className="max-w-[14ch] text-display text-ink">{project.name}</h1>
-                {/* Stage and repository are both facts about the project, so
-                    they are one metadata line rather than a tinted label beside
-                    the name competing with it. */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-3">
-                  <Meta items={[t(`etap.${project.etap}`), project.repoRef]} />
-                  <ProjectPlacement project={project} />
-                </div>
+                <h1 className="max-w-[16ch] text-display text-ink">{project.name}</h1>
+                {/* The description opens the page instead of sitting in a
+                    section called "About". As a section it was a serif heading
+                    over one line of text, the first of four such blocks, and
+                    four blocks built the same way is exactly how a screen ends
+                    up with no hierarchy: everything shouted at the same volume,
+                    so nothing was findable. Here it does a lead's job - says
+                    what this project is before anything says how it is set up -
+                    and it is set like every other screen's lead. */}
+                <p
+                  className={`max-w-[62ch] pt-4 text-body leading-8 ${
+                    project.opis ? "text-ink-2" : "text-ink-3"
+                  }`}
+                >
+                  {project.opis || t("aboutEmpty")}
+                </p>
               </div>
               {!editing ? (
-                <Button variant="secondary" onClick={() => setEditing(true)} className="mb-2">
+                <Button variant="secondary" onClick={() => setEditing(true)} className="mt-5">
                   {t("edit")}
                 </Button>
               ) : null}
             </div>
-
 
             <DuplicateRepoNotice project={project} />
 
@@ -117,10 +132,12 @@ export default function ProjectScreen() {
               <ReadView project={project} />
             )}
 
-            {/* The map is the fourth section of the same document, so it takes
-                the same rule above it as the three that come before. */}
-            <section className="mt-7 border-t border-hairline pt-6">
-              <SectionHeader title={t("graph")} />
+            {/* The last block of the same document, and the only one that is a
+                canvas rather than text, so it gets the width the page just
+                gained: at 900 the outer cards were cropped before anyone
+                touched them. */}
+            <section className="mt-8 border-t border-hairline pt-6">
+              <SectionHeader title={t("graph")} icon={<IconMap />} count={graph?.nodes.length} />
               <p className="pb-4 text-small text-ink-2">{t("graphLead")}</p>
               {graphError ? (
                 <EmptyState
@@ -174,8 +191,35 @@ function DuplicateRepoNotice({ project }: { project: Project }) {
   );
 }
 
+/** One fact about the project: a mark, the name of the thing, the thing. */
+function Fact({
+  icon,
+  label,
+  muted = false,
+  children,
+}: {
+  icon: ReactNode;
+  label: string;
+  /** The value is a stand-in for one nobody has written yet. */
+  muted?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 gap-4">
+      <span className="pt-[3px] text-ink-3">{icon}</span>
+      <div className="min-w-0">
+        <dt className="text-label uppercase tracking-[0.12em] text-ink-3">{label}</dt>
+        <dd className={`min-w-0 break-words pt-1 text-body ${muted ? "text-ink-3" : "text-ink"}`}>
+          {children}
+        </dd>
+      </div>
+    </div>
+  );
+}
+
 function ReadView({ project }: { project: Project }) {
   const t = useTranslations("project");
+  const { shared, showWorkspace } = useProjectPlacement(project);
   // Stored as one line of prose; splitting on commas is what makes it scannable
   // without changing how anyone writes it.
   const stack = project.stack
@@ -183,42 +227,62 @@ function ReadView({ project }: { project: Project }) {
     .map((item) => item.trim())
     .filter(Boolean);
 
-  // Three sections over rules, not three cards. This screen is a profile you
-  // read and the one thing you can do to it is up in the header, so a card
-  // around each block was packaging around text - and three identical boxes
-  // down a page is also how a screen ends up with no hierarchy at all. The
-  // headings carry it now: serif at the section step over a hairline, with the
-  // reading measure held at 68 characters instead of running the full width.
+  // Two blocks that differ in kind, where there used to be three that did not.
+  //
+  // The three were "About", "Technologies" and "Limits": a serif section
+  // heading over a line or two of text, three times down the page, each with
+  // the same rule above it. Nothing in that arrangement said which of them was
+  // worth reading, so the reader got a wall and no way in. The stage and the
+  // repository, meanwhile, were dissolved into one grey metadata line under the
+  // title where neither could be found on purpose.
+  //
+  // So: everything that is a short, looked-up value becomes a labelled fact in
+  // a two-column list, each with a mark that makes it findable on the second
+  // visit. What is left is the one block that is genuinely prose and genuinely
+  // matters - the rules the agent reads - and it now has the page to itself.
   return (
     <div>
-      <section className="border-t border-hairline pt-6">
-        <h2 className="pb-2 text-section text-ink">{t("about")}</h2>
-        <p
-          className={`max-w-[68ch] text-body leading-8 ${
-            project.opis ? "text-ink-2" : "text-ink-3"
-          }`}
-        >
-          {project.opis || t("aboutEmpty")}
-        </p>
-      </section>
+      <dl className="grid gap-x-8 gap-y-6 border-t border-hairline pt-6 sm:grid-cols-2">
+        <Fact icon={<IconStage />} label={t("label.etap")}>
+          {t(`etap.${project.etap}`)}
+        </Fact>
 
-      <section className="mt-7 border-t border-hairline pt-6">
-        <h2 className="pb-3 text-section text-ink">{t("tech")}</h2>
-        {stack.length ? (
-          // One metadata line, not a row of chips: a stack is a list of names,
-          // and eight lozenges made it look like eight things you can click.
-          <Meta items={stack} />
-        ) : (
-          <p className="text-body text-ink-3">{t("techEmpty")}</p>
-        )}
-      </section>
+        <Fact icon={<IconRepo />} label={t("label.repo")}>
+          {/* An address a machine resolves, so it is set in the machine voice. */}
+          <span className="font-data text-small">{project.repoRef}</span>
+        </Fact>
+
+        <Fact icon={<IconStack />} label={t("label.stack")} muted={!stack.length}>
+          {stack.length ? (
+            // One metadata line, not a row of chips: a stack is a list of names,
+            // and eight lozenges made it look like eight things you can click.
+            <Meta items={stack} />
+          ) : (
+            t("techEmpty")
+          )}
+        </Fact>
+
+        <Fact icon={<IconEntries />} label={t("entries")}>
+          {/* A reading, not a trophy: how much the archive holds for this
+              project, in the same type as every other value in the list. */}
+          <span className="tabular">{project.nodeCount ?? 0}</span>
+        </Fact>
+
+        {/* Only when it could be somebody else's work too, or when there is more
+            than one archive to confuse it with. */}
+        {shared || showWorkspace ? (
+          <Fact icon={<IconTeams />} label={t("archive")}>
+            <ProjectPlacement project={project} />
+          </Fact>
+        ) : null}
+      </dl>
 
       {/* The rule above this one is the thread rather than a hairline, because
-          this is the section that steers the agent: everything else describes
-          the project, this one constrains what may be done to it. */}
-      <section className="mt-7 border-t border-thread/50 pt-6">
-        <h2 className="text-section text-ink">{t("limits")}</h2>
-        <p className="pb-3 pt-1 text-small text-ink-3">{t("limitsNote")}</p>
+          this is the block that steers the agent: everything above describes the
+          project, this one constrains what may be done to it. */}
+      <section className="mt-8 border-t border-thread/50 pt-6">
+        <SectionHeader title={t("limits")} icon={<IconLimits />} />
+        <p className="pb-4 -mt-2 text-small text-ink-3">{t("limitsNote")}</p>
         <p
           className={`max-w-[68ch] whitespace-pre-wrap text-body leading-8 ${
             project.ograniczenia ? "text-ink-2" : "text-ink-3"
