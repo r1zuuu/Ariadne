@@ -143,7 +143,8 @@ place.
 
 Primitives live in `components/ui.tsx`: Button, IconButton, Input, Textarea,
 Card, Meta, Status, EmptyState, PageHeader, SectionHeader, Banner, Field,
-Label. Every line icon lives in `components/icons.tsx`. Stateful pieces have
+Label. The shared line icons live in `components/icons.tsx`; the four status
+marks stay with Status, and a thread drawn into a layout stays in it. Stateful pieces have
 their own files: AppShell, AppProvider, Composer, EntryCard, MemoryGraph,
 Toast, CommandBlock, the motion wrappers.
 

@@ -198,17 +198,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 className="mt-2 border-t border-hairline pt-3"
               />
 
-              <div className="mt-auto">
-                <button
-                  type="button"
-                  onClick={signOut}
-                  title={t("signOut")}
-                  className="flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-iron"
-                >
-                  <IconSignOut />
-                  <span className="hidden lg:inline">{t("signOut")}</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={signOut}
+                title={t("signOut")}
+                className="mt-auto flex items-center gap-3 rounded-control px-4 py-[10px] text-small text-ink-3 transition-colors duration-state hover:bg-surface/70 hover:text-iron"
+              >
+                <IconSignOut />
+                <span className="hidden lg:inline">{t("signOut")}</span>
+              </button>
             </m.nav>
           ) : null}
         </AnimatePresence>

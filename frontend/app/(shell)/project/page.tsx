@@ -140,7 +140,6 @@ export default function ProjectScreen() {
               <SectionHeader
                 title={t("graph")}
                 icon={<IconMap />}
-                count={graph?.nodes.length}
                 note={t("graphLead")}
               />
               {graphError ? (
@@ -199,13 +198,10 @@ function DuplicateRepoNotice({ project }: { project: Project }) {
 function Fact({
   icon,
   label,
-  muted = false,
   children,
 }: {
   icon: ReactNode;
   label: string;
-  /** The value is a stand-in for one nobody has written yet. */
-  muted?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -213,9 +209,7 @@ function Fact({
       <span className="pt-[3px] text-ink-3">{icon}</span>
       <div className="min-w-0">
         <dt className="text-label uppercase tracking-[0.12em] text-ink-3">{label}</dt>
-        <dd className={`min-w-0 break-words pt-1 text-body ${muted ? "text-ink-3" : "text-ink"}`}>
-          {children}
-        </dd>
+        <dd className="min-w-0 break-words pt-1 text-body text-ink">{children}</dd>
       </div>
     </div>
   );
@@ -256,21 +250,26 @@ function ReadView({ project }: { project: Project }) {
           <span className="font-data text-small">{project.repoRef}</span>
         </Fact>
 
-        <Fact icon={<IconStack />} label={t("label.stack")} muted={!stack.length}>
+        <Fact icon={<IconStack />} label={t("label.stack")}>
           {stack.length ? (
             // One metadata line, not a row of chips: a stack is a list of names,
             // and eight lozenges made it look like eight things you can click.
             <Meta items={stack} />
           ) : (
-            t("techEmpty")
+            <span className="text-ink-3">{t("techEmpty")}</span>
           )}
         </Fact>
 
-        <Fact icon={<IconEntries />} label={t("entries")}>
-          {/* A reading, not a trophy: how much the archive holds for this
-              project, in the same type as every other value in the list. */}
-          <span className="tabular">{project.nodeCount ?? 0}</span>
-        </Fact>
+        {/* A reading, not a trophy: how much the archive holds for this
+            project, in the same type as every other value in the list. Absent
+            rather than zero when the server sent no count, because "empty" and
+            "nobody said" are different claims and this is the one screen where
+            the first would be believed. */}
+        {typeof project.nodeCount === "number" ? (
+          <Fact icon={<IconEntries />} label={t("entries")}>
+            <span className="tabular">{project.nodeCount}</span>
+          </Fact>
+        ) : null}
 
         {/* Only when it could be somebody else's work too, or when there is more
             than one archive to confuse it with. */}

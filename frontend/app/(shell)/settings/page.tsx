@@ -329,15 +329,12 @@ function GeminiSection({
 
         {stored ? (
           <div className="flex flex-wrap items-center justify-between gap-4 pt-5">
-            {/* Three tellings of one fact went to one. The heading two lines
-                up already reads "Gemini key", the paragraph above says whose
-                key is paying, and a row of dots stood in for a value that
-                never comes back from the server anyway. A key mark and the
-                word is the whole state. */}
-            <p className="flex min-w-0 items-center gap-3 text-small text-laurel">
-              <IconKey />
-              {t("geminiStored")}
-            </p>
+            {/* Three tellings of one fact went to one word. Above this row the
+                heading already reads "Gemini key" and the paragraph says whose
+                key is paying; the label repeated it a third time over a row of
+                dots standing in for a value the server never returns. A second
+                key mark here would have been the fourth. */}
+            <p className="min-w-0 text-small text-laurel">{t("geminiStored")}</p>
             <div className="flex gap-3">
               <Button type="button" variant="secondary" onClick={() => setEditing(true)}>
                 {t("geminiReplace")}
