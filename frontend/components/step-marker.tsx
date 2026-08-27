@@ -8,7 +8,7 @@ import { m } from "motion/react";
 // No headless kit ships a stepper at all - Radix, Headless UI and shadcn have
 // none - and the ones that do (Material, Mantine, Chakra) arrive with a theme
 // engine and a look of their own; dropped between a Playfair heading and a
-// parchment palette they read as borrowed from another application. The headless
+// graphite palette they read as borrowed from another application. The headless
 // packages that do exist hand over step state and no visuals, which is the half
 // that was never the problem.
 //
@@ -50,7 +50,7 @@ export function StepMarker({
       initial={false}
       animate={{ opacity: 1 }}
     >
-      {/* Opaque under everything: the tour runs its thread behind this column
+      {/* Opaque under everything: the wizard runs its thread behind this column
           and it showed through as a line across each hollow marker. */}
       <circle cx="12" cy="12" r="11" fill={behind} />
 

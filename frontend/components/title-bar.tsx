@@ -5,8 +5,13 @@ import { useTranslations } from "next-intl";
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-// 38px, plaster-sunk, one hairline underneath. Application name and open project
-// on the left, the window controls on the right.
+// 38px, plaster-sunk, one hairline underneath. Application name on the left,
+// the window controls on the right.
+//
+// It used to carry the open project's name beside the wordmark. The switcher at
+// the head of the column says the same thing forty pixels below, in a larger
+// type, next to the stage and the archive it belongs to, so the bar was holding
+// a second and worse copy of a label that was never missing.
 //
 // The controls are not rendered outside Tauri: a browser cannot close its own
 // window from a button, and a dead control is worse than no control. They arrive
@@ -20,11 +25,9 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 // working day. The one state worth reporting already has a better home, on the
 // main screen, as a banner with a retry button and no hostname in it.
 export function TitleBar({
-  project,
   navOpen,
   onToggleNav,
 }: {
-  project?: string;
   navOpen?: boolean;
   onToggleNav?: () => void;
 }) {
@@ -68,7 +71,6 @@ export function TitleBar({
         {/* The wordmark is the one word in the frame allowed the brand face.
             15px keeps the didone's hairlines alive in a 38px bar. */}
         <span className="display-serif text-[15px] tracking-[0.08em] text-ink">ARIADNE</span>
-        {project ? <span className="text-small text-ink-2">{project}</span> : null}
       </div>
       <WindowControls />
     </header>
@@ -122,7 +124,7 @@ function ControlButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`grid h-[38px] w-11 place-items-center text-ink-2 transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-aegean ${
+      className={`grid h-[38px] w-11 place-items-center text-ink-2 transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-thread ${
         danger ? "hover:text-iron" : "hover:text-ink"
       }`}
     >

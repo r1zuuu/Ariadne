@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useApp } from "@/components/app-provider";
 import { CommandBlock } from "@/components/command-block";
 import { useFailure } from "@/components/failure";
+import { IconEnter, IconGroup } from "@/components/icons";
 import { Collapse, FadeIn } from "@/components/motion";
 import { MemberMarks } from "@/components/project-marks";
 import { useToast } from "@/components/toast";
@@ -72,7 +73,7 @@ export default function TeamsScreen() {
   const mine = workspaces.filter((w) => w.memberCount === 1 && w.isOwner);
 
   return (
-    <div className="mx-auto max-w-[900px]">
+    <div className="mx-auto max-w-[860px]">
       {/* Keyed on the view, so passing through a door is the same 200ms arrival
           every other screen change in the app uses. */}
       <FadeIn key={view}>
@@ -245,58 +246,6 @@ function Door({
   );
 }
 
-// The two marks. Drawn at 36 rather than the column's 18, and drawn there
-// rather than scaled up from it: a 18-box stretched to 36 takes its 1.5 stroke
-// along and lands at 3, which is a heavier hand, not a bigger mark. The
-// geometry is doubled and the stroke left alone, so these are the column's
-// weight at twice its size.
-//
-// Deliberately not the same glyph twice: the doors are told apart by silhouette
-// before either word is read, so one is a line entering an opening and the
-// other is a group of people. An envelope would have been the obvious mark for
-// an invitation and is wrong here - nothing in this product sends mail, an
-// invitation is a code handed over, and a mark promising a letter would be the
-// screen making a promise the backend never keeps.
-
-function IconEnter() {
-  return (
-    <svg
-      width="36"
-      height="36"
-      viewBox="0 0 36 36"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M19 6h8a2.5 2.5 0 0 1 2.5 2.5v19a2.5 2.5 0 0 1-2.5 2.5h-8" />
-      <path d="M6 18h14M15 13l5 5-5 5" />
-    </svg>
-  );
-}
-
-function IconGroup() {
-  return (
-    <svg
-      width="36"
-      height="36"
-      viewBox="0 0 36 36"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="14" cy="13" r="5" />
-      <path d="M5 29.8c0-4.5 4-7.5 9-7.5s9 3 9 7.5" />
-      <path d="M24.6 8.1a5 5 0 0 1 0 9.8M27 23.2c2.6 1 4.4 3.4 4.4 6.6" />
-    </svg>
-  );
-}
-
 function BackLink({ onClick }: { onClick: () => void }) {
   const t = useTranslations("teams");
   return (
@@ -403,14 +352,70 @@ function JoinPanel({
     }
   };
 
+  // The field, wherever it ends up: the two arrangements below differ in what
+  // sits around it, never in what it is.
+  const field = (
+    <div className="max-w-[46ch]">
+      <Input
+        id="invite-code"
+        label={t("code.label")}
+        note={t("code.note")}
+        placeholder={t("code.placeholder")}
+        error={codeError ?? undefined}
+        value={code}
+        onChange={(event) => setCode(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") void joinByCode();
+        }}
+      />
+      <div className="flex justify-end pt-4">
+        <Button loading={working === "code"} onClick={() => void joinByCode()}>
+          {t("join")}
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Nothing waiting is the ordinary case, and then this screen is one field.
+  //
+  // It used to arrive as a 64px title, a section heading under it saying much
+  // the same thing, a paragraph, a labelled input and a button, all stacked
+  // down the left third of an 860px page with the rest of the window empty
+  // beside and below them. A form does not look considered when it is holding
+  // one corner of a screen it never fills. Centred, in the arrangement the
+  // other single-field screen in this app already uses - the question over the
+  // field, both in the middle of the space they have - it reads as the whole
+  // point of the screen, which is what it is.
+  if (!invitations.length) {
+    return (
+      <div className="flex screen-opening flex-col">
+        <BackLink onClick={onBack} />
+        <div className="my-auto pb-9">
+          <div className="pb-7 text-center">
+            <h1 className="mx-auto max-w-[16ch] text-display text-ink">
+              {t("doors.join.title")}
+            </h1>
+            {/* text-balance, not a narrower measure: centred and left to
+                itself this sentence put "tutaj." alone on a second line, and
+                the browser evens the lines out better than a guessed width
+                can, in any of the two languages. */}
+            <p className="mx-auto max-w-[62ch] text-balance pt-4 text-body text-ink-2">
+              {t("code.leadAlone")}
+            </p>
+          </div>
+          <div className="mx-auto w-fit">{field}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <BackLink onClick={onBack} />
       <PageHeader title={t("doors.join.title")} />
 
-      {invitations.length ? (
-        <section className="pb-9">
-          <SectionHeader title={t("waiting")} count={invitations.length} />
+      <section className="pb-9">
+        <SectionHeader title={t("waiting")} count={invitations.length} />
           <ul className="flex flex-col gap-4">
             {invitations.map((invite) => (
               <li key={invite.id}>
@@ -457,34 +462,13 @@ function JoinPanel({
             ))}
           </ul>
         </section>
-      ) : null}
 
-      {/* Under the hairline when something is waiting above it, on its own when
-          nothing is: same field either way, different amount of the screen. */}
-      <section className={invitations.length ? "border-t border-hairline pt-7" : ""}>
-        <SectionHeader title={t("code.title")} />
-        <p className="max-w-[62ch] pb-5 text-body text-ink-2">
-          {invitations.length ? t("code.lead") : t("code.leadAlone")}
-        </p>
-        <div className="max-w-[46ch]">
-          <Input
-            id="invite-code"
-            label={t("code.label")}
-            note={t("code.note")}
-            placeholder={t("code.placeholder")}
-            error={codeError ?? undefined}
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") void joinByCode();
-            }}
-          />
-        </div>
-        <div className="flex max-w-[46ch] justify-end pt-4">
-          <Button loading={working === "code"} onClick={() => void joinByCode()}>
-            {t("join")}
-          </Button>
-        </div>
+      {/* Second here, and under a hairline: something is actually waiting above
+          it, and a code typed by hand is the way in for the invitation that
+          did not arrive. */}
+      <section className="border-t border-hairline pt-7">
+        <SectionHeader title={t("code.title")} note={t("code.lead")} />
+        {field}
       </section>
     </>
   );

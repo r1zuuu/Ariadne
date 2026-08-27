@@ -207,7 +207,7 @@ export default function EntryScreen() {
                       whileHover={{ y: -2 }}
                       whileTap={{ scale: 0.96 }}
                       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                      className="grid h-[52px] w-[52px] place-items-center rounded-control border border-edge/60 bg-surface text-ink transition-colors duration-state hover:border-edge hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-aegean disabled:cursor-not-allowed disabled:opacity-40"
+                      className="grid h-[52px] w-[52px] place-items-center rounded-control border border-edge/60 bg-surface text-ink transition-colors duration-state hover:border-edge hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-thread disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {pending === provider ? (
                         <m.span

@@ -65,10 +65,10 @@ export function Composer({
       {/* The most important object in the product, and the one thing allowed to
           borrow the thread while it is awake: focus pulls the left edge taut
           in madder and lifts the paper. Everything else on screen stays flat. */}
-      <div className="group relative rounded-card border border-edge/80 bg-elevated shadow-lifted transition-[border-color,box-shadow] duration-state focus-within:border-aegean">
+      <div className="group relative rounded-card border border-edge/80 bg-elevated shadow-lifted transition-[border-color,box-shadow] duration-state focus-within:border-thread">
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-[10px] left-0 top-[10px] w-[2px] origin-top scale-y-0 bg-aegean transition-transform duration-enter ease-out-quint group-focus-within:scale-y-100"
+          className="pointer-events-none absolute bottom-[10px] left-0 top-[10px] w-[2px] origin-top scale-y-0 bg-thread transition-transform duration-enter ease-out-quint group-focus-within:scale-y-100"
         />
         <textarea
           ref={field}
@@ -100,7 +100,7 @@ export function Composer({
           fine print under the composer rather than as things to press.
 
           Each one repeats the composer's own gesture: a thread drawn taut up
-          the left edge, the same 2px terracotta bar that appears there on focus.
+          the left edge, the same 2px thread bar that appears there on focus.
           That is what makes these read as part of the same object rather than
           as a list that happens to sit under it. */}
       {suggestions.length ? (

@@ -6,13 +6,18 @@ import { LOCALES, useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { useFailure } from "@/components/failure";
 import { CommandBlock } from "@/components/command-block";
+import {
+  IconAccount,
+  IconAutoApprove,
+  IconKey,
+  IconToken,
+} from "@/components/icons";
 import { useToast } from "@/components/toast";
 import {
   Button,
   Card,
   EmptyState,
   Input,
-  Label,
   Meta,
   PageHeader,
   SectionHeader,
@@ -138,7 +143,7 @@ function AccountSection({
 
   return (
     <section className="pt-8">
-      <SectionHeader title={t("account")} />
+      <SectionHeader title={t("account")} icon={<IconAccount />} />
 
       {/* Read-only facts get a hairline, not a card: there is nothing here to
           decide about. */}
@@ -173,7 +178,7 @@ function AccountSection({
       <div className="flex flex-wrap items-center gap-4 pt-6">
         <p className="text-small font-medium text-ink">{t("language")}</p>
         {/* The active language is a selected state, not a call to action:
-            a terracotta fill here outshouted every real CTA on the page. */}
+            a full brand fill here outshouted every real CTA on the page. */}
         {LOCALES.map((code) => {
           const selected = code === locale;
           return (
@@ -317,24 +322,19 @@ function GeminiSection({
 
   return (
     <section className="mt-8 border-t border-hairline pt-7">
-      <SectionHeader title={t("gemini")} />
+      <SectionHeader title={t("gemini")} icon={<IconKey />} />
 
       <Card className="p-6">
         <p className="max-w-[62ch] text-small text-ink-2">{t(`geminiState.${source}`)}</p>
 
         {stored ? (
           <div className="flex flex-wrap items-center justify-between gap-4 pt-5">
-            <div className="min-w-0">
-              <Label htmlFor="settings-gemini-state">{t("geminiLabel")}</Label>
-              {/* Dots, not the key. It never comes back from the server and the
-                  point of this row is that something is there, not what. */}
-              <p id="settings-gemini-state" className="flex items-center gap-3 pt-2">
-                <span aria-hidden="true" className="font-mono text-body text-ink-3">
-                  ••••••••••••••••
-                </span>
-                <span className="text-small text-laurel">{t("geminiStored")}</span>
-              </p>
-            </div>
+            {/* Three tellings of one fact went to one word. Above this row the
+                heading already reads "Gemini key" and the paragraph says whose
+                key is paying; the label repeated it a third time over a row of
+                dots standing in for a value the server never returns. A second
+                key mark here would have been the fourth. */}
+            <p className="min-w-0 text-small text-laurel">{t("geminiStored")}</p>
             <div className="flex gap-3">
               <Button type="button" variant="secondary" onClick={() => setEditing(true)}>
                 {t("geminiReplace")}
@@ -436,7 +436,7 @@ function PermissionSection({
 
   return (
     <section className="mt-8 border-t border-hairline pt-7">
-      <SectionHeader title={t("autoApprove")} />
+      <SectionHeader title={t("autoApprove")} icon={<IconAutoApprove />} />
       <Card className="flex flex-wrap items-center justify-between gap-5 p-6">
         <p className="max-w-[54ch] text-small text-ink-2">
           {account.allPermission ? t("autoApproveIsOn") : t("autoApproveIsOff")}
@@ -505,8 +505,12 @@ function TokensSection({ toast }: { toast: Toast }) {
 
   return (
     <section className="mt-8 border-t border-hairline pt-7">
-      <SectionHeader title={t("tokens")} count={tokens?.length} />
-      <p className="pb-5 text-small text-ink-2">{t("tokensLead")}</p>
+      <SectionHeader
+        title={t("tokens")}
+        count={tokens?.length}
+        icon={<IconToken />}
+        note={t("tokensLead")}
+      />
 
       {/* Shown once and never again, so it sits above the list where it cannot
           be scrolled past. */}
@@ -545,7 +549,7 @@ function TokensSection({ toast }: { toast: Toast }) {
               id="settings-token-workspace"
               value={workspaceId}
               onChange={(event) => setWorkspaceId(event.target.value)}
-              className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none transition-colors duration-state focus:border-aegean focus:ring-2 focus:ring-aegean/25"
+              className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none transition-colors duration-state focus:border-thread focus:ring-2 focus:ring-thread/25"
             >
               {workspaces.map((workspace) => (
                 <option key={workspace.id} value={workspace.id}>

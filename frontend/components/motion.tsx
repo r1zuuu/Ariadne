@@ -43,7 +43,7 @@ export function MotionProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Something arriving on screen: a message, a proposal, a step of the tour. The
+ * Something arriving on screen: a message, a proposal, a step of the wizard. The
  * 4px rise says it came from below rather than being swapped in place. Under
  * reduced motion it only fades, so nothing that matters depends on the move.
  *

@@ -20,7 +20,7 @@ import type { ReactNode } from "react";
 type ButtonVariant = "primary" | "secondary" | "quiet" | "destructive";
 type ButtonSize = "md" | "lg";
 
-// Primary is the thread: the terracotta belongs to the strongest action on
+// Primary is the thread: the one brand colour belongs to the strongest action on
 // the screen and to nothing decorative, which is what keeps it precious.
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary:
@@ -100,7 +100,7 @@ export function Input({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-aegean focus:ring-2 focus:ring-aegean/25 ${
+        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/25 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -130,7 +130,7 @@ export function Textarea({
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-aegean focus:ring-2 focus:ring-aegean/25 ${
+        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/25 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -200,24 +200,43 @@ export function PageHeader({
   );
 }
 
+// The icon is a finding aid, never the name. It rides beside the heading in the
+// metadata tone so the section is locatable on the second visit without the
+// mark ever competing with the word it sits next to - and without spending one
+// accent on structure, which the accent does not mean. It belongs on
+// the screens you scroll looking for one section, and nowhere else; the rule is
+// written down in DESIGN.md so the next screen does not decide for itself.
+//
+// The note is the line that says what the section is for. Three screens were
+// hand-rolling the same paragraph under the same heading with a different
+// padding each time, one of them cancelling this component's own with a
+// negative margin.
 export function SectionHeader({
   title,
   count,
+  icon,
+  note,
   action,
 }: {
   title: string;
   count?: number;
+  icon?: ReactNode;
+  note?: string;
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 pb-4">
-      <h2 className="flex items-baseline gap-3 text-section text-ink">
-        {title}
-        {count !== undefined ? (
-          <span className="font-prose text-data tabular text-ink-3">{count}</span>
-        ) : null}
-      </h2>
-      {action}
+    <div className="pb-4">
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="flex items-baseline gap-3 text-section text-ink">
+          {icon ? <span className="self-center text-ink-2">{icon}</span> : null}
+          {title}
+          {count !== undefined ? (
+            <span className="font-prose text-data tabular text-ink-3">{count}</span>
+          ) : null}
+        </h2>
+        {action}
+      </div>
+      {note ? <p className="max-w-[68ch] pt-2 text-small text-ink-2">{note}</p> : null}
     </div>
   );
 }

@@ -9,7 +9,6 @@ import { useApp } from "@/components/app-provider";
 import { Ask } from "@/components/ask";
 import { headline, lead } from "@/components/entry-card";
 import { useToast } from "@/components/toast";
-import { hasSeenTour } from "@/lib/first-run";
 import {
   approvePending,
   archiveNode,
@@ -48,13 +47,6 @@ export default function HomeScreen() {
   // Read once, then stamped forward, so the line answers "since when" with the
   // previous visit rather than with this one.
   useEffect(() => {
-    // The tour runs before the dashboard rather than over it: this is the one
-    // place we know the reader is new. Skipping it marks it seen, so this
-    // fires exactly once per machine.
-    if (!hasSeenTour()) {
-      router.replace("/onboarding-tour");
-      return;
-    }
     const stored = localStorage.getItem(LAST_SEEN_KEY);
     // Only when it was actually a while ago. This effect reads and then writes,
     // so anything that mounts the screen twice - a development double-invoke, a
@@ -64,7 +56,7 @@ export default function HomeScreen() {
     const previous = stored ? new Date(stored) : null;
     if (previous && Date.now() - previous.getTime() > STALE_AFTER_MS) setSince(previous);
     localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
-  }, [router]);
+  }, []);
 
   const activeId = activeProject?.id ?? null;
 
