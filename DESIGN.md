@@ -143,8 +143,26 @@ place.
 
 Primitives live in `components/ui.tsx`: Button, IconButton, Input, Textarea,
 Card, Meta, Status, EmptyState, PageHeader, SectionHeader, Banner, Field,
-Label. Stateful pieces have their own files: AppShell, AppProvider, Composer,
-EntryCard, MemoryGraph, Toast, CommandBlock, the motion wrappers.
+Label. Every line icon lives in `components/icons.tsx`. Stateful pieces have
+their own files: AppShell, AppProvider, Composer, EntryCard, MemoryGraph,
+Toast, CommandBlock, the motion wrappers.
+
+**The Mark Is a Finding Aid.** An icon never replaces a label - outside home,
+search and print an unlabelled glyph is a guess, and this product does not ask
+the reader to guess. It never carries meaning either: it is drawn at 18px in
+one weight, in the metadata tone, so it can sit beside a word without arguing
+with it. And it earns its place only where the reader scrolls a column looking
+for one section of several - settings and the project - because on a screen
+with two headings a mark beside each is decoration, which is the one thing
+neither accent nor mark is allowed to be.
+
+**The Profile Is Facts Plus One Block.** A screen you read rather than fill in
+splits in two. Everything short and looked-up - stage, address, stack, a count,
+which archive - is a labelled fact in a two-column list, each with its mark, so
+it can be found on purpose instead of being dissolved into a grey metadata
+line. What is genuinely prose gets the page to itself. Four sections built the
+same way, each a serif heading over one line of text, is how the project screen
+ended up with no hierarchy at all: everything at one volume, nothing findable.
 
 **The Shape Plus Word Rule.** Every status renders as marker shape plus its
 written name: open circle proposed, filled square confirmed, cross

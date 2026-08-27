@@ -203,28 +203,40 @@ export function PageHeader({
 // The icon is a finding aid, never the name. It rides beside the heading in the
 // metadata tone so the section is locatable on the second visit without the
 // mark ever competing with the word it sits next to - and without spending one
-// of the two accents on structure, which neither of them means.
+// of the two accents on structure, which neither of them means. It belongs on
+// the screens you scroll looking for one section, and nowhere else; the rule is
+// written down in DESIGN.md so the next screen does not decide for itself.
+//
+// The note is the line that says what the section is for. Three screens were
+// hand-rolling the same paragraph under the same heading with a different
+// padding each time, one of them cancelling this component's own with a
+// negative margin.
 export function SectionHeader({
   title,
   count,
   icon,
+  note,
   action,
 }: {
   title: string;
   count?: number;
   icon?: ReactNode;
+  note?: string;
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 pb-4">
-      <h2 className="flex items-baseline gap-3 text-section text-ink">
-        {icon ? <span className="self-center text-ink-2">{icon}</span> : null}
-        {title}
-        {count !== undefined ? (
-          <span className="font-prose text-data tabular text-ink-3">{count}</span>
-        ) : null}
-      </h2>
-      {action}
+    <div className="pb-4">
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="flex items-baseline gap-3 text-section text-ink">
+          {icon ? <span className="self-center text-ink-2">{icon}</span> : null}
+          {title}
+          {count !== undefined ? (
+            <span className="font-prose text-data tabular text-ink-3">{count}</span>
+          ) : null}
+        </h2>
+        {action}
+      </div>
+      {note ? <p className="max-w-[68ch] pt-2 text-small text-ink-2">{note}</p> : null}
     </div>
   );
 }

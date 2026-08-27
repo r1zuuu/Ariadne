@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useApp } from "@/components/app-provider";
 import { CommandBlock } from "@/components/command-block";
 import { useFailure } from "@/components/failure";
+import { IconEnter, IconGroup } from "@/components/icons";
 import { Collapse, FadeIn } from "@/components/motion";
 import { MemberMarks } from "@/components/project-marks";
 import { useToast } from "@/components/toast";
@@ -72,7 +73,7 @@ export default function TeamsScreen() {
   const mine = workspaces.filter((w) => w.memberCount === 1 && w.isOwner);
 
   return (
-    <div className="mx-auto max-w-[900px]">
+    <div className="mx-auto max-w-[860px]">
       {/* Keyed on the view, so passing through a door is the same 200ms arrival
           every other screen change in the app uses. */}
       <FadeIn key={view}>
@@ -242,58 +243,6 @@ function Door({
       <span className="pt-5 display-serif text-title text-ink">{title}</span>
       <span className="max-w-[34ch] pt-3 text-small text-ink-2">{note}</span>
     </button>
-  );
-}
-
-// The two marks. Drawn at 36 rather than the column's 18, and drawn there
-// rather than scaled up from it: a 18-box stretched to 36 takes its 1.5 stroke
-// along and lands at 3, which is a heavier hand, not a bigger mark. The
-// geometry is doubled and the stroke left alone, so these are the column's
-// weight at twice its size.
-//
-// Deliberately not the same glyph twice: the doors are told apart by silhouette
-// before either word is read, so one is a line entering an opening and the
-// other is a group of people. An envelope would have been the obvious mark for
-// an invitation and is wrong here - nothing in this product sends mail, an
-// invitation is a code handed over, and a mark promising a letter would be the
-// screen making a promise the backend never keeps.
-
-function IconEnter() {
-  return (
-    <svg
-      width="36"
-      height="36"
-      viewBox="0 0 36 36"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M19 6h8a2.5 2.5 0 0 1 2.5 2.5v19a2.5 2.5 0 0 1-2.5 2.5h-8" />
-      <path d="M6 18h14M15 13l5 5-5 5" />
-    </svg>
-  );
-}
-
-function IconGroup() {
-  return (
-    <svg
-      width="36"
-      height="36"
-      viewBox="0 0 36 36"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="14" cy="13" r="5" />
-      <path d="M5 29.8c0-4.5 4-7.5 9-7.5s9 3 9 7.5" />
-      <path d="M24.6 8.1a5 5 0 0 1 0 9.8M27 23.2c2.6 1 4.4 3.4 4.4 6.6" />
-    </svg>
   );
 }
 

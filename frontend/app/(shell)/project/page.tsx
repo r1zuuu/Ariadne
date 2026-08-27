@@ -137,8 +137,12 @@ export default function ProjectScreen() {
                 gained: at 900 the outer cards were cropped before anyone
                 touched them. */}
             <section className="mt-8 border-t border-hairline pt-6">
-              <SectionHeader title={t("graph")} icon={<IconMap />} count={graph?.nodes.length} />
-              <p className="pb-4 text-small text-ink-2">{t("graphLead")}</p>
+              <SectionHeader
+                title={t("graph")}
+                icon={<IconMap />}
+                count={graph?.nodes.length}
+                note={t("graphLead")}
+              />
               {graphError ? (
                 <EmptyState
                   title={t("graphError")}
@@ -281,8 +285,7 @@ function ReadView({ project }: { project: Project }) {
           this is the block that steers the agent: everything above describes the
           project, this one constrains what may be done to it. */}
       <section className="mt-8 border-t border-thread/50 pt-6">
-        <SectionHeader title={t("limits")} icon={<IconLimits />} />
-        <p className="pb-4 -mt-2 text-small text-ink-3">{t("limitsNote")}</p>
+        <SectionHeader title={t("limits")} icon={<IconLimits />} note={t("limitsNote")} />
         <p
           className={`max-w-[68ch] whitespace-pre-wrap text-body leading-8 ${
             project.ograniczenia ? "text-ink-2" : "text-ink-3"

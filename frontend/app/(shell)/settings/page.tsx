@@ -508,8 +508,12 @@ function TokensSection({ toast }: { toast: Toast }) {
 
   return (
     <section className="mt-8 border-t border-hairline pt-7">
-      <SectionHeader title={t("tokens")} count={tokens?.length} icon={<IconToken />} />
-      <p className="pb-5 text-small text-ink-2">{t("tokensLead")}</p>
+      <SectionHeader
+        title={t("tokens")}
+        count={tokens?.length}
+        icon={<IconToken />}
+        note={t("tokensLead")}
+      />
 
       {/* Shown once and never again, so it sits above the list where it cannot
           be scrolled past. */}

@@ -196,3 +196,38 @@ export function IconMap() {
     </svg>
   );
 }
+
+// --- Teams ---
+
+// The two marks. Drawn at 36 rather than the column's 18, and drawn there
+// rather than scaled up from it: a 18-box stretched to 36 takes its 1.5 stroke
+// along and lands at 3, which is a heavier hand, not a bigger mark. The
+// geometry is doubled and the stroke left alone, so these are the column's
+// weight at twice its size.
+//
+// Deliberately not the same glyph twice: the doors are told apart by silhouette
+// before either word is read, so one is a line entering an opening and the
+// other is a group of people. An envelope would have been the obvious mark for
+// an invitation and is wrong here - nothing in this product sends mail, an
+// invitation is a code handed over, and a mark promising a letter would be the
+// screen making a promise the backend never keeps.
+const doorStroke = { ...stroke, width: 36, height: 36, viewBox: "0 0 36 36" };
+
+export function IconEnter() {
+  return (
+    <svg {...doorStroke}>
+      <path d="M19 6h8a2.5 2.5 0 0 1 2.5 2.5v19a2.5 2.5 0 0 1-2.5 2.5h-8" />
+      <path d="M6 18h14M15 13l5 5-5 5" />
+    </svg>
+  );
+}
+
+export function IconGroup() {
+  return (
+    <svg {...doorStroke}>
+      <circle cx="14" cy="13" r="5" />
+      <path d="M5 29.8c0-4.5 4-7.5 9-7.5s9 3 9 7.5" />
+      <path d="M24.6 8.1a5 5 0 0 1 0 9.8M27 23.2c2.6 1 4.4 3.4 4.4 6.6" />
+    </svg>
+  );
+}
