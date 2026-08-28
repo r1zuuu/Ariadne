@@ -73,10 +73,28 @@ function lifecycleResult(
   };
 }
 
+// What the client hands the model before it has called anything, so the habit
+// is in place before the first file is read. Every MCP client is told to show
+// this; not all of them do, which is why each tool still carries its own
+// trigger in its description rather than relying on this text alone.
+//
+// Kept short on purpose: it is loaded into every session of every user, so a
+// paragraph of pitch here is a paragraph nobody asked for, charged per session.
+const INSTRUCTIONS = `Ariadne is this project's memory between sessions. The repository answers what the code does. Ariadne holds what it cannot: which choices were made and why, what was rejected, which limits are real, where someone already got hurt.
+
+Read before you write. get_project_context opens a session. search_context answers why something you did not design is the way it is.
+
+Write the moment a choice is settled, not when the session ends: by then the reason is gone and only the diff is left. A choice not to do something counts, and is the one the code never records.
+
+Leave out what the repository already answers: what the code does, what a commit changed, what a test covers.`;
+
 // The token says which archive this session speaks to and who is speaking. The
 // workspace scopes every read and write; the user signs what gets written.
 export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
-  const server = new McpServer({ name: "ariadne", version: "0.1.0" });
+  const server = new McpServer(
+    { name: "ariadne", version: "0.1.0" },
+    { instructions: INSTRUCTIONS },
+  );
 
   server.registerTool(
     "get_project_context",
@@ -99,7 +117,9 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     "search_context",
     {
       description:
-        "Search past decisions and notes of this project by meaning and by name. " +
+        "Call this before you change something you did not design yourself: a file the boot " +
+        "index names, a library choice, a limit, an approach that looks wrong. It searches " +
+        "past decisions and notes of this project by meaning and by name. " +
         // Everything that comes back has been through a person, so there is no
         // status to weigh: the sentence about 'proposed' that used to stand here
         // described results this tool has not returned since searchNodes started
@@ -130,9 +150,16 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     "add_context",
     {
       description:
-        "Record one thought worth remembering after this session ends: a decision, a note, " +
-        "or an end-of-session summary. One thought per call, max 4000 characters. Add anchors " +
-        "for the files it concerns. If it reverses an earlier decision, pass replaces_node_id.",
+        // The old wording asked the model to judge what is "worth remembering" and
+        // put the act "after this session ends", so it landed at the end of a session
+        // or not at all. What a tool description has to carry is the moment it fires.
+        "Call this the moment a choice is settled, while you are still in it, not when the " +
+        "session ends: a library or framework picked over another, an approach rejected, a " +
+        "constraint found by hitting it, a workaround whose reason will not be obvious in a " +
+        "month. A decision not to do something counts, and is the kind that leaves no trace " +
+        "in the code, so nothing else will record it. One thought per call, max 4000 " +
+        "characters. Add anchors for the files it concerns. If it reverses an earlier " +
+        "decision, pass replaces_node_id.",
       inputSchema: {
         repo_ref: repoRef,
         type: z
@@ -180,7 +207,8 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     "update_context",
     {
       description:
-        "Correct the content or anchors of an existing node. Needs the node_id from " +
+        "Call this when an entry you have read is wrong in a detail rather than wrong as a " +
+        "whole. It corrects the content or anchors of an existing node. Needs the node_id from " +
         "search_context. Unless the user granted all-permission, this only queues the " +
         "change for their approval in the app.",
       inputSchema: {
@@ -203,7 +231,8 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     "delete_context",
     {
       description:
-        "Archive a node that is no longer true, so it stops showing up in searches. " +
+        "Call this when a recorded entry is no longer true and correcting it would not help. " +
+        "It archives the node, so it stops showing up in searches. " +
         "Nothing is ever physically deleted. Unless the user granted all-permission, " +
         "this only queues the removal for their approval in the app.",
       inputSchema: { node_id: z.string().describe("uuid of the node to archive") },
