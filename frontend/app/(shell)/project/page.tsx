@@ -99,13 +99,13 @@ export default function ProjectScreen() {
                     so nothing was findable. Here it does a lead's job - says
                     what this project is before anything says how it is set up -
                     and it is set like every other screen's lead. */}
-                <p
-                  className={`max-w-[62ch] pt-4 text-body leading-8 ${
+                <Prose
+                  text={project.opis || t("aboutEmpty")}
+                  lines={3}
+                  className={`max-w-[62ch] pt-4 text-body ${
                     project.opis ? "text-ink-2" : "text-ink-3"
                   }`}
-                >
-                  {project.opis || t("aboutEmpty")}
-                </p>
+                />
               </div>
               {!editing ? (
                 <Button variant="secondary" onClick={() => setEditing(true)} className="mt-5">
@@ -190,6 +190,68 @@ function DuplicateRepoNotice({ project }: { project: Project }) {
         })}
       </p>
       <p className="max-w-[70ch] pt-2 text-small text-ink-2">{t("fix")}</p>
+    </div>
+  );
+}
+
+// Clip lengths, as classes rather than a computed string: Tailwind reads the
+// source to decide what to generate, so the names have to be written out.
+const CLAMP = { 3: "line-clamp-3", 6: "line-clamp-6" } as const;
+
+/**
+ * The two fields anyone pastes into - the description and the limits - arrive
+ * as prose in paragraphs, and pasted prose is what turns this card into a wall.
+ * Collapsed, the block shows its opening paragraph clipped to a few lines,
+ * which is the part that answers what the project is; the rest is one click.
+ *
+ * The clip is CSS line-clamp, so nothing measures a box and the count holds at
+ * any width. Paragraphs are split on the blank line the server normalises to,
+ * and set with their own spacing instead of pre-wrap, where that blank line
+ * would have rendered as a full empty row.
+ */
+function Prose({
+  text,
+  lines,
+  className,
+}: {
+  text: string;
+  lines: keyof typeof CLAMP;
+  className: string;
+}) {
+  const t = useTranslations("common");
+  const [open, setOpen] = useState(false);
+  const paragraphs = text.split("\n\n");
+
+  // ponytail: character count as a stand-in for the rendered height, at roughly
+  // 60 characters to a line in this column. A first paragraph just under the
+  // clip shows no toggle and needs none; one just over shows a toggle that
+  // reveals a line or two. Measure the element if that ever reads as wrong.
+  const more = paragraphs.length > 1 || paragraphs[0].length > lines * 60;
+
+  return (
+    <div className={className}>
+      {(open ? paragraphs : paragraphs.slice(0, 1)).map((paragraph, index) => (
+        <p
+          key={index}
+          // Single newlines are kept: inside a paragraph they are a list or a
+          // deliberate break, and the server has already dropped the runs.
+          className={`whitespace-pre-line ${index > 0 ? "pt-3" : ""} ${
+            !open && more ? CLAMP[lines] : ""
+          }`}
+        >
+          {paragraph}
+        </p>
+      ))}
+      {more ? (
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          className="pt-3 text-small text-thread underline underline-offset-2"
+        >
+          {open ? t("showLess") : t("showMore")}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -288,13 +350,13 @@ function ReadView({ project }: { project: Project }) {
           weight; the rule goes back to being a rule. */}
       <section className="mt-8 border-t border-hairline pt-6">
         <SectionHeader title={t("limits")} icon={<IconLimits />} note={t("limitsNote")} />
-        <p
-          className={`max-w-[68ch] whitespace-pre-wrap text-body leading-8 ${
+        <Prose
+          text={project.ograniczenia || t("limitsEmpty")}
+          lines={6}
+          className={`max-w-[68ch] text-body ${
             project.ograniczenia ? "text-ink-2" : "text-ink-3"
           }`}
-        >
-          {project.ograniczenia || t("limitsEmpty")}
-        </p>
+        />
       </section>
     </div>
   );

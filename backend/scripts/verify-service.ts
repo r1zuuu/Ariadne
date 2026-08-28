@@ -12,6 +12,17 @@ const { eq } = await import("drizzle-orm");
 const service = await import("../src/service.js");
 const { seal } = await import("../src/crypto.js");
 
+// The tidying every project card goes through on the way in. Pure and cheap,
+// so it runs first, before anything here needs a database or a key.
+const messy = "  Pierwszy akapit.  \r\n\r\n\r\n\r\n  Drugi\tz  tabem.  \r\n";
+if (service.normalizeProse(messy) !== "Pierwszy akapit.\n\nDrugi z tabem.")
+  throw new Error("normalizeProse should collapse CRLF, blank-line runs and inner whitespace");
+// A single break inside a paragraph is a list or a deliberate line, not spacing.
+if (service.normalizeProse("a\nb") !== "a\nb") throw new Error("a single newline should survive");
+if (service.normalizeProse("\n \n\t\n") !== "") throw new Error("whitespace-only prose should come out empty");
+console.log("  normalizeProse: OK");
+
+
 // The service reads the key off the account, not off the environment: without
 // this the first createNode below throws no_gemini_key.
 const geminiKey = process.env.GEMINI_API_KEY;

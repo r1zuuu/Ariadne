@@ -188,7 +188,9 @@
     "language": "JĘZYK",
     "loading": "Ładuję",
     "failed": "Nie udało się. Spróbuj jeszcze raz.",
-    "noGeminiKey": "Brak klucza do Gemini, więc Ariadne nie może odpowiedzieć ani zapisać wpisu. Dodaj klucz w ustawieniach."
+    "noGeminiKey": "Brak klucza do Gemini, więc Ariadne nie może odpowiedzieć ani zapisać wpisu. Dodaj klucz w ustawieniach.",
+    "showMore": "Pokaż więcej",
+    "showLess": "Zwiń"
   },
   "home": {
     "retry": "Sprawdź jeszcze raz",
@@ -398,8 +400,6 @@
       "archived": "Zarchiwizowany"
     },
     "confirmedBy": "potwierdził {at}",
-    "showMore": "Pokaż więcej",
-    "showLess": "Zwiń",
     "by": {
       "coder": "agent",
       "app_chat": "rozmowa",

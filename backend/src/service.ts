@@ -2017,6 +2017,32 @@ export type ProjectCard = {
   etap?: string;
 };
 
+// Prose typed into a textarea carries whatever the keyboard left behind: CRLF
+// from Windows, trailing spaces where a line was rewrapped, and runs of empty
+// lines used as spacing. Stored as typed, that spacing becomes the screen's
+// spacing and the agent's tokens. One empty line is a paragraph break, more
+// than one is a habit.
+export function normalizeProse(raw: string): string {
+  return raw
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[^\S\n]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+// The two prose fields of a project card, tidied on the way in rather than in
+// every reader. The screen, the boot context and anything added later all get
+// the same text, and the archive never holds a shape nobody meant to store.
+function normalizeCard<T extends Partial<ProjectCard>>(card: T): T {
+  return {
+    ...card,
+    ...(card.opis !== undefined && { opis: normalizeProse(card.opis) }),
+    ...(card.ograniczenia !== undefined && { ograniczenia: normalizeProse(card.ograniczenia) }),
+  };
+}
+
 function validateCard(card: Partial<ProjectCard>) {
   if (card.name !== undefined && !card.name.trim()) {
     throw new ServiceError("validation", "name must not be empty");
@@ -2082,7 +2108,7 @@ export async function createProject(input: {
   const repoRef = normalizeRepoRef(input.card.repoRef);
   const [project] = await db
     .insert(projects)
-    .values({ ...input.card, workspaceId, repoRef })
+    .values({ ...normalizeCard(input.card), workspaceId, repoRef })
     .onConflictDoNothing({ target: [projects.workspaceId, projects.repoRef] })
     .returning();
   if (!project) {
@@ -2102,7 +2128,7 @@ export async function updateProject(input: {
   assertUuid(input.userId, "userId");
   assertUuid(input.projectId, "projectId");
   validateCard(input.card);
-  const patch = { ...input.card, updatedAt: new Date() };
+  const patch = { ...normalizeCard(input.card), updatedAt: new Date() };
   if (input.card.repoRef !== undefined) patch.repoRef = normalizeRepoRef(input.card.repoRef);
 
   try {
