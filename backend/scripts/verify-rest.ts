@@ -205,6 +205,40 @@ check("the list holds one token", listed.body.length, 1);
 check("the list never carries the hash", "tokenHash" in listed.body[0], false);
 check("the list never carries the raw token", "token" in listed.body[0], false);
 
+// --- MCP handshake ---
+
+// The instructions and the triggers at the front of every tool description are
+// the whole of what makes a coder reach for this archive at the right moment,
+// and nothing else in the codebase would notice if they stopped being sent.
+// Driven over an in-memory pair: the handshake reads neither the token nor the
+// database, so the actor here is a placeholder.
+const { createMcpServer } = await import("../src/mcp.js");
+const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.js");
+
+const [mcpClientSide, mcpServerSide] = InMemoryTransport.createLinkedPair();
+const mcpClient = new Client({ name: "verify", version: "0" });
+await Promise.all([
+  createMcpServer({ userId: "handshake-only", workspaceId: "handshake-only" }).connect(mcpServerSide),
+  mcpClient.connect(mcpClientSide),
+]);
+
+check(
+  "the server hands the client its instructions",
+  mcpClient.getInstructions()?.includes("memory between sessions"),
+  true,
+);
+const { tools: mcpTools } = await mcpClient.listTools();
+check("all five tools are registered", mcpTools.length, 5);
+// A description that opens with what the tool is rather than when to call it is
+// how add_context ended up being reached for once a session, at the end or not
+// at all. One assertion covers every tool added later too.
+check(
+  "every tool description opens with the moment it fires",
+  mcpTools.filter((tool) => !tool.description?.startsWith("Call this")).map((tool) => tool.name),
+  [],
+);
+
 // --- Projects ---
 
 const created = await call("/projects", {
