@@ -62,6 +62,7 @@ export function EntryCard({
 }) {
   const t = useTranslations("entry");
   const tHome = useTranslations("home");
+  const tCommon = useTranslations("common");
   const [open, setOpen] = useState(false);
   const line = lead(entry);
   // Nothing to open when the entry is its own lead line, which happens without
@@ -103,7 +104,7 @@ export function EntryCard({
             aria-expanded={open}
             className="pt-3 text-small text-thread underline underline-offset-2"
           >
-            {open ? t("showLess") : t("showMore")}
+            {open ? tCommon("showLess") : tCommon("showMore")}
           </button>
           {/* The entry as it was written, in full and unclipped: the summary is
               the model's word for it, this is the record. It grows out of the

@@ -188,7 +188,9 @@
     "language": "LANGUAGE",
     "loading": "Loading",
     "failed": "That did not work. Try again.",
-    "noGeminiKey": "There is no Gemini key, so Ariadne can neither answer nor record an entry. Add one in settings."
+    "noGeminiKey": "There is no Gemini key, so Ariadne can neither answer nor record an entry. Add one in settings.",
+    "showMore": "Show more",
+    "showLess": "Show less"
   },
   "home": {
     "retry": "Check again",
@@ -398,8 +400,6 @@
       "archived": "Archived"
     },
     "confirmedBy": "confirmed by {at}",
-    "showMore": "Show more",
-    "showLess": "Show less",
     "by": {
       "coder": "agent",
       "app_chat": "conversation",
