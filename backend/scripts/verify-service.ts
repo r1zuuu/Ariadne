@@ -125,7 +125,10 @@ if (pendingUpdate.applied) throw new Error("expected pending, allPermission=fals
 await service.approvePending({ userId: user.id, pendingActionId: pendingUpdate.pendingActionId });
 const after = await service.searchNodes({ userId: user.id, projectId: project.id, query: "middleware auth", k: 1, channel: "app" });
 if (after[0].id !== nodeId) throw new Error("updated node should match its new content best");
-await service.confirmNode({ userId: user.id, nodeId });
+// Confirmed once already, by the seed loop above: approving an edit changes the
+// content and leaves the status where it was, so confirming again is what the
+// service rejects. This line predates the seed loop and had been failing the run
+// before it reached anything below.
 await service.archiveNode({ userId: user.id, nodeId });
 const archived = await service.searchNodes({ userId: user.id, projectId: project.id, query: "hono", k: 10, channel: "app" });
 if (archived.some((r) => r.id === nodeId)) throw new Error("archived node must not appear in search");

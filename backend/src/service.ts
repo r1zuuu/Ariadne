@@ -122,8 +122,15 @@ function assertAnchors(anchors: Anchor[]) {
 
 // Postgres unique_violation. Needed where onConflict is not available, i.e. on
 // UPDATE: changing a project's repo_ref can collide with another of its own.
+// Both shapes, because drizzle wraps what the driver threw: the pg error with
+// its SQLSTATE sits under .cause, and reading only the top level made every
+// collision a 500 with a stack trace. It cost the repo_ref check on the move
+// path and, silently for longer, the same check on a card edit.
 function isUniqueViolation(error: unknown): boolean {
-  return (error as { code?: string } | null)?.code === "23505";
+  const sqlstate = (value: unknown) => (value as { code?: string } | null)?.code;
+  return (
+    sqlstate(error) === "23505" || sqlstate((error as { cause?: unknown } | null)?.cause) === "23505"
+  );
 }
 
 // --- Access (plan section 3) ---
