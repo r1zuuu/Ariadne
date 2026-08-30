@@ -132,6 +132,13 @@ export const apiTokens = pgTable(
     label: text("label").notNull().default(""), // e.g. "work laptop"
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    // The last repository this token asked for and did not find here. The miss
+    // is answered to the coder and nowhere else, so a person watching the app
+    // sees a working archive while every session comes back empty. One value,
+    // overwritten: what is needed is the address to create the project with, and
+    // that is always the last one asked for.
+    lastUnknownRepo: text("last_unknown_repo"),
+    lastUnknownRepoAt: timestamp("last_unknown_repo_at", { withTimezone: true }),
   },
   (t) => [index("api_tokens_by_user").on(t.userId)],
 );

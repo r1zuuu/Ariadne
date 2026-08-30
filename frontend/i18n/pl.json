@@ -196,6 +196,11 @@
   },
   "home": {
     "retry": "Sprawdź jeszcze raz",
+    "unknownRepo": {
+      "what": "Coder pytał o repozytorium {repo}, którego nie ma w archiwum {archive}.",
+      "means": "Token, którym się łączy, sięga tylko do tego archiwum, więc dostał odpowiedź, że projektu nie ma. Załóż go tutaj albo przenieś z innego archiwum.",
+      "action": "Załóż projekt"
+    },
     "stale": "Dane z {at}. Serwer nie odpowiada, więc mogą być nieaktualne.",
     "staleUnknown": "ostatniego wejścia",
     "empty": {

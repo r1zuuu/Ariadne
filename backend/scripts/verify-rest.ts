@@ -219,7 +219,11 @@ const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.j
 const [mcpClientSide, mcpServerSide] = InMemoryTransport.createLinkedPair();
 const mcpClient = new Client({ name: "verify", version: "0" });
 await Promise.all([
-  createMcpServer({ userId: "handshake-only", workspaceId: "handshake-only" }).connect(mcpServerSide),
+  createMcpServer({
+    userId: "handshake-only",
+    workspaceId: "handshake-only",
+    tokenId: "handshake-only",
+  }).connect(mcpServerSide),
   mcpClient.connect(mcpClientSide),
 ]);
 

@@ -410,6 +410,8 @@ export async function resolveProjectByRepoRef(input: {
   userId: string;
   workspaceId: string;
   repoRef: string;
+  /** Absent outside an MCP session, where there is no token to record against. */
+  tokenId?: string;
 }) {
   assertUuid(input.workspaceId, "workspaceId");
   const normalized = normalizeRepoRef(input.repoRef);
@@ -418,6 +420,17 @@ export async function resolveProjectByRepoRef(input: {
     .from(projects)
     .where(and(eq(projects.workspaceId, input.workspaceId), eq(projects.repoRef, normalized)));
   if (project) return project;
+
+  // Written before the throw, and it survives it: the tool wrapper catches a
+  // ServiceError inside the request transaction, and a JavaScript exception is
+  // not what aborts a Postgres transaction. Nothing clears it on the way back -
+  // the app stops showing it the moment the project it names exists.
+  if (input.tokenId) {
+    await db
+      .update(apiTokens)
+      .set({ lastUnknownRepo: normalized, lastUnknownRepoAt: new Date() })
+      .where(eq(apiTokens.id, input.tokenId));
+  }
   throw await missingProject(input.userId, input.workspaceId, normalized);
 }
 
@@ -879,6 +892,7 @@ export async function getBootContext(input: {
   userId: string;
   workspaceId: string;
   repoRef: string;
+  tokenId?: string;
 }) {
   assertUuid(input.userId, "userId");
   const project = await resolveProjectByRepoRef(input);
@@ -1981,8 +1995,9 @@ function hashToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
 }
 
-/** Who is calling and which archive they are calling about. */
-export type Actor = { userId: string; workspaceId: string };
+/** Who is calling, which archive they are calling about, and which token said
+ *  so. The token id travels because a miss is recorded against it. */
+export type Actor = { userId: string; workspaceId: string; tokenId: string };
 
 // Every MCP call scopes to the workspace the token was minted for. The person
 // behind it still matters, because what they write is signed with their name.
@@ -2002,7 +2017,7 @@ export async function resolveActorByToken(rawToken: string): Promise<Actor> {
     .where(eq(apiTokens.tokenHash, hashToken(rawToken)));
   if (!token) throw new ServiceError("unauthorized", "invalid token");
   await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, token.id));
-  return { userId: token.userId, workspaceId: token.workspaceId };
+  return { userId: token.userId, workspaceId: token.workspaceId, tokenId: token.id };
 }
 
 // The only place the raw token exists after generation is this return value.
@@ -2035,6 +2050,10 @@ export async function listApiTokens(userId: string) {
       workspaceName: workspaces.name,
       createdAt: apiTokens.createdAt,
       lastUsedAt: apiTokens.lastUsedAt,
+      // What a coder asked this token for and did not find. The app is the only
+      // place that can answer it, and it could not see the question until now.
+      lastUnknownRepo: apiTokens.lastUnknownRepo,
+      lastUnknownRepoAt: apiTokens.lastUnknownRepoAt,
     })
     .from(apiTokens)
     .innerJoin(workspaces, eq(workspaces.id, apiTokens.workspaceId))

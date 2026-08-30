@@ -291,6 +291,11 @@ export type ApiToken = {
   createdAt: string;
   /** Null until a coder actually connects with it. */
   lastUsedAt: string | null;
+  /** The last repository a coder asked this token for and did not find in its
+   *  archive. The miss is answered to the coder alone, so without this the app
+   *  looks healthy while every session comes back empty. */
+  lastUnknownRepo: string | null;
+  lastUnknownRepoAt: string | null;
 };
 
 export const listTokens = () => request<ApiToken[]>("/tokens");

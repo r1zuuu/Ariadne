@@ -196,6 +196,11 @@
   },
   "home": {
     "retry": "Check again",
+    "unknownRepo": {
+      "what": "A coder asked for the repository {repo}, which the {archive} archive does not hold.",
+      "means": "The token it connects with reaches only that archive, so it was told the project does not exist. Create it here, or move it from the archive it sits in.",
+      "action": "Create project"
+    },
     "stale": "Data from {at}. The server is not responding, so it may be out of date.",
     "staleUnknown": "your last visit",
     "empty": {

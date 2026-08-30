@@ -1,8 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { ProjectStep, effectiveRepoRef, type Card as ProjectCard } from "@/components/onboarding-steps";
 import { useToast } from "@/components/toast";
@@ -20,20 +20,36 @@ import { ApiError, createProject } from "@/lib/api";
 // fields, the repository explanation and the file-loading constraints box are
 // the same questions whether they are asked on day one or a year in.
 
+// useSearchParams reads the address on the client, and Next requires anything
+// that does so to sit under a Suspense boundary or the export build fails. The
+// fallback is nothing: the form renders in the same tick, and a flash of
+// skeleton would be longer than the wait it stands for.
 export default function NewProjectScreen() {
+  return (
+    <Suspense fallback={null}>
+      <NewProjectForm />
+    </Suspense>
+  );
+}
+
+function NewProjectForm() {
   const t = useTranslations("project.create");
   const router = useRouter();
   const toast = useToast();
   const { refreshProjects, setActiveProject, workspaces } = useApp();
 
-  const [card, setCard] = useState<ProjectCard>({
+  // Arrived from the notice on the main screen, which knows both answers: the
+  // address a coder asked for and the archive its token reaches. Retyping either
+  // by hand is how the pair drifts apart again.
+  const params = useSearchParams();
+  const [card, setCard] = useState<ProjectCard>(() => ({
     name: "",
-    repoRef: "",
-    workspaceId: "",
+    repoRef: params.get("repo") ?? "",
+    workspaceId: params.get("workspace") ?? "",
     stack: "",
     etap: "prototyp",
     ograniczenia: "",
-  });
+  }));
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

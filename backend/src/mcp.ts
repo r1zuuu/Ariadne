@@ -90,7 +90,7 @@ Leave out what the repository already answers: what the code does, what a commit
 
 // The token says which archive this session speaks to and who is speaking. The
 // workspace scopes every read and write; the user signs what gets written.
-export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
+export function createMcpServer({ userId, workspaceId, tokenId }: Actor): McpServer {
   const server = new McpServer(
     { name: "ariadne", version: "0.1.0" },
     { instructions: INSTRUCTIONS },
@@ -110,7 +110,7 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
         "what you are about to do, call search_context and read the entry itself.",
       inputSchema: { repo_ref: repoRef },
     },
-    ({ repo_ref }) => run(() => getBootContext({ userId, workspaceId, repoRef: repo_ref })),
+    ({ repo_ref }) => run(() => getBootContext({ userId, workspaceId, tokenId, repoRef: repo_ref })),
   );
 
   server.registerTool(
@@ -139,7 +139,7 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     },
     ({ repo_ref, query, k }) =>
       run(async () => {
-        const project = await resolveProjectByRepoRef({ userId, workspaceId, repoRef: repo_ref });
+        const project = await resolveProjectByRepoRef({ userId, workspaceId, tokenId, repoRef: repo_ref });
         return {
           results: await searchNodes({ userId, projectId: project.id, query, k, channel: "coder" }),
         };
@@ -189,7 +189,7 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     },
     ({ repo_ref, type, content, anchors, source, replaces_node_id }) =>
       run(async () => {
-        const project = await resolveProjectByRepoRef({ userId, workspaceId, repoRef: repo_ref });
+        const project = await resolveProjectByRepoRef({ userId, workspaceId, tokenId, repoRef: repo_ref });
         return createNode({
           userId,
           projectId: project.id,
