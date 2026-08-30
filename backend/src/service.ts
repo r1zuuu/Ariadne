@@ -2252,6 +2252,75 @@ export async function deleteProject(input: { userId: string; projectId: string }
   if (!gone) throw new ServiceError("not_found", "project not found for this user");
 }
 
+/**
+ * Moves a project, with everything filed under it, into another archive.
+ *
+ * It exists because the two halves of this product each pick an archive on their
+ * own: the app files a project where the person said, the coder reaches the one
+ * its token was minted for. Every project created before the form asked the
+ * question was filed by a default, so some of them sit where no token reaches,
+ * and telling their owner to delete and retype the archive is asking them to
+ * throw away the entries to fix the label.
+ *
+ * The rows carry a workspace of their own, so the cascade has to be written out:
+ * nodes for the reads, pending_actions for the review queue. code_anchors hang
+ * off a node and conversations belong to a person, so neither has one to update.
+ *
+ * Owner of the archive it leaves, member of the one it joins, matching
+ * deleteProject: taking a project out of a shared archive removes it from
+ * everyone else there, and that is not something a member does to a team.
+ */
+export async function moveProject(input: {
+  userId: string;
+  projectId: string;
+  workspaceId: string;
+}) {
+  assertUuid(input.workspaceId, "workspaceId");
+  const from = await workspaceOfProject(input.userId, input.projectId);
+  if (from === input.workspaceId) {
+    throw new ServiceError("validation", "the project is already in this workspace");
+  }
+  if ((await assertMember(input.userId, from)) !== "owner") {
+    throw new ServiceError("unauthorized", "only the workspace owner moves a project out");
+  }
+  await assertMember(input.userId, input.workspaceId);
+
+  const filedHere = db
+    .select({ id: nodes.id })
+    .from(nodes)
+    .where(eq(nodes.projectId, input.projectId));
+
+  try {
+    const [moved] = await db
+      .update(projects)
+      .set({ workspaceId: input.workspaceId, updatedAt: new Date() })
+      .where(eq(projects.id, input.projectId))
+      .returning();
+    if (!moved) throw new ServiceError("not_found", "project not found for this user");
+
+    await db
+      .update(pendingActions)
+      .set({ workspaceId: input.workspaceId })
+      .where(inArray(pendingActions.nodeId, filedHere));
+    await db
+      .update(nodes)
+      .set({ workspaceId: input.workspaceId })
+      .where(eq(nodes.projectId, input.projectId));
+    return moved;
+  } catch (error) {
+    // The target archive may already hold a project for this repository, which
+    // is the very pair this move exists to undo. Says repo_ref, like the create
+    // path, because that is the word the app matches to name the field.
+    if (isUniqueViolation(error)) {
+      throw new ServiceError(
+        "validation",
+        "another project in that workspace already uses this repo_ref",
+      );
+    }
+    throw error;
+  }
+}
+
 // --- The connection graph (plan section 8) ---
 
 // Two kinds of edge, computed on the fly rather than stored, because both are

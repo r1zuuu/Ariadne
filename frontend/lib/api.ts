@@ -254,6 +254,12 @@ export const updateProject = (
   card: Partial<ProjectCard & { name: string; repoRef: string }>,
 ) => request<Project>(`/projects/${id}`, { method: "PUT", body: card });
 
+// Takes the entries and the review queue with it, so a coder's token that
+// reaches the new archive starts finding the project by its repository address.
+// Reversible, unlike the delete below: it can be moved straight back.
+export const moveProject = (id: string, workspaceId: string) =>
+  request<Project>(`/projects/${id}/workspace`, { method: "POST", body: { workspaceId } });
+
 // No undo and no copy: the entries, their anchors, the review queue and the
 // chats under this project go with it. The screen asks for the name first.
 export const deleteProject = (id: string) =>

@@ -391,6 +391,14 @@
       "body": "Adres {repo} należy też do: {where}. Coder wybiera archiwum po tokenie, którym się łączy, więc trafi tylko w jedno z nich i nie powie ci w które.",
       "fix": "Zostaw ten adres w jednym projekcie, a w drugim zmień go albo usuń projekt. Jeśli chcesz pisać do zespołu, wygeneruj w ustawieniach token dla wspólnego archiwum i podmień go w konfiguracji codera."
     },
+    "move": {
+      "label": "ARCHIWUM",
+      "note": "Wpisy i kolejka do zatwierdzenia idą razem z projektem. Coder znajdzie go tokenem wystawionym dla archiwum, do którego trafi, a osoby z poprzedniego stracą do niego dostęp.",
+      "move": "Przenieś projekt",
+      "moving": "Przenoszę...",
+      "ownerOnly": "Tylko właściciel przestrzeni może przenieść projekt.",
+      "failed": "Nie udało się przenieść projektu. Spróbuj jeszcze raz."
+    },
     "entries": "Wpisy",
     "archive": "Archiwum"
   },

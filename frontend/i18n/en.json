@@ -391,6 +391,14 @@
       "body": "The address {repo} also belongs to: {where}. A coder picks the archive from the token it connects with, so it reaches only one of them and will not tell you which.",
       "fix": "Keep the address on one project and change it on the other, or delete that project. To write to the team, generate a token for the shared archive in settings and swap it into your coder configuration."
     },
+    "move": {
+      "label": "ARCHIVE",
+      "note": "The entries and the review queue travel with the project. A coder finds it with a token minted for the archive it lands in, and everyone in the one it leaves loses access to it.",
+      "move": "Move project",
+      "moving": "Moving...",
+      "ownerOnly": "Only the workspace owner can move a project.",
+      "failed": "The project could not be moved. Try again."
+    },
     "entries": "Entries",
     "archive": "Archive"
   },

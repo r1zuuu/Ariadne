@@ -43,6 +43,7 @@ import {
   listProjects,
   listWorkspaces,
   login,
+  moveProject,
   registerUser,
   rejectPending,
   removeMember,
@@ -575,6 +576,16 @@ export function createRestApp() {
     const card = await readBody(c, cardSchema.partial());
     return c.json(
       await updateProject({ userId: userId(c), projectId: c.req.param("id"), card }),
+    );
+  });
+
+  // Its own route rather than a field on the card. Editing a card changes what a
+  // project says about itself; this changes who can read it and which token
+  // reaches it, and it answers to the owner alone.
+  app.post("/projects/:id/workspace", async (c) => {
+    const { workspaceId } = await readBody(c, z.object({ workspaceId: z.string() }));
+    return c.json(
+      await moveProject({ userId: userId(c), projectId: c.req.param("id"), workspaceId }),
     );
   });
 
