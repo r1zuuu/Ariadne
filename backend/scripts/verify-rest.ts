@@ -497,49 +497,16 @@ check(
 
 // --- The lexical arm (migration 0010) ---
 //
-// This seed is the right place to prove it and the proof rests on one detail:
-// every node above was inserted with the same made-up embedding, so the vector
-// arm ranks them in whatever order the database feels like. Anything that comes
-// back reliably here came back by name, because nothing else in this data can
-// put one row above another.
+// Almost nothing is checked here any more, on purpose. The arm used to extract
+// names with a regex and a Gemini call beside it, and the checks that stood here
+// tested the model's half: that "Drizzle" and "Hono" are recognised as names
+// though no rule of shape can see it. The model was measured and dropped, a
+// second of latency and a paid call on every search, so those checks described a
+// product that no longer exists and were removed with it.
 //
-// The arithmetic behind "reliably": a row both arms return scores its vector
-// place plus its lexical place, and the worst possible sum of the two still
-// beats the best score any vector-only row can reach. So a literal hit is not
-// merely likelier to surface, it cannot be displaced by one.
-
-const byName = await call("/search", {
-  method: "POST",
-  token,
-  body: { projectId: listProjectId, query: "co ustalilismy przy Drizzle", k: 2 },
-});
-check("a name in the question finds the entries carrying it", byName.status, 200);
-check(
-  "and both of them are about that name, not merely near it",
-  byName.body.every((n: { content: string }) => /drizzle/i.test(n.content)),
-  true,
-);
-// Every row carries the number the screen and the API were promised, including
-// the ones the vector arm would never have ranked this high on its own.
-check(
-  "a hit found by name still says how close it is",
-  byName.body.every((n: { similarity: unknown }) => typeof n.similarity === "number"),
-  true,
-);
-
-// Hono has no shape to recognise: no underscore, no slash, no camel hump, no
-// extension, not hex. The regex cannot reach it and never will, so this is the
-// model's half of the extraction on its own.
-const knowledge = await call("/search", {
-  method: "POST",
-  token,
-  body: { projectId: listProjectId, query: "dlaczego wybralismy Hono", k: 1 },
-});
-check(
-  "a library name is recognised as a name and nothing else comes first",
-  knowledge.body[0]?.content,
-  "Hono trzyma REST i MCP na jednym porcie",
-);
+// What is left is shape, and this seed has no identifier in it to match, so the
+// arm has nothing to bite on here. The one thing below still worth asserting
+// holds either way.
 
 // The arm narrows, it does not widen: Express is in this project, spelled out,
 // and archived. Matching a word is not permission to return a row.
