@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { ProjectStep, effectiveRepoRef, type Card as ProjectCard } from "@/components/onboarding-steps";
 import { useToast } from "@/components/toast";
@@ -24,11 +24,12 @@ export default function NewProjectScreen() {
   const t = useTranslations("project.create");
   const router = useRouter();
   const toast = useToast();
-  const { refreshProjects, setActiveProject } = useApp();
+  const { refreshProjects, setActiveProject, workspaces } = useApp();
 
   const [card, setCard] = useState<ProjectCard>({
     name: "",
     repoRef: "",
+    workspaceId: "",
     stack: "",
     etap: "prototyp",
     ograniczenia: "",
@@ -36,6 +37,17 @@ export default function NewProjectScreen() {
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // The archives arrive with the provider's first read, which may land after
+  // this screen mounts. Filled in once and never again, so a choice already made
+  // survives the next refresh of that list.
+  useEffect(() => {
+    setCard((current) =>
+      current.workspaceId || !workspaces.length
+        ? current
+        : { ...current, workspaceId: workspaces[0].id },
+    );
+  }, [workspaces]);
 
   const submit = async () => {
     setFailure(null);
@@ -49,6 +61,9 @@ export default function NewProjectScreen() {
       const created = await createProject({
         name: card.name.trim(),
         repoRef: effectiveRepoRef(card),
+        // Empty until the archives are read, and empty is the server's own
+        // default, so a fast submit files it exactly where it would have gone.
+        workspaceId: card.workspaceId || undefined,
         stack: card.stack.trim(),
         etap: card.etap,
         ograniczenia: card.ograniczenia.trim(),
@@ -82,6 +97,7 @@ export default function NewProjectScreen() {
           error={fieldError}
           heading={t("title")}
           onChange={(patch) => setCard({ ...card, ...patch })}
+          workspaces={workspaces}
         />
       </Card>
 

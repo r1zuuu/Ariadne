@@ -91,6 +91,7 @@
       "label": {
         "name": "NAZWA",
         "repo": "REPOZYTORIUM",
+        "workspace": "ARCHIWUM",
         "stack": "STACK",
         "etap": "ETAP",
         "limits": "OGRANICZENIA"
@@ -120,6 +121,7 @@
         "set": "Ten sam adres musi mieć repozytorium, w którym uruchomisz codera. Zapis w rodzaju github.com/ty/projekt, https://... i git@... są traktowane jako ten sam adres.",
         "fallback": "Zostawiasz puste, więc projekt zostanie zapisany jako {ref}. Coder odnajdzie go tylko wtedy, gdy podasz mu dokładnie ten ciąg, bo nie odczyta go z żadnego katalogu."
       },
+      "workspaceNote": "Coder trafi do tego projektu tylko tokenem wystawionym dla tego archiwum. Token wybierasz w ustawieniach, przy generowaniu.",
       "etapChoice": {
         "prototyp": "Prototyp - dopiero powstaje, nikt jeszcze z niego nie korzysta",
         "produkcja": "Wydany - jest już u użytkowników i działa",

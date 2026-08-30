@@ -91,6 +91,7 @@
       "label": {
         "name": "NAME",
         "repo": "REPOSITORY",
+        "workspace": "ARCHIVE",
         "stack": "STACK",
         "etap": "STAGE",
         "limits": "CONSTRAINTS"
@@ -120,6 +121,7 @@
         "set": "The repository you run your coder in has to carry this same address. github.com/you/project, https://... and git@... all count as the same one.",
         "fallback": "Left empty, so the project will be filed as {ref}. A coder finds it only if you hand it that exact string, because it cannot read it from any directory."
       },
+      "workspaceNote": "A coder reaches this project only with a token minted for this archive. The archive is picked in settings, when the token is generated.",
       "etapChoice": {
         "prototyp": "Prototype - still being built, nobody uses it yet",
         "produkcja": "Released - people are using it and it works",

@@ -237,8 +237,12 @@ export const saveProfile = (profile: string) =>
 
 export const listProjects = () => request<Project[]>("/projects");
 
-export const createProject = (card: { name: string; repoRef: string } & Partial<ProjectCard>) =>
-  request<Project>("/projects", { method: "POST", body: card });
+// workspaceId is optional and absent means the account's own archive, which is
+// what the wizard sends. Leaving it out of the type was what let a project land
+// in one archive while the coder's token spoke to another.
+export const createProject = (
+  card: { name: string; repoRef: string; workspaceId?: string } & Partial<ProjectCard>,
+) => request<Project>("/projects", { method: "POST", body: card });
 
 type ProjectCard = { opis: string; stack: string; etap: string; ograniczenia: string };
 

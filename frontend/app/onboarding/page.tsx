@@ -43,7 +43,16 @@ import {
 
 const HOST = serverUrl.replace(/^https?:\/\//, "");
 const EMPTY_ANSWERS: Answers = { q1: "", q2: "", q3: "", q4: "" };
-const EMPTY_CARD: Card = { name: "", repoRef: "", stack: "", etap: "prototyp", ograniczenia: "" };
+// workspaceId stays empty here on purpose: the wizard runs on an account with
+// one archive, so there is nothing to choose and the server files it there.
+const EMPTY_CARD: Card = {
+  name: "",
+  repoRef: "",
+  workspaceId: "",
+  stack: "",
+  etap: "prototyp",
+  ograniczenia: "",
+};
 
 // A refresh used to end the run. Half of this wizard has already touched the
 // server by step 3 - the profile is saved, the key is stored, the project
