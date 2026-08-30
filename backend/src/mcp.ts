@@ -20,9 +20,15 @@ const anchorSchema = z.object({
   sha: z.string().optional().describe("commit SHA, if the note is tied to one"),
 });
 
+// The second sentence is there because a repository without a remote had no
+// answer at all. The app files those as local/<project name>, a coder has no way
+// to read that off a directory, and every session ended in unknown_repo.
 const repoRef = z
   .string()
-  .describe("identifier of this repo, normally its git remote origin URL");
+  .describe(
+    "identifier of this repo, normally its git remote origin URL. " +
+      "A repo with no remote is filed as local/<project name>, so send that form instead.",
+  );
 
 // The MCP contract is snake_case, the service layer speaks camelCase.
 // Converting once here beats hand-mapping every field in every tool.
@@ -88,9 +94,10 @@ Write the moment a choice is settled, not when the session ends: by then the rea
 
 Leave out what the repository already answers: what the code does, what a commit changed, what a test covers.`;
 
-// The token says which archive this session speaks to and who is speaking. The
-// workspace scopes every read and write; the user signs what gets written.
-export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
+// The token says who is speaking, and nothing about where. Which archive a call
+// reaches follows from the repository it names, so one token covers every
+// project its owner can see; the user still signs what gets written.
+export function createMcpServer({ userId, tokenId }: Actor): McpServer {
   const server = new McpServer(
     { name: "ariadne", version: "0.1.0" },
     { instructions: INSTRUCTIONS },
@@ -110,7 +117,7 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
         "what you are about to do, call search_context and read the entry itself.",
       inputSchema: { repo_ref: repoRef },
     },
-    ({ repo_ref }) => run(() => getBootContext({ userId, workspaceId, repoRef: repo_ref })),
+    ({ repo_ref }) => run(() => getBootContext({ userId, tokenId, repoRef: repo_ref })),
   );
 
   server.registerTool(
@@ -139,7 +146,7 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     },
     ({ repo_ref, query, k }) =>
       run(async () => {
-        const project = await resolveProjectByRepoRef(workspaceId, repo_ref);
+        const project = await resolveProjectByRepoRef({ userId, tokenId, repoRef: repo_ref });
         return {
           results: await searchNodes({ userId, projectId: project.id, query, k, channel: "coder" }),
         };
@@ -189,7 +196,7 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     },
     ({ repo_ref, type, content, anchors, source, replaces_node_id }) =>
       run(async () => {
-        const project = await resolveProjectByRepoRef(workspaceId, repo_ref);
+        const project = await resolveProjectByRepoRef({ userId, tokenId, repoRef: repo_ref });
         return createNode({
           userId,
           projectId: project.id,

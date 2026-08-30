@@ -43,7 +43,16 @@ import {
 
 const HOST = serverUrl.replace(/^https?:\/\//, "");
 const EMPTY_ANSWERS: Answers = { q1: "", q2: "", q3: "", q4: "" };
-const EMPTY_CARD: Card = { name: "", repoRef: "", stack: "", etap: "prototyp", ograniczenia: "" };
+// workspaceId stays empty here on purpose: the wizard runs on an account with
+// one archive, so there is nothing to choose and the server files it there.
+const EMPTY_CARD: Card = {
+  name: "",
+  repoRef: "",
+  workspaceId: "",
+  stack: "",
+  etap: "prototyp",
+  ograniczenia: "",
+};
 
 // A refresh used to end the run. Half of this wizard has already touched the
 // server by step 3 - the profile is saved, the key is stored, the project
@@ -174,13 +183,12 @@ export default function OnboardingScreen() {
     }
   }, [restored, step, profileIndex, answers, profile, card, joining, joined, agent, token]);
 
-  // The token is bound to one archive, and without saying which it goes to the
-  // private one. For somebody who just joined a team that is the wrong archive
-  // and nothing says so: their coder would write where the team cannot read.
-  const mint = async (workspaceId?: string) => {
+  // One token per machine, covering every archive this account belongs to, which
+  // is what the last step of this wizard has always promised out loud.
+  const mint = async () => {
     setTokenFailed(false);
     try {
-      const minted = await mintToken(agent, workspaceId);
+      const minted = await mintToken(agent);
       setToken(minted.token);
     } catch {
       setTokenFailed(true);
@@ -244,7 +252,7 @@ export default function OnboardingScreen() {
         // mistake this branch exists to prevent.
         const workspace = await acceptInvite(code);
         setJoined(workspace);
-        await mint(workspace.id);
+        await mint();
         setStep(4);
         return;
       }
@@ -403,7 +411,7 @@ export default function OnboardingScreen() {
                 repoRef={joined ? null : effectiveRepoRef(card)}
                 joinedWorkspace={joined?.name ?? null}
                 onAgent={setAgent}
-                onRegenerate={() => void mint(joined?.id)}
+                onRegenerate={() => void mint()}
               />
             )}
 

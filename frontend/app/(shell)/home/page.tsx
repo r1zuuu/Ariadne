@@ -14,7 +14,9 @@ import {
   archiveNode,
   confirmNode,
   listNodes,
+  listTokens,
   rejectPending,
+  type ApiToken,
   type Node,
 } from "@/lib/api";
 import { Banner, Button, Card, EmptyState, IconButton, SectionHeader, Status } from "@/components/ui";
@@ -26,6 +28,57 @@ import { Banner, Button, Card, EmptyState, IconButton, SectionHeader, Status } f
 // leads to its own screen. The sections this used to stack here (activity,
 // project card, project list) said more and told less, and each already has a
 // screen of its own.
+
+/**
+ * A coder knocked with a repository this archive does not hold.
+ *
+ * The miss is answered over MCP and nowhere else, so the app looked healthy
+ * while every session came back empty, and the only trace was a sentence in
+ * somebody's terminal that an agent may well have paraphrased into "I have no
+ * memory of this project". The token records the address it was asked for; this
+ * is where the person finally reads it.
+ *
+ * It clears itself: nothing resets the column, but the notice is gone the moment
+ * a project with that address exists in any archive this account reaches.
+ */
+function UnknownRepoNotice() {
+  const t = useTranslations("home.unknownRepo");
+  const router = useRouter();
+  const { projects } = useApp();
+  const [tokens, setTokens] = useState<ApiToken[]>([]);
+
+  useEffect(() => {
+    // Silent on failure: a broken token list is the settings screen's problem,
+    // and this notice has nothing to say without one.
+    void listTokens()
+      .then(setTokens)
+      .catch(() => {});
+  }, []);
+
+  // Only once the projects are actually read. Against a null list every address
+  // looks missing, and the notice would accuse the archive during every load.
+  const miss = projects
+    ? tokens.find(
+        (token) =>
+          token.lastUnknownRepo &&
+          !projects.some((project) => project.repoRef === token.lastUnknownRepo),
+      )
+    : undefined;
+  const repo = miss?.lastUnknownRepo;
+  if (!miss || !repo) return null;
+
+  return (
+    <Banner
+      variant="notice"
+      what={t("what", { repo })}
+      means={t("means")}
+      action={{
+        label: t("action"),
+        onClick: () => router.push(`/project/new?repo=${encodeURIComponent(repo)}`),
+      }}
+    />
+  );
+}
 
 const LAST_SEEN_KEY = "ariadne.lastSeen";
 // Below this the line says nothing worth a line.
@@ -126,6 +179,8 @@ export default function HomeScreen() {
 
   return (
     <div className="mx-auto max-w-[1080px]">
+      <UnknownRepoNotice />
+
       {server === "down" ? (
         <Banner
           variant="notice"

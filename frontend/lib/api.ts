@@ -237,8 +237,12 @@ export const saveProfile = (profile: string) =>
 
 export const listProjects = () => request<Project[]>("/projects");
 
-export const createProject = (card: { name: string; repoRef: string } & Partial<ProjectCard>) =>
-  request<Project>("/projects", { method: "POST", body: card });
+// workspaceId is optional and absent means the account's own archive, which is
+// what the wizard sends. Leaving it out of the type was what let a project land
+// in one archive while the coder's token spoke to another.
+export const createProject = (
+  card: { name: string; repoRef: string; workspaceId?: string } & Partial<ProjectCard>,
+) => request<Project>("/projects", { method: "POST", body: card });
 
 type ProjectCard = { opis: string; stack: string; etap: string; ograniczenia: string };
 
@@ -249,6 +253,12 @@ export const updateProject = (
   id: string,
   card: Partial<ProjectCard & { name: string; repoRef: string }>,
 ) => request<Project>(`/projects/${id}`, { method: "PUT", body: card });
+
+// Takes the entries and the review queue with it, so a coder's token that
+// reaches the new archive starts finding the project by its repository address.
+// Reversible, unlike the delete below: it can be moved straight back.
+export const moveProject = (id: string, workspaceId: string) =>
+  request<Project>(`/projects/${id}/workspace`, { method: "POST", body: { workspaceId } });
 
 // No undo and no copy: the entries, their anchors, the review queue and the
 // chats under this project go with it. The screen asks for the name first.
@@ -271,22 +281,26 @@ export const listNodes = (
   );
 };
 
-// Without a workspace the backend files it under the private one, which is what
-// onboarding means and what an account with a single archive always means.
-export const mintToken = (label: string, workspaceId?: string) =>
+// The label names a machine, and that is the whole of a token: it reaches every
+// archive this account belongs to, and the repository a coder stands in decides
+// which project it opens.
+export const mintToken = (label: string) =>
   request<{ id: string; label: string; token: string }>("/tokens", {
     method: "POST",
-    body: { label, workspaceId },
+    body: { label },
   });
 
 export type ApiToken = {
   id: string;
   label: string;
-  workspaceId: string;
-  workspaceName: string;
   createdAt: string;
   /** Null until a coder actually connects with it. */
   lastUsedAt: string | null;
+  /** The last repository a coder asked this token for and did not find in any
+   *  archive this account can reach. The miss is answered to the coder alone, so
+   *  without this the app looks healthy while every session comes back empty. */
+  lastUnknownRepo: string | null;
+  lastUnknownRepoAt: string | null;
 };
 
 export const listTokens = () => request<ApiToken[]>("/tokens");

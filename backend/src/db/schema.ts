@@ -125,13 +125,24 @@ export const apiTokens = pgTable(
     userId: uuid("user_id") // who generated it, so it can be listed and revoked
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    workspaceId: uuid("workspace_id") // which archive it reaches
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+    // Null, which is what every token minted now carries: a token stands for a
+    // machine, not for an archive, and the repository address in the call picks
+    // the project out of every archive its owner belongs to. Kept nullable
+    // rather than dropped so the tokens minted under the old rule survive the
+    // migration; nothing reads it any more.
+    // ponytail: dead column once no row holds a value, drop it then.
+    workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
     tokenHash: text("token_hash").notNull().unique(), // sha256; raw token shown once at generation
     label: text("label").notNull().default(""), // e.g. "work laptop"
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    // The last repository this token asked for and did not find here. The miss
+    // is answered to the coder and nowhere else, so a person watching the app
+    // sees a working archive while every session comes back empty. One value,
+    // overwritten: what is needed is the address to create the project with, and
+    // that is always the last one asked for.
+    lastUnknownRepo: text("last_unknown_repo"),
+    lastUnknownRepoAt: timestamp("last_unknown_repo_at", { withTimezone: true }),
   },
   (t) => [index("api_tokens_by_user").on(t.userId)],
 );

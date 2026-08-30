@@ -29,6 +29,7 @@ import {
   ApiError,
   deleteProject,
   getGraph,
+  moveProject,
   updateProject,
   type GraphEdge,
   type Node,
@@ -463,8 +464,93 @@ function EditCard({
         {error ? <span className="text-small text-iron">{error}</span> : null}
       </div>
 
+      <MoveSection project={project} onMoved={onSaved} />
       <DeleteSection project={project} />
     </Card>
+  );
+}
+
+/**
+ * Sends the project, its entries and its review queue to another archive.
+ *
+ * Every project made before the create form asked which archive was filed by a
+ * default, the oldest membership, so a project meant for a team sits private and
+ * the team reads nothing. The other repair is the duplicate: one repository
+ * address in two archives makes a coder refuse to open either, and moving one
+ * side out is how that gets undone without losing its entries.
+ *
+ * No typed confirmation, unlike deleting: nothing is lost and the move can be
+ * made straight back. The sentence says who stops reading it, which is the part
+ * that is not obvious.
+ */
+function MoveSection({
+  project,
+  onMoved,
+}: {
+  project: Project;
+  onMoved: (updated: Project) => void;
+}) {
+  const t = useTranslations("project.move");
+  const { workspaces, refreshProjects } = useApp();
+
+  const [target, setTarget] = useState(project.workspaceId);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // One archive is no choice, and the archive a project is in is only a question
+  // once there is a second one to confuse it with.
+  if (workspaces.length < 2) return null;
+
+  const move = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const moved = await moveProject(project.id, target);
+      await refreshProjects();
+      onMoved(moved);
+    } catch (caught) {
+      setError(
+        caught instanceof ApiError && caught.code === "unauthorized"
+          ? t("ownerOnly")
+          : caught instanceof ApiError
+            ? caught.message
+            : t("failed"),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="border-t border-hairline pt-5">
+      <label htmlFor="move-workspace" className="block pb-2 text-small font-medium text-ink">
+        {t("label")}
+      </label>
+      <select
+        id="move-workspace"
+        value={target}
+        onChange={(event) => setTarget(event.target.value)}
+        className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-thread focus:ring-2 focus:ring-thread/25"
+      >
+        {workspaces.map((workspace) => (
+          <option key={workspace.id} value={workspace.id}>
+            {workspace.name}
+          </option>
+        ))}
+      </select>
+      <p className="max-w-[64ch] pt-2 text-small text-ink-2">{t("note")}</p>
+      <div className="flex flex-wrap items-center gap-3 pt-4">
+        <Button
+          variant="secondary"
+          loading={busy}
+          disabled={target === project.workspaceId}
+          onClick={() => void move()}
+        >
+          {busy ? t("moving") : t("move")}
+        </Button>
+        {error ? <span className="text-small text-iron">{error}</span> : null}
+      </div>
+    </div>
   );
 }
 

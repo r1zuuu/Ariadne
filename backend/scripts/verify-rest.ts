@@ -219,7 +219,7 @@ const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.j
 const [mcpClientSide, mcpServerSide] = InMemoryTransport.createLinkedPair();
 const mcpClient = new Client({ name: "verify", version: "0" });
 await Promise.all([
-  createMcpServer({ userId: "handshake-only", workspaceId: "handshake-only" }).connect(mcpServerSide),
+  createMcpServer({ userId: "handshake-only", tokenId: "handshake-only" }).connect(mcpServerSide),
   mcpClient.connect(mcpClientSide),
 ]);
 
@@ -497,49 +497,16 @@ check(
 
 // --- The lexical arm (migration 0010) ---
 //
-// This seed is the right place to prove it and the proof rests on one detail:
-// every node above was inserted with the same made-up embedding, so the vector
-// arm ranks them in whatever order the database feels like. Anything that comes
-// back reliably here came back by name, because nothing else in this data can
-// put one row above another.
+// Almost nothing is checked here any more, on purpose. The arm used to extract
+// names with a regex and a Gemini call beside it, and the checks that stood here
+// tested the model's half: that "Drizzle" and "Hono" are recognised as names
+// though no rule of shape can see it. The model was measured and dropped, a
+// second of latency and a paid call on every search, so those checks described a
+// product that no longer exists and were removed with it.
 //
-// The arithmetic behind "reliably": a row both arms return scores its vector
-// place plus its lexical place, and the worst possible sum of the two still
-// beats the best score any vector-only row can reach. So a literal hit is not
-// merely likelier to surface, it cannot be displaced by one.
-
-const byName = await call("/search", {
-  method: "POST",
-  token,
-  body: { projectId: listProjectId, query: "co ustalilismy przy Drizzle", k: 2 },
-});
-check("a name in the question finds the entries carrying it", byName.status, 200);
-check(
-  "and both of them are about that name, not merely near it",
-  byName.body.every((n: { content: string }) => /drizzle/i.test(n.content)),
-  true,
-);
-// Every row carries the number the screen and the API were promised, including
-// the ones the vector arm would never have ranked this high on its own.
-check(
-  "a hit found by name still says how close it is",
-  byName.body.every((n: { similarity: unknown }) => typeof n.similarity === "number"),
-  true,
-);
-
-// Hono has no shape to recognise: no underscore, no slash, no camel hump, no
-// extension, not hex. The regex cannot reach it and never will, so this is the
-// model's half of the extraction on its own.
-const knowledge = await call("/search", {
-  method: "POST",
-  token,
-  body: { projectId: listProjectId, query: "dlaczego wybralismy Hono", k: 1 },
-});
-check(
-  "a library name is recognised as a name and nothing else comes first",
-  knowledge.body[0]?.content,
-  "Hono trzyma REST i MCP na jednym porcie",
-);
+// What is left is shape, and this seed has no identifier in it to match, so the
+// arm has nothing to bite on here. The one thing below still worth asserting
+// holds either way.
 
 // The arm narrows, it does not widen: Express is in this project, spelled out,
 // and archived. Matching a word is not permission to return a row.
@@ -844,6 +811,76 @@ check(
   "and the entry keeps whose judgement it was",
   (await call(`/projects/${teamProjectId}/nodes`, { token })).body.nodes[0].confirmedBy,
   THEIRS,
+);
+
+// --- Moving a project between archives ---
+//
+// The pair this repairs: a project in one archive, a coder's token minted for
+// another. Creating it again over there is what leaves one repository in two.
+
+const [{ id: theirWorkspaceId }] = await db
+  .select({ id: workspaces.id })
+  .from(workspaces)
+  .where(eq(workspaces.ownerId, theirUserId));
+check(
+  "a member cannot move a project out of the shared archive",
+  (await call(`/projects/${teamProjectId}/workspace`, {
+    method: "POST",
+    token: theirToken,
+    body: { workspaceId: theirWorkspaceId },
+  })).status,
+  401,
+);
+const moved = await call(`/projects/${teamProjectId}/workspace`, {
+  method: "POST",
+  token,
+  body: { workspaceId },
+});
+check("the owner moves it into their own archive", moved.body.workspaceId, workspaceId);
+check(
+  "and its entries travel with it",
+  (await db.select({ workspaceId: nodes.workspaceId }).from(nodes).where(eq(nodes.id, shared.id)))[0]
+    .workspaceId,
+  workspaceId,
+);
+check(
+  "the other member stops seeing it",
+  (await call("/projects", { token: theirToken })).body.some(
+    (p: { id: string }) => p.id === teamProjectId,
+  ),
+  false,
+);
+check(
+  "moving it where it already sits is rejected",
+  (await call(`/projects/${teamProjectId}/workspace`, {
+    method: "POST",
+    token,
+    body: { workspaceId },
+  })).status,
+  400,
+);
+await call("/projects", {
+  method: "POST",
+  token,
+  body: { name: "Zajete", repoRef: "github.com/r1zuuu/Check", workspaceId: teamId },
+});
+check(
+  "a move onto a taken repo_ref is refused",
+  (await call(`/projects/${projectId}/workspace`, {
+    method: "POST",
+    token,
+    body: { workspaceId: teamId },
+  })).status,
+  400,
+);
+check(
+  "and the move back restores what the team sees",
+  (await call(`/projects/${teamProjectId}/workspace`, {
+    method: "POST",
+    token,
+    body: { workspaceId: teamId },
+  })).body.workspaceId,
+  teamId,
 );
 
 check(

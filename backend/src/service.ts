@@ -39,6 +39,9 @@ export class ServiceError extends Error {
     public code:
       | "validation"
       | "unknown_repo"
+      // One repository address, two archives, and nothing in the call to say
+      // which was meant. The only case where a coder must not guess.
+      | "ambiguous_repo"
       | "not_found"
       | "unauthorized"
       | "rate_limited"
@@ -119,8 +122,15 @@ function assertAnchors(anchors: Anchor[]) {
 
 // Postgres unique_violation. Needed where onConflict is not available, i.e. on
 // UPDATE: changing a project's repo_ref can collide with another of its own.
+// Both shapes, because drizzle wraps what the driver threw: the pg error with
+// its SQLSTATE sits under .cause, and reading only the top level made every
+// collision a 500 with a stack trace. It cost the repo_ref check on the move
+// path and, silently for longer, the same check on a card edit.
 function isUniqueViolation(error: unknown): boolean {
-  return (error as { code?: string } | null)?.code === "23505";
+  const sqlstate = (value: unknown) => (value as { code?: string } | null)?.code;
+  return (
+    sqlstate(error) === "23505" || sqlstate((error as { cause?: unknown } | null)?.cause) === "23505"
+  );
 }
 
 // --- Access (plan section 3) ---
@@ -398,22 +408,67 @@ export function normalizeRepoRef(raw: string): string {
   return ref.slice(0, slash).toLowerCase() + ref.slice(slash);
 }
 
-// Takes a workspace, not a user: the same repo can be recorded in two workspaces
-// a person belongs to, and a coder's token says which archive it is speaking to.
-export async function resolveProjectByRepoRef(workspaceId: string, repoRef: string) {
-  assertUuid(workspaceId, "workspaceId");
-  const normalized = normalizeRepoRef(repoRef);
-  const [project] = await db
-    .select()
+/**
+ * The project a repository address means, looked up across every archive its
+ * owner belongs to.
+ *
+ * It used to be scoped to one archive, the one the token was minted for, and
+ * that is what broke the promise the app makes at the end of onboarding: one
+ * command per machine, covering all of your projects. A token stands for a
+ * machine. Which archive a session reaches is decided by the repository it is
+ * standing in, not by which token was pasted into the config, so a private
+ * project and a company one can be open in two terminals at once.
+ *
+ * reachableWorkspaces is the whole of the boundary: membership, the same rule
+ * the policies of migration 0008 apply underneath. Nothing outside it is
+ * visible to any token.
+ */
+export async function resolveProjectByRepoRef(input: {
+  userId: string;
+  repoRef: string;
+  /** Absent outside an MCP session, where there is no token to record against. */
+  tokenId?: string;
+}) {
+  assertUuid(input.userId, "userId");
+  const normalized = normalizeRepoRef(input.repoRef);
+  const found = await db
+    .select({ project: projects, workspace: workspaces.name })
     .from(projects)
-    .where(and(eq(projects.workspaceId, workspaceId), eq(projects.repoRef, normalized)));
-  if (!project) {
+    .innerJoin(workspaces, eq(workspaces.id, projects.workspaceId))
+    .where(
+      and(
+        eq(projects.repoRef, normalized),
+        inArray(projects.workspaceId, reachableWorkspaces(input.userId)),
+      ),
+    );
+  if (found.length === 1) return found[0].project;
+
+  // Written before the throw, and it survives it: the tool wrapper catches a
+  // ServiceError inside the request transaction, and a JavaScript exception is
+  // not what aborts a Postgres transaction. Nothing clears it on the way back -
+  // the app stops showing it the moment the project it names exists.
+  if (input.tokenId) {
+    await db
+      .update(apiTokens)
+      .set({ lastUnknownRepo: normalized, lastUnknownRepoAt: new Date() })
+      .where(eq(apiTokens.id, input.tokenId));
+  }
+
+  if (!found.length) {
     throw new ServiceError(
       "unknown_repo",
       `Zaloz projekt w aplikacji Ariadne i podaj repo_ref: ${normalized}`,
     );
   }
-  return project;
+
+  // Two archives, one address, and no way to tell which was meant. Guessing here
+  // would put half a project's entries where the other half cannot see them, so
+  // the coder is told to stop and the person is told what to fix.
+  const where = found.map((row) => `${row.project.name} w archiwum ${row.workspace}`).join(", ");
+  throw new ServiceError(
+    "ambiguous_repo",
+    `repo_ref ${normalized} jest zapisany w wiecej niz jednym archiwum: ${where}. W aplikacji Ariadne przenies albo usun duplikat, zeby zostal jeden.`,
+  );
 }
 
 // Every read of a node returns this shape. Listed column by column so the 768
@@ -826,11 +881,14 @@ function headline(content: string) {
 // last session summary + an index of what else is recorded (plan section 6).
 export async function getBootContext(input: {
   userId: string;
-  workspaceId: string;
   repoRef: string;
+  tokenId?: string;
 }) {
   assertUuid(input.userId, "userId");
-  const project = await resolveProjectByRepoRef(input.workspaceId, input.repoRef);
+  // The repository address picks the project, and the project carries the
+  // archive. Nothing below reads a workspace off the caller any more.
+  const project = await resolveProjectByRepoRef(input);
+  const workspaceId = project.workspaceId;
 
   const [user] = await db
     .select({ profile: users.profile })
@@ -844,7 +902,7 @@ export async function getBootContext(input: {
     .leftJoin(users, eq(users.id, nodes.authorId))
     .where(
       and(
-        eq(nodes.workspaceId, input.workspaceId),
+        eq(nodes.workspaceId, workspaceId),
         eq(nodes.projectId, project.id),
         eq(nodes.type, "session_summary"),
         ne(nodes.status, "archived"),
@@ -860,7 +918,7 @@ export async function getBootContext(input: {
   // status, so a superseded one would read as current and get acted on without
   // ever being opened. Its replacement is in the index anyway.
   const recorded = and(
-    eq(nodes.workspaceId, input.workspaceId),
+    eq(nodes.workspaceId, workspaceId),
     eq(nodes.projectId, project.id),
     inArray(nodes.type, ["decision", "note"]),
     // Confirmed only. This used to include proposals, which meant a coder opened
@@ -1726,13 +1784,9 @@ export async function removeMember(input: {
     .returning({ userId: memberships.userId });
   if (!removed) throw new ServiceError("not_found", "member not found in this workspace");
 
-  // Their coder tokens for this workspace go with them. resolveActorByToken
-  // would refuse them anyway; deleting the rows keeps the two from disagreeing.
-  await db
-    .delete(apiTokens)
-    .where(
-      and(eq(apiTokens.workspaceId, input.workspaceId), eq(apiTokens.userId, input.memberId)),
-    );
+  // Nothing to delete here. Their tokens belong to their machines and now reach
+  // whatever they are still a member of, which stopped including this archive
+  // the moment the row above was removed.
 }
 
 export async function createInvite(input: {
@@ -1930,44 +1984,35 @@ function hashToken(rawToken: string): string {
   return createHash("sha256").update(rawToken).digest("hex");
 }
 
-/** Who is calling and which archive they are calling about. */
-export type Actor = { userId: string; workspaceId: string };
+/** Who is calling, and which token said so. No archive: a token reaches every
+ *  archive its owner belongs to, and the repository address picks the project
+ *  out of them. The token id travels because a miss is recorded against it. */
+export type Actor = { userId: string; tokenId: string };
 
-// Every MCP call scopes to the workspace the token was minted for. The person
-// behind it still matters, because what they write is signed with their name.
+// A token says who is calling and nothing else. What it can reach follows the
+// person's memberships at the time of the call, so losing a team takes the
+// archive with it on the next request, with no row to clean up here.
 export async function resolveActorByToken(rawToken: string): Promise<Actor> {
   const [token] = await db
-    .select({ id: apiTokens.id, userId: apiTokens.userId, workspaceId: apiTokens.workspaceId })
+    .select({ id: apiTokens.id, userId: apiTokens.userId })
     .from(apiTokens)
-    // A token whose owner was removed from the workspace stops working here,
-    // rather than keeping a way in that the members list no longer shows.
-    .innerJoin(
-      memberships,
-      and(
-        eq(memberships.workspaceId, apiTokens.workspaceId),
-        eq(memberships.userId, apiTokens.userId),
-      ),
-    )
     .where(eq(apiTokens.tokenHash, hashToken(rawToken)));
   if (!token) throw new ServiceError("unauthorized", "invalid token");
   await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, token.id));
-  return { userId: token.userId, workspaceId: token.workspaceId };
+  return { userId: token.userId, tokenId: token.id };
 }
 
 // The only place the raw token exists after generation is this return value.
 // Whoever calls it has one chance to show it to the user.
-export async function createApiToken(input: {
-  userId: string;
-  workspaceId?: string;
-  label?: string;
-}) {
-  const workspaceId = input.workspaceId ?? (await defaultWorkspace(input.userId));
-  await assertMember(input.userId, workspaceId);
+export async function createApiToken(input: { userId: string; label?: string }) {
+  assertUuid(input.userId, "userId");
   const label = (input.label ?? "").trim().slice(0, MAX_LABEL_LENGTH);
   const token = generateToken();
   const [row] = await db
     .insert(apiTokens)
-    .values({ userId: input.userId, workspaceId, tokenHash: hashToken(token), label })
+    // No workspace. The label names a machine ("work laptop") and that is all a
+    // token is now; every archive its owner belongs to is in reach.
+    .values({ userId: input.userId, tokenHash: hashToken(token), label })
     .returning({ id: apiTokens.id, label: apiTokens.label, createdAt: apiTokens.createdAt });
   return { ...row, token };
 }
@@ -1980,13 +2025,17 @@ export async function listApiTokens(userId: string) {
     .select({
       id: apiTokens.id,
       label: apiTokens.label,
-      workspaceId: apiTokens.workspaceId,
-      workspaceName: workspaces.name,
       createdAt: apiTokens.createdAt,
       lastUsedAt: apiTokens.lastUsedAt,
+      // What a coder asked this token for and did not find. The app is the only
+      // place that can answer it, and it could not see the question until now.
+      lastUnknownRepo: apiTokens.lastUnknownRepo,
+      lastUnknownRepoAt: apiTokens.lastUnknownRepoAt,
     })
     .from(apiTokens)
-    .innerJoin(workspaces, eq(workspaces.id, apiTokens.workspaceId))
+    // No join to workspaces any more: a token belongs to a machine, and naming
+    // an archive beside it would say something about its reach that is no
+    // longer true.
     .where(eq(apiTokens.userId, userId))
     .orderBy(desc(apiTokens.createdAt));
 }
@@ -2180,6 +2229,75 @@ export async function deleteProject(input: { userId: string; projectId: string }
     .where(eq(projects.id, input.projectId))
     .returning({ id: projects.id });
   if (!gone) throw new ServiceError("not_found", "project not found for this user");
+}
+
+/**
+ * Moves a project, with everything filed under it, into another archive.
+ *
+ * It exists because the two halves of this product each pick an archive on their
+ * own: the app files a project where the person said, the coder reaches the one
+ * its token was minted for. Every project created before the form asked the
+ * question was filed by a default, so some of them sit where no token reaches,
+ * and telling their owner to delete and retype the archive is asking them to
+ * throw away the entries to fix the label.
+ *
+ * The rows carry a workspace of their own, so the cascade has to be written out:
+ * nodes for the reads, pending_actions for the review queue. code_anchors hang
+ * off a node and conversations belong to a person, so neither has one to update.
+ *
+ * Owner of the archive it leaves, member of the one it joins, matching
+ * deleteProject: taking a project out of a shared archive removes it from
+ * everyone else there, and that is not something a member does to a team.
+ */
+export async function moveProject(input: {
+  userId: string;
+  projectId: string;
+  workspaceId: string;
+}) {
+  assertUuid(input.workspaceId, "workspaceId");
+  const from = await workspaceOfProject(input.userId, input.projectId);
+  if (from === input.workspaceId) {
+    throw new ServiceError("validation", "the project is already in this workspace");
+  }
+  if ((await assertMember(input.userId, from)) !== "owner") {
+    throw new ServiceError("unauthorized", "only the workspace owner moves a project out");
+  }
+  await assertMember(input.userId, input.workspaceId);
+
+  const filedHere = db
+    .select({ id: nodes.id })
+    .from(nodes)
+    .where(eq(nodes.projectId, input.projectId));
+
+  try {
+    const [moved] = await db
+      .update(projects)
+      .set({ workspaceId: input.workspaceId, updatedAt: new Date() })
+      .where(eq(projects.id, input.projectId))
+      .returning();
+    if (!moved) throw new ServiceError("not_found", "project not found for this user");
+
+    await db
+      .update(pendingActions)
+      .set({ workspaceId: input.workspaceId })
+      .where(inArray(pendingActions.nodeId, filedHere));
+    await db
+      .update(nodes)
+      .set({ workspaceId: input.workspaceId })
+      .where(eq(nodes.projectId, input.projectId));
+    return moved;
+  } catch (error) {
+    // The target archive may already hold a project for this repository, which
+    // is the very pair this move exists to undo. Says repo_ref, like the create
+    // path, because that is the word the app matches to name the field.
+    if (isUniqueViolation(error)) {
+      throw new ServiceError(
+        "validation",
+        "another project in that workspace already uses this repo_ref",
+      );
+    }
+    throw error;
+  }
 }
 
 // --- The connection graph (plan section 8) ---

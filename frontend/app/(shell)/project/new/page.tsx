@@ -1,8 +1,8 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { useApp } from "@/components/app-provider";
 import { ProjectStep, effectiveRepoRef, type Card as ProjectCard } from "@/components/onboarding-steps";
 import { useToast } from "@/components/toast";
@@ -20,22 +20,50 @@ import { ApiError, createProject } from "@/lib/api";
 // fields, the repository explanation and the file-loading constraints box are
 // the same questions whether they are asked on day one or a year in.
 
+// useSearchParams reads the address on the client, and Next requires anything
+// that does so to sit under a Suspense boundary or the export build fails. The
+// fallback is nothing: the form renders in the same tick, and a flash of
+// skeleton would be longer than the wait it stands for.
 export default function NewProjectScreen() {
+  return (
+    <Suspense fallback={null}>
+      <NewProjectForm />
+    </Suspense>
+  );
+}
+
+function NewProjectForm() {
   const t = useTranslations("project.create");
   const router = useRouter();
   const toast = useToast();
-  const { refreshProjects, setActiveProject } = useApp();
+  const { refreshProjects, setActiveProject, workspaces } = useApp();
 
-  const [card, setCard] = useState<ProjectCard>({
+  // Arrived from the notice on the main screen, which knows both answers: the
+  // address a coder asked for and the archive its token reaches. Retyping either
+  // by hand is how the pair drifts apart again.
+  const params = useSearchParams();
+  const [card, setCard] = useState<ProjectCard>(() => ({
     name: "",
-    repoRef: "",
+    repoRef: params.get("repo") ?? "",
+    workspaceId: params.get("workspace") ?? "",
     stack: "",
     etap: "prototyp",
     ograniczenia: "",
-  });
+  }));
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // The archives arrive with the provider's first read, which may land after
+  // this screen mounts. Filled in once and never again, so a choice already made
+  // survives the next refresh of that list.
+  useEffect(() => {
+    setCard((current) =>
+      current.workspaceId || !workspaces.length
+        ? current
+        : { ...current, workspaceId: workspaces[0].id },
+    );
+  }, [workspaces]);
 
   const submit = async () => {
     setFailure(null);
@@ -49,6 +77,9 @@ export default function NewProjectScreen() {
       const created = await createProject({
         name: card.name.trim(),
         repoRef: effectiveRepoRef(card),
+        // Empty until the archives are read, and empty is the server's own
+        // default, so a fast submit files it exactly where it would have gone.
+        workspaceId: card.workspaceId || undefined,
         stack: card.stack.trim(),
         etap: card.etap,
         ograniczenia: card.ograniczenia.trim(),
@@ -82,6 +113,7 @@ export default function NewProjectScreen() {
           error={fieldError}
           heading={t("title")}
           onChange={(patch) => setCard({ ...card, ...patch })}
+          workspaces={workspaces}
         />
       </Card>
 

@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import { useRef, useState } from "react";
 import { CommandBlock } from "./command-block";
 import { Button, Field, Label } from "./ui";
-import { GEMINI_KEY_CONSOLE, serverUrl, type GeminiKeySource } from "@/lib/api";
+import { GEMINI_KEY_CONSOLE, serverUrl, type GeminiKeySource, type Workspace } from "@/lib/api";
 
 // The three step bodies. The orchestrator in app/onboarding/page.tsx owns the
 // state, the network and the navigation; these only render and report changes.
@@ -134,6 +134,9 @@ export function KeyStep({
 export type Card = {
   name: string;
   repoRef: string;
+  /** Which archive to file it under. Empty means the account's own, which is
+   *  what the wizard always means and what a single-archive account never sees. */
+  workspaceId: string;
   stack: string;
   etap: string;
   ograniczenia: string;
@@ -170,11 +173,19 @@ export function effectiveRepoRef(card: Pick<Card, "name" | "repoRef">): string {
 // found by matching the two: the project's name plays no part in it. Left empty
 // it becomes local/<name>, which works, but only for a coder that was told that
 // exact string. All of which is invisible unless the screen says it, so it does.
+//
+// The archive field is the other one, and it was missing entirely. A project
+// went wherever the server put it when nobody said, which is the oldest
+// membership, so a project meant for a team quietly became private and the team
+// never saw an entry. A coder reaches every archive its owner belongs to, so
+// this no longer decides whether it can be found - only who else can read it,
+// which is a question the person answering it has to be asked.
 export function ProjectStep({
   card,
   error,
   heading,
   onChange,
+  workspaces = [],
 }: {
   card: Card;
   error: string | null;
@@ -182,6 +193,9 @@ export function ProjectStep({
    *  year in, and only the sentence above them differs. */
   heading: string;
   onChange: (patch: Partial<Card>) => void;
+  /** Left out by the wizard, which runs before there is a second archive to
+   *  choose between. One archive means no question, so no field. */
+  workspaces?: Workspace[];
 }) {
   const t = useTranslations("onboarding.project");
   const typed = card.repoRef.trim();
@@ -215,6 +229,22 @@ export function ProjectStep({
             : t("repoNote.fallback", { ref: effectiveRepoRef(card) })
         }
       />
+      {workspaces.length > 1 ? (
+        <Field id="workspaceId" label={t("label.workspace")} note={t("workspaceNote")}>
+          <select
+            id="workspaceId"
+            value={card.workspaceId}
+            onChange={(e) => onChange({ workspaceId: e.target.value })}
+            className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none transition-colors duration-state focus:border-thread focus:ring-2 focus:ring-thread/25"
+          >
+            {workspaces.map((workspace) => (
+              <option key={workspace.id} value={workspace.id}>
+                {workspace.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      ) : null}
       <Field
         id="stack"
         label={t("label.stack")}

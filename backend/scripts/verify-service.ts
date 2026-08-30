@@ -7,7 +7,7 @@ process.loadEnvFile("../.env");
 process.env.DATABASE_URL_APP = process.env.DATABASE_URL;
 
 const { db } = await import("../src/db/client.js");
-const { memberships, nodes, users, projects, workspaces } = await import("../src/db/schema.js");
+const { apiTokens, memberships, nodes, users, projects, workspaces } = await import("../src/db/schema.js");
 const { eq } = await import("drizzle-orm");
 const service = await import("../src/service.js");
 const { seal } = await import("../src/crypto.js");
@@ -102,7 +102,6 @@ for (const query of queries) {
 console.log("\n=== boot context");
 const boot = await service.getBootContext({
   userId: user.id,
-  workspaceId: workspace.id,
   repoRef: "https://github.com/r1zuuu/Ariadne.git",
 });
 console.log(`  profile: ${boot.profile.slice(0, 60)}`);
@@ -126,7 +125,10 @@ if (pendingUpdate.applied) throw new Error("expected pending, allPermission=fals
 await service.approvePending({ userId: user.id, pendingActionId: pendingUpdate.pendingActionId });
 const after = await service.searchNodes({ userId: user.id, projectId: project.id, query: "middleware auth", k: 1, channel: "app" });
 if (after[0].id !== nodeId) throw new Error("updated node should match its new content best");
-await service.confirmNode({ userId: user.id, nodeId });
+// Confirmed once already, by the seed loop above: approving an edit changes the
+// content and leaves the status where it was, so confirming again is what the
+// service rejects. This line predates the seed loop and had been failing the run
+// before it reached anything below.
 await service.archiveNode({ userId: user.id, nodeId });
 const archived = await service.searchNodes({ userId: user.id, projectId: project.id, query: "hono", k: 10, channel: "app" });
 if (archived.some((r) => r.id === nodeId)) throw new Error("archived node must not appear in search");
@@ -149,6 +151,79 @@ const [old] = await db.select().from(nodes).where(eq(nodes.id, replaced.id));
 if (old.status !== "contradicted") throw new Error("the replaced node should end up contradicted");
 if (old.supersededBy !== successor.nodeId) throw new Error("the replaced node should point at its successor");
 console.log("  replaces -> contradicted with a link to the successor: OK");
+
+// How an address fails to resolve, which is two different answers now that a
+// token reaches every archive its owner belongs to. Neither path is reachable
+// from the REST script: only MCP resolves a repository address.
+console.log("\n=== repo_ref resolution");
+const coderToken = await service.createApiToken({ userId: user.id, label: "verify" });
+
+const bootFails = (repoRef: string) =>
+  service.getBootContext({ userId: user.id, tokenId: coderToken.id, repoRef }).then(
+    () => null,
+    (error: unknown) => error,
+  );
+
+const nowhere = await bootFails("github.com/r1zuuu/Nieznane");
+if (!(nowhere instanceof service.ServiceError) || nowhere.code !== "unknown_repo")
+  throw new Error(`an address filed nowhere should be unknown_repo, got ${nowhere}`);
+
+// The miss is answered to the coder and nowhere else, so the app reads it off
+// the token or nobody ever learns their sessions are coming back empty.
+const [tokenRow] = await db
+  .select({ repo: apiTokens.lastUnknownRepo })
+  .from(apiTokens)
+  .where(eq(apiTokens.id, coderToken.id));
+if (tokenRow.repo !== "github.com/r1zuuu/Nieznane")
+  throw new Error("the miss should be recorded on the token, for the app to show");
+console.log("  unknown address, recorded on the token: OK");
+
+// One address in two archives is the case a coder must not guess at: picking
+// either files half a project where the other half cannot see it.
+const [team] = await db
+  .insert(workspaces)
+  .values({ name: "verify-team", ownerId: user.id })
+  .returning({ id: workspaces.id });
+await db.insert(memberships).values({ workspaceId: team.id, userId: user.id, role: "owner" });
+const [twin] = await db
+  .insert(projects)
+  .values({ workspaceId: team.id, name: "Ariadne (kopia)", repoRef: "github.com/r1zuuu/Ariadne" })
+  .returning({ id: projects.id });
+
+const ambiguous = await bootFails("git@github.com:r1zuuu/Ariadne.git");
+if (!(ambiguous instanceof service.ServiceError) || ambiguous.code !== "ambiguous_repo")
+  throw new Error(`one address in two archives should refuse, got ${ambiguous}`);
+if (!ambiguous.message.includes("verify-team"))
+  throw new Error("the refusal should name the archives holding it");
+
+await service.deleteProject({ userId: user.id, projectId: twin.id });
+const resolved = await service.getBootContext({
+  userId: user.id,
+  tokenId: coderToken.id,
+  repoRef: "git@github.com:r1zuuu/Ariadne.git",
+});
+if (resolved.project.name !== "Ariadne")
+  throw new Error("with one copy left the address should resolve again");
+console.log("  two archives refuse, one resolves: OK");
+
+// Moving is the other way out of that pair, and the entries have to follow or
+// the archive splits in half.
+await service.moveProject({ userId: user.id, projectId: project.id, workspaceId: team.id });
+const [movedNode] = await db
+  .select({ workspaceId: nodes.workspaceId })
+  .from(nodes)
+  .where(eq(nodes.projectId, project.id))
+  .limit(1);
+if (movedNode.workspaceId !== team.id)
+  throw new Error("the entries should travel with the project");
+const afterMove = await service.getBootContext({
+  userId: user.id,
+  tokenId: coderToken.id,
+  repoRef: "https://github.com/r1zuuu/Ariadne.git",
+});
+if (afterMove.project.name !== "Ariadne")
+  throw new Error("the same token should still resolve it from its new archive");
+console.log("  move -> entries followed, the same token still finds it: OK");
 
 console.log("\nDONE - oceń kolejność wyników powyżej");
 process.exit(0);
