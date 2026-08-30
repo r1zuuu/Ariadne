@@ -257,6 +257,9 @@ const STATUS_BY_CODE: Record<ServiceError["code"], 400 | 401 | 404 | 429> = {
   unauthorized: 401,
   rate_limited: 429,
   unknown_repo: 404,
+  // Only the MCP path can raise it, but the map is exhaustive by type, so a new
+  // code cannot be added without answering what the REST side would say.
+  project_in_other_workspace: 404,
   not_found: 404,
 };
 

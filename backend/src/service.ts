@@ -39,6 +39,10 @@ export class ServiceError extends Error {
     public code:
       | "validation"
       | "unknown_repo"
+      // Separated from unknown_repo because the two need opposite answers. The
+      // repository is filed, in another archive this person belongs to, and the
+      // old code sent them off to create a project that already exists.
+      | "project_in_other_workspace"
       | "not_found"
       | "unauthorized"
       | "rate_limited"
@@ -398,22 +402,69 @@ export function normalizeRepoRef(raw: string): string {
   return ref.slice(0, slash).toLowerCase() + ref.slice(slash);
 }
 
-// Takes a workspace, not a user: the same repo can be recorded in two workspaces
-// a person belongs to, and a coder's token says which archive it is speaking to.
-export async function resolveProjectByRepoRef(workspaceId: string, repoRef: string) {
-  assertUuid(workspaceId, "workspaceId");
-  const normalized = normalizeRepoRef(repoRef);
+// Scoped by the token's workspace, not by the person: the same repo can be
+// recorded in two workspaces someone belongs to, and the token says which
+// archive this session speaks to. The userId is here for the miss, which has to
+// tell the two kinds of miss apart.
+export async function resolveProjectByRepoRef(input: {
+  userId: string;
+  workspaceId: string;
+  repoRef: string;
+}) {
+  assertUuid(input.workspaceId, "workspaceId");
+  const normalized = normalizeRepoRef(input.repoRef);
   const [project] = await db
     .select()
     .from(projects)
-    .where(and(eq(projects.workspaceId, workspaceId), eq(projects.repoRef, normalized)));
-  if (!project) {
-    throw new ServiceError(
+    .where(and(eq(projects.workspaceId, input.workspaceId), eq(projects.repoRef, normalized)));
+  if (project) return project;
+  throw await missingProject(input.userId, input.workspaceId, normalized);
+}
+
+/**
+ * Why the address did not resolve, which is two different answers.
+ *
+ * Nothing anywhere: the project has yet to be created, and the message hands
+ * over the exact string to create it with.
+ *
+ * Filed in another archive this person belongs to: the old message sent them to
+ * create a project they were already looking at, so they created it twice and
+ * ended up with one repository in two archives, the coder writing to one and the
+ * app showing the other. Naming the archive is what turns "it does not exist"
+ * into "you are pointed at the wrong one".
+ */
+async function missingProject(
+  userId: string,
+  workspaceId: string,
+  normalized: string,
+): Promise<ServiceError> {
+  const elsewhere = await db
+    .select({ project: projects.name, workspace: workspaces.name })
+    .from(projects)
+    .innerJoin(workspaces, eq(workspaces.id, projects.workspaceId))
+    .where(
+      and(
+        eq(projects.repoRef, normalized),
+        ne(projects.workspaceId, workspaceId),
+        inArray(projects.workspaceId, reachableWorkspaces(userId)),
+      ),
+    );
+  if (!elsewhere.length) {
+    return new ServiceError(
       "unknown_repo",
       `Zaloz projekt w aplikacji Ariadne i podaj repo_ref: ${normalized}`,
     );
   }
-  return project;
+
+  const [here] = await db
+    .select({ name: workspaces.name })
+    .from(workspaces)
+    .where(eq(workspaces.id, workspaceId));
+  const where = elsewhere.map((row) => `${row.project} w archiwum ${row.workspace}`).join(", ");
+  return new ServiceError(
+    "project_in_other_workspace",
+    `repo_ref ${normalized} jest juz zapisany: ${where}. Ten token siega do archiwum ${here?.name ?? "?"}, wiec tamtego projektu nie widzi. Nie zakladaj drugiego: w aplikacji Ariadne przenies projekt do tego archiwum albo uzyj tokena tamtego.`,
+  );
 }
 
 // Every read of a node returns this shape. Listed column by column so the 768
@@ -830,7 +881,7 @@ export async function getBootContext(input: {
   repoRef: string;
 }) {
   assertUuid(input.userId, "userId");
-  const project = await resolveProjectByRepoRef(input.workspaceId, input.repoRef);
+  const project = await resolveProjectByRepoRef(input);
 
   const [user] = await db
     .select({ profile: users.profile })

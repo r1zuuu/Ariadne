@@ -139,7 +139,7 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     },
     ({ repo_ref, query, k }) =>
       run(async () => {
-        const project = await resolveProjectByRepoRef(workspaceId, repo_ref);
+        const project = await resolveProjectByRepoRef({ userId, workspaceId, repoRef: repo_ref });
         return {
           results: await searchNodes({ userId, projectId: project.id, query, k, channel: "coder" }),
         };
@@ -189,7 +189,7 @@ export function createMcpServer({ userId, workspaceId }: Actor): McpServer {
     },
     ({ repo_ref, type, content, anchors, source, replaces_node_id }) =>
       run(async () => {
-        const project = await resolveProjectByRepoRef(workspaceId, repo_ref);
+        const project = await resolveProjectByRepoRef({ userId, workspaceId, repoRef: repo_ref });
         return createNode({
           userId,
           projectId: project.id,
