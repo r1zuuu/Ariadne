@@ -219,11 +219,7 @@ const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.j
 const [mcpClientSide, mcpServerSide] = InMemoryTransport.createLinkedPair();
 const mcpClient = new Client({ name: "verify", version: "0" });
 await Promise.all([
-  createMcpServer({
-    userId: "handshake-only",
-    workspaceId: "handshake-only",
-    tokenId: "handshake-only",
-  }).connect(mcpServerSide),
+  createMcpServer({ userId: "handshake-only", tokenId: "handshake-only" }).connect(mcpServerSide),
   mcpClient.connect(mcpClientSide),
 ]);
 
@@ -848,6 +844,76 @@ check(
   "and the entry keeps whose judgement it was",
   (await call(`/projects/${teamProjectId}/nodes`, { token })).body.nodes[0].confirmedBy,
   THEIRS,
+);
+
+// --- Moving a project between archives ---
+//
+// The pair this repairs: a project in one archive, a coder's token minted for
+// another. Creating it again over there is what leaves one repository in two.
+
+const [{ id: theirWorkspaceId }] = await db
+  .select({ id: workspaces.id })
+  .from(workspaces)
+  .where(eq(workspaces.ownerId, theirUserId));
+check(
+  "a member cannot move a project out of the shared archive",
+  (await call(`/projects/${teamProjectId}/workspace`, {
+    method: "POST",
+    token: theirToken,
+    body: { workspaceId: theirWorkspaceId },
+  })).status,
+  401,
+);
+const moved = await call(`/projects/${teamProjectId}/workspace`, {
+  method: "POST",
+  token,
+  body: { workspaceId },
+});
+check("the owner moves it into their own archive", moved.body.workspaceId, workspaceId);
+check(
+  "and its entries travel with it",
+  (await db.select({ workspaceId: nodes.workspaceId }).from(nodes).where(eq(nodes.id, shared.id)))[0]
+    .workspaceId,
+  workspaceId,
+);
+check(
+  "the other member stops seeing it",
+  (await call("/projects", { token: theirToken })).body.some(
+    (p: { id: string }) => p.id === teamProjectId,
+  ),
+  false,
+);
+check(
+  "moving it where it already sits is rejected",
+  (await call(`/projects/${teamProjectId}/workspace`, {
+    method: "POST",
+    token,
+    body: { workspaceId },
+  })).status,
+  400,
+);
+await call("/projects", {
+  method: "POST",
+  token,
+  body: { name: "Zajete", repoRef: "github.com/r1zuuu/Check", workspaceId: teamId },
+});
+check(
+  "a move onto a taken repo_ref is refused",
+  (await call(`/projects/${projectId}/workspace`, {
+    method: "POST",
+    token,
+    body: { workspaceId: teamId },
+  })).status,
+  400,
+);
+check(
+  "and the move back restores what the team sees",
+  (await call(`/projects/${teamProjectId}/workspace`, {
+    method: "POST",
+    token,
+    body: { workspaceId: teamId },
+  })).body.workspaceId,
+  teamId,
 );
 
 check(

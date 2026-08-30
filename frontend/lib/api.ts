@@ -281,25 +281,24 @@ export const listNodes = (
   );
 };
 
-// Without a workspace the backend files it under the private one, which is what
-// onboarding means and what an account with a single archive always means.
-export const mintToken = (label: string, workspaceId?: string) =>
+// The label names a machine, and that is the whole of a token: it reaches every
+// archive this account belongs to, and the repository a coder stands in decides
+// which project it opens.
+export const mintToken = (label: string) =>
   request<{ id: string; label: string; token: string }>("/tokens", {
     method: "POST",
-    body: { label, workspaceId },
+    body: { label },
   });
 
 export type ApiToken = {
   id: string;
   label: string;
-  workspaceId: string;
-  workspaceName: string;
   createdAt: string;
   /** Null until a coder actually connects with it. */
   lastUsedAt: string | null;
-  /** The last repository a coder asked this token for and did not find in its
-   *  archive. The miss is answered to the coder alone, so without this the app
-   *  looks healthy while every session comes back empty. */
+  /** The last repository a coder asked this token for and did not find in any
+   *  archive this account can reach. The miss is answered to the coder alone, so
+   *  without this the app looks healthy while every session comes back empty. */
   lastUnknownRepo: string | null;
   lastUnknownRepoAt: string | null;
 };

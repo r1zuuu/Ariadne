@@ -39,7 +39,7 @@ import { Banner, Button, Card, EmptyState, IconButton, SectionHeader, Status } f
  * is where the person finally reads it.
  *
  * It clears itself: nothing resets the column, but the notice is gone the moment
- * a project with that address exists in the archive the token reaches.
+ * a project with that address exists in any archive this account reaches.
  */
 function UnknownRepoNotice() {
   const t = useTranslations("home.unknownRepo");
@@ -61,11 +61,7 @@ function UnknownRepoNotice() {
     ? tokens.find(
         (token) =>
           token.lastUnknownRepo &&
-          !projects.some(
-            (project) =>
-              project.workspaceId === token.workspaceId &&
-              project.repoRef === token.lastUnknownRepo,
-          ),
+          !projects.some((project) => project.repoRef === token.lastUnknownRepo),
       )
     : undefined;
   const repo = miss?.lastUnknownRepo;
@@ -74,14 +70,11 @@ function UnknownRepoNotice() {
   return (
     <Banner
       variant="notice"
-      what={t("what", { repo, archive: miss.workspaceName })}
+      what={t("what", { repo })}
       means={t("means")}
       action={{
         label: t("action"),
-        onClick: () =>
-          router.push(
-            `/project/new?repo=${encodeURIComponent(repo)}&workspace=${miss.workspaceId}`,
-          ),
+        onClick: () => router.push(`/project/new?repo=${encodeURIComponent(repo)}`),
       }}
     />
   );

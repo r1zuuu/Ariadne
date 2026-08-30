@@ -31,14 +31,12 @@ import {
   GEMINI_KEY_CONSOLE,
   getAccount,
   listTokens,
-  listWorkspaces,
   mintToken,
   saveGeminiKey,
   saveProfile,
   setAllPermission,
   type Account,
   type ApiToken,
-  type Workspace,
 } from "@/lib/api";
 
 // Screen 08. Everything about the account rather than about a project: who you
@@ -456,9 +454,7 @@ function TokensSection({ toast }: { toast: Toast }) {
   const failure = useFailure();
 
   const [tokens, setTokens] = useState<ApiToken[] | null>(null);
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [label, setLabel] = useState("");
-  const [workspaceId, setWorkspaceId] = useState("");
   const [fresh, setFresh] = useState<string | null>(null);
   const [working, setWorking] = useState<string | null>(null);
 
@@ -466,20 +462,12 @@ function TokensSection({ toast }: { toast: Toast }) {
     void listTokens().then(setTokens).catch(() => setTokens([]));
   }, []);
 
-  useEffect(() => {
-    load();
-    void listWorkspaces()
-      .then((rows) => {
-        setWorkspaces(rows);
-        setWorkspaceId(rows[0]?.id ?? "");
-      })
-      .catch(() => {});
-  }, [load]);
+  useEffect(load, [load]);
 
   const mint = async () => {
     setWorking("mint");
     try {
-      const minted = await mintToken(label.trim(), workspaceId || undefined);
+      const minted = await mintToken(label.trim());
       setFresh(minted.token);
       setLabel("");
       load();
@@ -535,30 +523,9 @@ function TokensSection({ toast }: { toast: Toast }) {
             onChange={(event) => setLabel(event.target.value)}
           />
         </div>
-        {/* Only when there is a choice to make. With one archive the question
-            has one answer and asking it is noise. */}
-        {workspaces.length > 1 ? (
-          <div className="min-w-[200px] flex-1">
-            <label
-              htmlFor="settings-token-workspace"
-              className="block pb-2 text-small font-medium text-ink"
-            >
-              {t("forWorkspace")}
-            </label>
-            <select
-              id="settings-token-workspace"
-              value={workspaceId}
-              onChange={(event) => setWorkspaceId(event.target.value)}
-              className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none transition-colors duration-state focus:border-thread focus:ring-2 focus:ring-thread/25"
-            >
-              {workspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        ) : null}
+        {/* No archive to pick. A token stands for a machine and reaches every
+            archive this account belongs to; the repository a coder is standing
+            in decides which project it opens. */}
         <Button onClick={mint} loading={working === "mint"}>
           {working === "mint" ? t("minting") : t("mint")}
         </Button>
@@ -581,15 +548,7 @@ function TokensSection({ toast }: { toast: Toast }) {
                 <div className="min-w-0">
                   <p className="truncate text-body text-ink">{token.label || t("noLabel")}</p>
                   <div className="pt-1">
-                    {/* Which archive it reaches, but only once there is more
-                        than one. With a single workspace this repeats the same
-                        name under every token, and that name is an address. */}
-                    <Meta
-                      items={[
-                        workspaces.length > 1 ? token.workspaceName : null,
-                        token.lastUsedAt ? t("used") : t("neverUsed"),
-                      ]}
-                    />
+                    <Meta items={[token.lastUsedAt ? t("used") : t("neverUsed")]} />
                   </div>
                 </div>
                 <Button

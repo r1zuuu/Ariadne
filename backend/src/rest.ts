@@ -252,15 +252,16 @@ async function readBody<T>(c: Context, schema: z.ZodType<T>): Promise<T> {
   return schema.parse(raw);
 }
 
-const STATUS_BY_CODE: Record<ServiceError["code"], 400 | 401 | 404 | 429> = {
+const STATUS_BY_CODE: Record<ServiceError["code"], 400 | 401 | 404 | 409 | 429> = {
   validation: 400,
   no_gemini_key: 400,
   unauthorized: 401,
   rate_limited: 429,
   unknown_repo: 404,
   // Only the MCP path can raise it, but the map is exhaustive by type, so a new
-  // code cannot be added without answering what the REST side would say.
-  project_in_other_workspace: 404,
+  // code cannot be added without answering what the REST side would say. 409:
+  // the address is not missing, it names two projects and the caller must pick.
+  ambiguous_repo: 409,
   not_found: 404,
 };
 
@@ -484,12 +485,11 @@ export function createRestApp() {
   // --- MCP tokens ---
 
   app.post("/tokens", async (c) => {
-    const { label, workspaceId } = await readBody(
-      c,
-      z.object({ label: z.string().optional(), workspaceId: z.string().optional() }),
-    );
+    // Label only. A token names a machine and reaches every archive its owner
+    // belongs to, so there is no archive to pick when minting one.
+    const { label } = await readBody(c, z.object({ label: z.string().optional() }));
     // The only response that ever carries the raw token.
-    return c.json(await createApiToken({ userId: userId(c), workspaceId, label }), 201);
+    return c.json(await createApiToken({ userId: userId(c), label }), 201);
   });
 
   app.get("/tokens", async (c) => c.json(await listApiTokens(userId(c))));

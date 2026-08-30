@@ -102,7 +102,6 @@ for (const query of queries) {
 console.log("\n=== boot context");
 const boot = await service.getBootContext({
   userId: user.id,
-  workspaceId: workspace.id,
   repoRef: "https://github.com/r1zuuu/Ariadne.git",
 });
 console.log(`  profile: ${boot.profile.slice(0, 60)}`);

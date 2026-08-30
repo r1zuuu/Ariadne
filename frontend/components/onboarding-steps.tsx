@@ -176,10 +176,10 @@ export function effectiveRepoRef(card: Pick<Card, "name" | "repoRef">): string {
 //
 // The archive field is the other one, and it was missing entirely. A project
 // went wherever the server put it when nobody said, which is the oldest
-// membership, while the coder's token points at whichever archive it was minted
-// for. Two answers to one question, decided in two places, and when they
-// disagree the coder is told the project does not exist while the app shows it.
-// Asked here, the two cannot drift apart in the first place.
+// membership, so a project meant for a team quietly became private and the team
+// never saw an entry. A coder reaches every archive its owner belongs to, so
+// this no longer decides whether it can be found - only who else can read it,
+// which is a question the person answering it has to be asked.
 export function ProjectStep({
   card,
   error,

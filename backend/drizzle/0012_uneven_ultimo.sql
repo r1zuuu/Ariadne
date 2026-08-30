@@ -1,0 +1,1 @@
+ALTER TABLE "api_tokens" ALTER COLUMN "workspace_id" DROP NOT NULL;

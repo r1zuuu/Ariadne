@@ -473,12 +473,11 @@ function EditCard({
 /**
  * Sends the project, its entries and its review queue to another archive.
  *
- * The pair this repairs is a project filed in one archive and a coder's token
- * minted for another: the coder is told the repository is unknown while the app
- * shows the project, and the obvious fix, creating it again over there, leaves
- * one repository in two archives with half the entries in each. Every project
- * made before the create form asked which archive was filed by a default, so
- * some of them are already in the wrong one.
+ * Every project made before the create form asked which archive was filed by a
+ * default, the oldest membership, so a project meant for a team sits private and
+ * the team reads nothing. The other repair is the duplicate: one repository
+ * address in two archives makes a coder refuse to open either, and moving one
+ * side out is how that gets undone without losing its entries.
  *
  * No typed confirmation, unlike deleting: nothing is lost and the move can be
  * made straight back. The sentence says who stops reading it, which is the part

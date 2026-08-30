@@ -121,7 +121,7 @@
         "set": "The repository you run your coder in has to carry this same address. github.com/you/project, https://... and git@... all count as the same one.",
         "fallback": "Left empty, so the project will be filed as {ref}. A coder finds it only if you hand it that exact string, because it cannot read it from any directory."
       },
-      "workspaceNote": "A coder reaches this project only with a token minted for this archive. The archive is picked in settings, when the token is generated.",
+      "workspaceNote": "The archive decides who reads this project: you alone, or the whole team. Your coder reaches all of your archives, so this does not affect it.",
       "etapChoice": {
         "prototyp": "Prototype - still being built, nobody uses it yet",
         "produkcja": "Released - people are using it and it works",
@@ -159,7 +159,7 @@
       "whereToRun": "Run this command inside this project's repository, not in some other directory. A coder reports the address of the repository it is standing in, and this project is filed under:",
       "mustMatch": "If the two do not match, the coder is told the repository is unknown. You can change the project's address at any time on its card.",
       "onceOnly": "You run this command once per machine, not once per project. It covers all of your projects at once. A second attempt answers \"already exists in user config\", which means everything is connected already.",
-      "joinedArchive": "The token just created reaches the archive \"{name}\", the one you joined. What your coder writes, the whole team sees.",
+      "joinedArchive": "The token just created reaches all of your archives, including the one you joined. What your coder writes in the team's projects, the whole team sees.",
       "joinedWhereToRun": "Run your coder in the repository of whichever project you mean to write about. Each team project shows its address on its own card in the app."
     },
     "key": {
@@ -197,8 +197,8 @@
   "home": {
     "retry": "Check again",
     "unknownRepo": {
-      "what": "A coder asked for the repository {repo}, which the {archive} archive does not hold.",
-      "means": "The token it connects with reaches only that archive, so it was told the project does not exist. Create it here, or move it from the archive it sits in.",
+      "what": "A coder asked for the repository {repo}, which none of your archives holds.",
+      "means": "A coder finds a project by the address of the repository it is standing in, so it was told no such project exists. Create it and say which archive it lives in.",
       "action": "Create project"
     },
     "stale": "Data from {at}. The server is not responding, so it may be out of date.",
@@ -388,12 +388,12 @@
     "sharedIn": "shared in {name}",
     "duplicate": {
       "title": "This repository sits in two archives",
-      "body": "The address {repo} also belongs to: {where}. A coder picks the archive from the token it connects with, so it reaches only one of them and will not tell you which.",
-      "fix": "Keep the address on one project and change it on the other, or delete that project. To write to the team, generate a token for the shared archive in settings and swap it into your coder configuration."
+      "body": "The address {repo} also belongs to: {where}. A coder finds a project by that address, so with two matches it refuses to guess and opens neither.",
+      "fix": "Keep the address on one project and change it on the other, move the project into the right archive, or delete it."
     },
     "move": {
       "label": "ARCHIVE",
-      "note": "The entries and the review queue travel with the project. A coder finds it with a token minted for the archive it lands in, and everyone in the one it leaves loses access to it.",
+      "note": "The entries and the review queue travel with the project. The archive decides who reads it: everyone in the one it leaves loses access.",
       "move": "Move project",
       "moving": "Moving...",
       "ownerOnly": "Only the workspace owner can move a project.",
@@ -468,13 +468,12 @@
     "autoApproveOn": "Automatic approval is on.",
     "autoApproveOff": "Automatic approval is off.",
     "tokens": "Agent tokens",
-    "tokensLead": "One token connects one agent to one archive. You see it once, when it is created.",
+    "tokensLead": "One token per machine you work on. It reaches all of your archives, and the repository address picks the project. You see a token once, when it is created.",
     "tokenOnce": "Copy it now, it is not shown again",
     "copyToken": "Copy token",
     "tokenOnceWhere": "Paste it into your agent's configuration, where it asks for the Ariadne token.",
     "tokenLabel": "What for",
     "tokenPlaceholder": "laptop, work machine",
-    "forWorkspace": "Archive",
     "mint": "Create token",
     "minting": "Creating...",
     "tokensEmpty": "You have no tokens yet.",
