@@ -25,7 +25,7 @@ Czego brakuje w 5b: nic. Krok domkniety.
 
 - Redesign UI (planUI.md): karty zamiast ciaglych hairline'ow, prawdziwy project switcher, czytelny active state, composer na dashboardzie oddajacy pytanie asystentowi, zwijane zrodla, kolejka grupowana po projekcie, projekt jako profil do czytania, split screen na logowaniu z obrazem z public/. Doszly toasty po kazdym zapisie i empty states mowiace co dalej. DESIGN.md przepisany: Paper Rule (zero radius powyzej 2px, zadnych kart) zastapiona Card Rule.
 
-- Tryb zespolowy (dawny krok 7, wyciagniety przed MVP na prosbe usera): wlascicielem archiwum jest workspace, nie osoba. Dochodza tabele workspaces, memberships i invites, a projects, nodes, pending_actions i api_tokens przechodza z user_id na workspace_id. Kazde konto dostaje przy rejestracji prywatny workspace, wiec praca w pojedynke to workspace z jednym czlonkiem i w kodzie nie ma dwoch sciezek. Zaproszenie to kod do skopiowania, opcjonalnie zwiazany z adresem. Token MCP nalezy do workspace, wiec coder kolegi czyta ten sam kontekst i widzi, kto co zapisal. verify-rest.ts urosl ze 105 do 155 sprawdzen.
+- Tryb zespolowy (dawny krok 7, wyciagniety przed MVP na prosbe usera): wlascicielem archiwum jest workspace, nie osoba. Dochodza tabele workspaces, memberships i invites, a projects, nodes, pending_actions i api_tokens przechodza z user_id na workspace_id. Kazde konto dostaje przy rejestracji prywatny workspace, wiec praca w pojedynke to workspace z jednym czlonkiem i w kodzie nie ma dwoch sciezek. Zaproszenie to kod do skopiowania, opcjonalnie zwiazany z adresem. Token MCP nalezal wtedy do workspace; od kroku 5h nalezy do maszyny i siega wszystkich archiwow swojego wlasciciela, wiec coder kolegi czyta ten sam kontekst i widzi, kto co zapisal. verify-rest.ts urosl ze 105 do 155 sprawdzen.
 - Ekran 8 (ustawienia): konto z profilem, zmiana hasla, przelacznik jezyka, automatyczne zatwierdzanie, tokeny z lista i odwolywaniem, zespol z czlonkami i zaproszeniami. GET /tokens i DELETE /tokens/:id istnialy od 5a i do teraz nie mialy w aplikacji zadnego wywolania.
 - Doszly tez: limit prob logowania (licznik w pamieci procesu, 10 na 15 minut na adres) i PUT /me/password.
 
@@ -186,7 +186,7 @@ CREATE TABLE invites (
 CREATE TABLE api_tokens (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,      -- kto wygenerowal
-  workspace_id uuid NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE, -- do czego siega
+  workspace_id uuid REFERENCES workspaces(id) ON DELETE CASCADE,          -- martwe od kroku 5h, patrz nizej
   token_hash text UNIQUE NOT NULL,           -- sha256 tokenu; token pokazany raz przy generacji
   label      text NOT NULL DEFAULT '',      -- np. "laptop praca"
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -473,13 +473,14 @@ Krok 2:
 
 ## 9. Kontrakt MCP (pelne schematy)
 
-Serwer: MCP streamable HTTP na Render, endpoint /mcp. Auth: naglowek Authorization: Bearer <token>; serwer haszuje token i szuka w api_tokens. Token nalezy do przestrzeni, wiec scope idzie po workspace_id, a user_id z tokena sluzy do podpisania wpisu.
+Serwer: MCP streamable HTTP na Render, endpoint /mcp. Auth: naglowek Authorization: Bearer <token>; serwer haszuje token i szuka w api_tokens. Token mowi kto dzwoni i nic o tym gdzie (krok 5h): scope wybiera repo_ref sposrod archiwow, do ktorych wlasciciel tokena nalezy, a user_id z tokena sluzy do podpisania wpisu.
 
 get_project_context
 - input: { repo_ref: string }
 - output: { profile: string, project: { name, opis, stack, dla_kogo, grupa_odbiorcza, konwencje_ref, ograniczenia, etap }, last_summary: { content, created_at } | null, index: { total, showing, by_file: [ { path, entries } ], headlines: [ { node_id, type, headline } ] } }
 - index: od 11.08.2026 obiekt, nie tablica. Naglowki (pierwsza linia content, max 120 znakow) dziesieciu najnowszych wezlow confirmed typu decision i note, plus total i showing, ktore mowia wprost, ze to probka, plus by_file z dwudziestoma plikami o najwiekszej liczbie wpisow. Powod istnienia i sufit: sekcja 6. Bez tego coder nie wola search_context w ogole.
 - blad gdy repo nieznane: { error: "unknown_repo", message: "Zaloz projekt w aplikacji Ariadne i podaj repo_ref: <znormalizowany url>" }
+- blad gdy ten sam adres jest w dwoch archiwach czytelnika: { error: "ambiguous_repo" } z nazwami projektow i archiwow, HTTP 409 po stronie REST. Coder odmawia zamiast zgadywac: zgadniecie rozdziela archiwum jednego projektu na pol.
 
 search_context
 - input: { repo_ref: string, query: string, k?: number (1..10, default 5) }
@@ -512,10 +513,11 @@ Auth: POST /auth/register (email, haslo), POST /auth/login -> JWT, haslo hashowa
 - GET  /me                    profil + flaga all_permission
 - PUT  /me/profile            edycja profilu
 - PUT  /me/all-permission     przelacznik trybu
-- POST /tokens                generacja tokenu MCP (zwrocony raz), GET /tokens lista, DELETE /tokens/:id
+- POST /tokens                generacja tokenu MCP (zwrocony raz, sama etykieta w body), GET /tokens lista, DELETE /tokens/:id
 - GET  /projects              lista projektow przestrzeni
 - POST /projects              zalozenie projektu (karta)
 - PUT  /projects/:id          edycja karty
+- POST /projects/:id/workspace  przeniesienie projektu do innego archiwum, wlasciciel zrodla i czlonek celu
 - GET  /projects/:id/graph    wezly + krawedzie wyliczone (sekcja 8) do wizualizacji
 - GET  /pending               feed pending_actions + wezly proposed/contradicted do przejrzenia
 - POST /pending/:id/approve   wykonuje operacje (dla update: przeliczenie embeddingu)
@@ -789,6 +791,17 @@ Krok 5g. Row-Level Security i sufit spisu tresci. ZROBIONE 2026-08-11, branch fe
 - Polityki obejmuja projects, nodes, code_anchors, pending_actions i conversations. Swiadomie poza nimi zostaja users, workspaces, memberships, invites i api_tokens: kazda z tych tabel jest czytana, zanim jest po kim scope'owac (logowanie po mailu, zaproszenie po kodzie, token po hashu), a polityki na archiwum sa napisane w terminach memberships, wiec polityka na niej samej bylaby rekurencja.
 - Znalezione po drodze: `??=` przy nadpisywaniu `DATABASE_URL_APP` w skryptach administracyjnych nie dziala, bo .env te zmienna juz ma. Skrypt seedujacy szedl wiec jako rola pod politykami i wywracal sie na WITH CHECK. Twarde przypisanie, nie uprzejme.
 - Sufit spisu tresci: opisany przy sekcji 6.
+
+Krok 5h. Archiwum przy zakladaniu projektu, token per maszyna. ZROBIONE 2026-08-30, branch feature/workspace-split-brain.
+- Powod: aplikacja i coder wybieraly archiwum niezaleznie od siebie. Formularz nowego projektu nie wysylal workspace_id, wiec projekt szedl do najstarszego czlonkostwa, a token siegal tego, dla ktorego powstal. Gdy te dwa sie rozjechaly, coder odpowiadal unknown_repo, czyli "zaloz projekt", a projekt byl na ekranie. Kto tej odpowiedzi posluchal, mial jedno repozytorium w dwoch archiwach i polowe wpisow tam, gdzie druga polowa ich nie widzi.
+- Dwa konce tej samej naprawy, robione w dwoch rownoleglych sesjach i scalone w jednym drzewie:
+  - Formularz pyta o archiwum, gdy jest wiecej niz jedno. Pole odpowiada na inne pytanie niz przedtem: nie ktory coder znajdzie projekt, tylko kto jeszcze go czyta.
+  - Token przestal nalezec do przestrzeni. api_tokens.workspace_id nullable i nieczytane (migracja 0012), Actor to { userId, tokenId }, a repo_ref wybiera projekt sposrod wszystkich archiwow wlasciciela tokena. Jedno trafienie rozwiazuje, zero to unknown_repo, wiecej niz jedno to ambiguous_repo.
+- Slad nieudanego pukania: api_tokens.last_unknown_repo i last_unknown_repo_at (migracja 0011). Odpowiedz o nietrafionym adresie szla wylacznie do codera, wiec aplikacja wygladala zdrowo, kiedy kazda sesja wracala pusta. Ekran glowny pokazuje ostatnie takie pytanie i otwiera formularz z wpisanym adresem. Nic nie czysci kolumny: baner znika sam, gdy projekt pod tym adresem istnieje.
+- Przenoszenie projektu miedzy archiwami: POST /projects/:id/workspace, wlasciciel zrodla i czlonek celu, tak jak przy usuwaniu. Wpisy i kolejka do zatwierdzenia ida razem z projektem. Wczesniej jedynym lekiem na projekt w zlym archiwum bylo usuniecie go razem z tym, co pod nim stalo.
+- repo_ref w opisie narzedzia MCP mowi teraz o local/<nazwa projektu>: repozytorium bez remote nie mialo zadnej odpowiedzi, a coder nie odczyta tej konwencji z katalogu.
+- Copy obiecywalo token per archiwum na czterech ekranach, a onboarding rownoczesnie "raz na komputer". Poprawione w obu jezykach, klucz settings.forWorkspace usuniety razem z pickerem.
+- Gotowe gdy: verify-rest.ts przechodzi przenoszenie (czlonek odrzucony, wpisy podazaja za projektem, kolizja repo_ref to 400), a verify-service.ts unknown_repo, ambiguous_repo i slad na tokenie. Asercje dopisane, przebieg czeka na migracje 0011 i 0012 na bazie.
 
 Krok 6 (po MVP). Edges + replaces + graph RAG, awansowanie statusow przez przezycie, hook konca sesji dla Claude Code, obsluga coderow bez MCP (cienkie CLI).
 
