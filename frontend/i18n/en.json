@@ -245,7 +245,8 @@
     "hideNav": "Hide menu",
     "showNav": "Show menu",
     "newProject": "New project",
-    "teams": "Teams"
+    "teams": "Teams",
+    "tasks": "Tasks"
   },
   "assistant": {
     "placeholder": "What would you like to ask?",
@@ -315,6 +316,81 @@
     "toastFailed": "That did not work. Try again.",
     "showChange": "Show the change",
     "hideChange": "Hide the change"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "lead": "Work that should survive the session and stay visible to humans and agents.",
+    "loading": "Loading...",
+    "createOpen": "New task",
+    "createClose": "Close",
+    "create": "Create task",
+    "creating": "Creating",
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "saving": "Saving",
+    "archive": "Archive",
+    "loadMore": "Load more",
+    "filters": "Task filters",
+    "search": "Search",
+    "empty": "No tasks here.",
+    "emptyNote": "When a human or an agent leaves concrete work for later, it appears here.",
+    "unreachable": "The server is not answering",
+    "unreachableNote": "Tasks could not be loaded. Check that the Ariadne server is running and try again.",
+    "retry": "Try again",
+    "noProject": "You have no project yet",
+    "noProjectNote": "Create a project first, then tasks will belong to that project.",
+    "toastCreated": "Task created.",
+    "toastSaved": "Task saved.",
+    "toastArchived": "Task archived.",
+    "conflict": "This task changed somewhere else. Reload it before saving.",
+    "blockedRequired": "A blocked task needs a reason.",
+    "relatedContext": "Related context",
+    "linkedMemories": "Linked memories",
+    "noMemories": "No active memories to link yet.",
+    "history": "History",
+    "human": "human",
+    "agent": "agent",
+    "createdBy": "created by {who}",
+    "tab": {
+      "all": "All",
+      "todo": "Todo",
+      "in_progress": "In progress",
+      "blocked": "Blocked",
+      "done": "Done"
+    },
+    "status": {
+      "backlog": "Backlog",
+      "todo": "Todo",
+      "in_progress": "In progress",
+      "blocked": "Blocked",
+      "done": "Done",
+      "archived": "Archived"
+    },
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "field": {
+      "title": "Title",
+      "description": "Description",
+      "status": "Status",
+      "priority": "Priority",
+      "blockedReason": "Blocked reason"
+    },
+    "memory": {
+      "decision": "Decision",
+      "session_summary": "Session summary",
+      "note": "Note"
+    },
+    "event": {
+      "created": "Created",
+      "updated": "Updated",
+      "status_changed": "Status changed",
+      "archived": "Archived",
+      "linked_memories": "Linked memories"
+    }
   },
   "project": {
     "title": "Project",

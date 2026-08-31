@@ -52,6 +52,15 @@ export function IconAdd() {
   );
 }
 
+export function IconTasks() {
+  return (
+    <svg {...stroke}>
+      <path d="M4 5.2h10M4 9h10M4 12.8h6.2" />
+      <path d="M2.2 5.2h.1M2.2 9h.1M2.2 12.8h.1" />
+    </svg>
+  );
+}
+
 export function IconQueue() {
   return (
     <svg {...stroke}>

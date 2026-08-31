@@ -245,7 +245,8 @@
     "hideNav": "Ukryj menu",
     "showNav": "Pokaż menu",
     "newProject": "Nowy projekt",
-    "teams": "Zespoły"
+    "teams": "Zespoły",
+    "tasks": "Zadania"
   },
   "assistant": {
     "placeholder": "O co chcesz zapytać?",
@@ -315,6 +316,81 @@
     "toastFailed": "Nie udało się. Spróbuj jeszcze raz.",
     "showChange": "Pokaż zmianę",
     "hideChange": "Zwiń zmianę"
+  },
+  "tasks": {
+    "title": "Zadania",
+    "lead": "Praca, która ma przetrwać sesję i zostać widoczna dla ludzi oraz agentów.",
+    "loading": "Wczytuję...",
+    "createOpen": "Nowe zadanie",
+    "createClose": "Zamknij",
+    "create": "Utwórz zadanie",
+    "creating": "Tworzę",
+    "cancel": "Anuluj",
+    "save": "Zapisz zmiany",
+    "saving": "Zapisuję",
+    "archive": "Do archiwum",
+    "loadMore": "Wczytaj więcej",
+    "filters": "Filtry zadań",
+    "search": "Szukaj",
+    "empty": "Nie ma tu zadań.",
+    "emptyNote": "Kiedy człowiek albo agent zostawi konkretną pracę na później, pojawi się tutaj.",
+    "unreachable": "Serwer nie odpowiada",
+    "unreachableNote": "Nie udało się pobrać zadań. Sprawdź, czy serwer Ariadne działa, i spróbuj ponownie.",
+    "retry": "Spróbuj ponownie",
+    "noProject": "Nie masz jeszcze projektu",
+    "noProjectNote": "Najpierw załóż projekt, a zadania będą należeć właśnie do niego.",
+    "toastCreated": "Zadanie utworzone.",
+    "toastSaved": "Zadanie zapisane.",
+    "toastArchived": "Zadanie trafiło do archiwum.",
+    "conflict": "To zadanie zmieniło się gdzie indziej. Odśwież je przed zapisem.",
+    "blockedRequired": "Zablokowane zadanie potrzebuje powodu.",
+    "relatedContext": "Powiązany kontekst",
+    "linkedMemories": "Powiązane wpisy",
+    "noMemories": "Nie ma jeszcze aktywnych wpisów do powiązania.",
+    "history": "Historia",
+    "human": "człowiek",
+    "agent": "agent",
+    "createdBy": "utworzył {who}",
+    "tab": {
+      "all": "Wszystkie",
+      "todo": "Do zrobienia",
+      "in_progress": "W toku",
+      "blocked": "Zablokowane",
+      "done": "Zrobione"
+    },
+    "status": {
+      "backlog": "Backlog",
+      "todo": "Do zrobienia",
+      "in_progress": "W toku",
+      "blocked": "Zablokowane",
+      "done": "Zrobione",
+      "archived": "Zarchiwizowane"
+    },
+    "priority": {
+      "low": "Niski",
+      "medium": "Średni",
+      "high": "Wysoki",
+      "critical": "Krytyczny"
+    },
+    "field": {
+      "title": "Tytuł",
+      "description": "Opis",
+      "status": "Status",
+      "priority": "Priorytet",
+      "blockedReason": "Powód blokady"
+    },
+    "memory": {
+      "decision": "Decyzja",
+      "session_summary": "Podsumowanie sesji",
+      "note": "Notatka"
+    },
+    "event": {
+      "created": "Utworzono",
+      "updated": "Zmieniono",
+      "status_changed": "Zmieniono status",
+      "archived": "Zarchiwizowano",
+      "linked_memories": "Powiązano wpisy"
+    }
   },
   "project": {
     "title": "Projekt",

@@ -2,13 +2,18 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod/v4";
 import {
   type Actor,
+  type TaskPriority,
+  type TaskStatus,
   ServiceError,
+  createTask,
   createNode,
   getBootContext,
+  listTasks,
   requestDelete,
   requestUpdate,
   resolveProjectByRepoRef,
   searchNodes,
+  updateTask,
 } from "./service.js";
 
 // The 5 tools of plan section 9. Thin wrappers: schema in, service call,
@@ -19,6 +24,9 @@ const anchorSchema = z.object({
   symbol: z.string().optional().describe("function or class the note is about"),
   sha: z.string().optional().describe("commit SHA, if the note is tied to one"),
 });
+
+const taskStatus = z.enum(["backlog", "todo", "in_progress", "blocked", "done", "archived"]);
+const taskPriority = z.enum(["low", "medium", "high", "critical"]);
 
 // The second sentence is there because a repository without a remote had no
 // answer at all. The app files those as local/<project name>, a coder has no way
@@ -208,6 +216,145 @@ export function createMcpServer({ userId, tokenId }: Actor): McpServer {
           replacesNodeId: replaces_node_id,
         });
       }),
+  );
+
+  server.registerTool(
+    "get_tasks",
+    {
+      description:
+        "Call this when you need the active work list for this project, when boot context says more tasks exist, or before deciding what unfinished work to continue. " +
+        "Tasks are operational work state, not confirmed project knowledge. Use search_context for decisions and notes.",
+      inputSchema: {
+        repo_ref: repoRef,
+        status: taskStatus.optional().describe("filter to one task status"),
+        priority: taskPriority.optional().describe("filter to one priority"),
+        active: z.boolean().optional().describe("true returns backlog/todo/in_progress/blocked"),
+        completed: z.boolean().optional().describe("true returns done tasks; false returns active tasks"),
+        query: z.string().optional().describe("plain lexical search over task title and description"),
+        limit: z.number().optional().describe("how many tasks to return, 1 to 100, default 50"),
+        cursor: z.string().optional().describe("cursor returned by a previous get_tasks call"),
+      },
+    },
+    ({ repo_ref, status, priority, active, completed, query, limit, cursor }) =>
+      run(async () => {
+        const project = await resolveProjectByRepoRef({ userId, tokenId, repoRef: repo_ref });
+        return listTasks({
+          userId,
+          projectId: project.id,
+          status: status as TaskStatus | undefined,
+          priority: priority as TaskPriority | undefined,
+          active,
+          completed,
+          query,
+          limit,
+          cursor,
+        });
+      }),
+  );
+
+  server.registerTool(
+    "create_task",
+    {
+      description:
+        "Call this when concrete unfinished work should survive this session for a human or another coding agent. " +
+        "Write a specific verb-plus-object title. Do not create tasks for vague thoughts; knowledge belongs in add_context.",
+      inputSchema: {
+        repo_ref: repoRef,
+        title: z.string().describe("specific work item, max 160 characters"),
+        description: z.string().optional().describe("details another agent needs to continue"),
+        status: taskStatus.optional().describe("default todo"),
+        priority: taskPriority.optional().describe("default medium"),
+        blocked_reason: z.string().optional().describe("required when status is blocked"),
+        related_memory_ids: z
+          .array(z.string())
+          .optional()
+          .describe("existing Ariadne memory node ids this task refers to"),
+        source: z
+          .object({
+            client: z.string().optional().describe("agent/client name, e.g. Codex or Claude Code"),
+            session_id: z.string().optional().describe("working session id, if you have one"),
+            commit_sha: z.string().optional().describe("related commit, if there is one"),
+          })
+          .optional(),
+      },
+    },
+    ({
+      repo_ref,
+      title,
+      description,
+      status,
+      priority,
+      blocked_reason,
+      related_memory_ids,
+      source,
+    }) =>
+      run(async () => {
+        const project = await resolveProjectByRepoRef({ userId, tokenId, repoRef: repo_ref });
+        return createTask({
+          userId,
+          projectId: project.id,
+          title,
+          description,
+          status: status as TaskStatus | undefined,
+          priority: priority as TaskPriority | undefined,
+          blockedReason: blocked_reason,
+          relatedMemoryIds: related_memory_ids,
+          source: { channel: "coder", token_id: tokenId, ...source },
+        });
+      }),
+  );
+
+  server.registerTool(
+    "update_task",
+    {
+      description:
+        "Call this after reading a task when you have made progress, need to block it with a reason, complete it, reopen it, archive it, or refine its title/description/links. " +
+        "Only send fields you mean to change. Include revision when you have it so a stale update fails instead of overwriting newer work.",
+      inputSchema: {
+        task_id: z.string().describe("uuid of the task to update"),
+        revision: z.number().optional().describe("task revision you last read"),
+        title: z.string().optional(),
+        description: z.string().nullable().optional(),
+        status: taskStatus.optional(),
+        priority: taskPriority.optional(),
+        blocked_reason: z.string().nullable().optional(),
+        related_memory_ids: z.array(z.string()).optional(),
+        source: z
+          .object({
+            client: z.string().optional().describe("agent/client name, e.g. Codex or Claude Code"),
+            session_id: z.string().optional().describe("working session id, if you have one"),
+            commit_sha: z.string().optional().describe("related commit, if there is one"),
+          })
+          .optional(),
+      },
+    },
+    ({
+      task_id,
+      revision,
+      title,
+      description,
+      status,
+      priority,
+      blocked_reason,
+      related_memory_ids,
+      source,
+    }) =>
+      run(() =>
+        updateTask({
+          userId,
+          taskId: task_id,
+          revision,
+          patch: {
+            title,
+            description,
+            status: status as TaskStatus | undefined,
+            priority: priority as TaskPriority | undefined,
+            blockedReason: blocked_reason,
+            relatedMemoryIds: related_memory_ids,
+          },
+          source: { channel: "coder", token_id: tokenId, ...source },
+        }),
+      ),
   );
 
   server.registerTool(

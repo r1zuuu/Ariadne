@@ -4,6 +4,7 @@ import {
   boolean,
   check,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -281,6 +282,93 @@ export const pendingActions = pgTable(
     check(
       "pending_actions_status_check",
       sql`${t.status} IN ('pending','approved','rejected')`,
+    ),
+  ],
+);
+
+export const tasks = pgTable(
+  "tasks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description").notNull().default(""),
+    status: text("status").notNull().default("todo"),
+    priority: text("priority").notNull().default("medium"),
+    blockedReason: text("blocked_reason"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    completedBy: uuid("completed_by").references(() => users.id, { onDelete: "set null" }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    source: jsonb("source").notNull().default(sql`'{}'::jsonb`),
+    revision: integer("revision").notNull().default(1),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("tasks_lookup").on(t.workspaceId, t.projectId, t.status, t.updatedAt.desc()),
+    index("tasks_priority_lookup").on(t.workspaceId, t.projectId, t.priority, t.updatedAt.desc()),
+    check(
+      "tasks_status_check",
+      sql`${t.status} IN ('backlog','todo','in_progress','blocked','done','archived')`,
+    ),
+    check("tasks_priority_check", sql`${t.priority} IN ('low','medium','high','critical')`),
+  ],
+);
+
+export const taskMemoryLinks = pgTable(
+  "task_memory_links",
+  {
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    nodeId: uuid("node_id")
+      .notNull()
+      .references(() => nodes.id, { onDelete: "cascade" }),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.taskId, t.nodeId] }),
+    index("task_memory_links_by_node").on(t.workspaceId, t.projectId, t.nodeId),
+    index("task_memory_links_by_task").on(t.taskId),
+  ],
+);
+
+export const taskEvents = pgTable(
+  "task_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    action: text("action").notNull(),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    source: jsonb("source").notNull().default(sql`'{}'::jsonb`),
+    payload: jsonb("payload").notNull().default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("task_events_by_task").on(t.taskId, t.createdAt.desc()),
+    index("task_events_by_workspace").on(t.workspaceId, t.createdAt.desc()),
+    check(
+      "task_events_action_check",
+      sql`${t.action} IN ('created','updated','status_changed','archived','linked_memories')`,
     ),
   ],
 );

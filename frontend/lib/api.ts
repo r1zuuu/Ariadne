@@ -171,6 +171,54 @@ export type Node = {
   confirmedAt?: string | null;
 };
 
+export type TaskStatus =
+  | "backlog"
+  | "todo"
+  | "in_progress"
+  | "blocked"
+  | "done"
+  | "archived";
+
+export type TaskPriority = "low" | "medium" | "high" | "critical";
+
+export type Task = {
+  id: string;
+  workspaceId: string;
+  projectId: string;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  blockedReason: string | null;
+  source: { channel?: "app_form" | "coder"; client?: string; token_id?: string };
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string | null;
+  completedAt: string | null;
+  completedBy: string | null;
+  relatedMemoryIds: string[];
+};
+
+export type TaskEvent = {
+  id: string;
+  action: "created" | "updated" | "status_changed" | "archived" | "linked_memories";
+  actor: string | null;
+  source: { channel?: "app_form" | "coder"; client?: string };
+  payload: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type RelatedMemory = Pick<
+  Node,
+  "id" | "type" | "content" | "summary" | "status" | "createdAt"
+>;
+
+export type TaskDetail = Task & {
+  relatedMemories: RelatedMemory[];
+  events: TaskEvent[];
+};
+
 export const login = (email: string, password: string) =>
   request<{ token: string }>("/auth/login", { method: "POST", body: { email, password }, auth: false });
 
@@ -280,6 +328,60 @@ export const listNodes = (
     `/projects/${projectId}/nodes?${query}`,
   );
 };
+
+export const listTasks = (
+  projectId: string,
+  options: {
+    status?: TaskStatus;
+    priority?: TaskPriority;
+    creator?: string;
+    active?: boolean;
+    completed?: boolean;
+    query?: string;
+    cursor?: string;
+    limit?: number;
+  } = {},
+) => {
+  const query = new URLSearchParams();
+  if (options.status) query.set("status", options.status);
+  if (options.priority) query.set("priority", options.priority);
+  if (options.creator) query.set("creator", options.creator);
+  if (options.active !== undefined) query.set("active", String(options.active));
+  if (options.completed !== undefined) query.set("completed", String(options.completed));
+  if (options.query) query.set("query", options.query);
+  if (options.cursor) query.set("cursor", options.cursor);
+  if (options.limit) query.set("limit", String(options.limit));
+  return request<{ tasks: Task[]; nextCursor: string | null }>(
+    `/projects/${projectId}/tasks${query.size ? `?${query}` : ""}`,
+  );
+};
+
+export const createTask = (
+  projectId: string,
+  task: {
+    title: string;
+    description?: string;
+    status?: TaskStatus;
+    priority?: TaskPriority;
+    blockedReason?: string | null;
+    relatedMemoryIds?: string[];
+  },
+) => request<TaskDetail>(`/projects/${projectId}/tasks`, { method: "POST", body: task });
+
+export const getTask = (id: string) => request<TaskDetail>(`/tasks/${id}`);
+
+export const updateTask = (
+  id: string,
+  patch: Partial<{
+    title: string;
+    description: string | null;
+    status: TaskStatus;
+    priority: TaskPriority;
+    blockedReason: string | null;
+    relatedMemoryIds: string[];
+    revision: number;
+  }>,
+) => request<TaskDetail>(`/tasks/${id}`, { method: "PATCH", body: patch });
 
 // The label names a machine, and that is the whole of a token: it reaches every
 // archive this account belongs to, and the repository a coder stands in decides

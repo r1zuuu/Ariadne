@@ -12,6 +12,7 @@ import {
   ne,
   or,
   sql,
+  type SQLWrapper,
 } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "./db/client.js";
@@ -25,6 +26,9 @@ import {
   oauthAccounts,
   pendingActions,
   projects,
+  taskEvents,
+  taskMemoryLinks,
+  tasks,
   users,
   workspaces,
 } from "./db/schema.js";
@@ -45,6 +49,7 @@ export class ServiceError extends Error {
       | "not_found"
       | "unauthorized"
       | "rate_limited"
+      | "conflict"
       // Its own code, not a validation error: nothing about the request is
       // wrong, the account simply has no key to Google and neither has the
       // server. The app turns this one into "add your key in settings".
@@ -490,6 +495,9 @@ const NODE_COLUMNS = {
 // The users table is joined twice on a node (who wrote it, who confirmed it),
 // so the second one needs a name of its own.
 const confirmer = alias(users, "confirmer");
+const taskCreator = alias(users, "task_creator");
+const taskCompleter = alias(users, "task_completer");
+const taskEventActor = alias(users, "task_event_actor");
 
 /**
  * The entries a row says it clashes with, as text a screen can show. A second
@@ -966,6 +974,8 @@ export async function getBootContext(input: {
     .orderBy(desc(countDistinct(nodes.id)), codeAnchors.path)
     .limit(BY_FILE_SIZE);
 
+  const taskSummary = await taskBootSummary({ userId: input.userId, projectId: project.id });
+
   return {
     profile: user.profile,
     project: {
@@ -992,6 +1002,7 @@ export async function getBootContext(input: {
         headline: headline(content),
       })),
     },
+    tasks: taskSummary,
   };
 }
 
@@ -1367,6 +1378,537 @@ export async function contradictNode(input: {
     .update(nodes)
     .set({ status: "contradicted", supersededBy: input.supersededBy, updatedAt: new Date() })
     .where(and(eq(nodes.id, input.nodeId), eq(nodes.workspaceId, workspaceId)));
+}
+
+// --- Tasks: shared operational state ---
+
+export type TaskStatus = "backlog" | "todo" | "in_progress" | "blocked" | "done" | "archived";
+export type TaskPriority = "low" | "medium" | "high" | "critical";
+export type TaskSource = {
+  channel: "app_form" | "coder";
+  client?: string;
+  session_id?: string;
+  commit_sha?: string;
+  token_id?: string;
+};
+
+export type TaskPatch = {
+  title?: string;
+  description?: string | null;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  blockedReason?: string | null;
+  relatedMemoryIds?: string[];
+};
+
+const TASK_STATUSES = ["backlog", "todo", "in_progress", "blocked", "done", "archived"] as const;
+const TASK_PRIORITIES = ["low", "medium", "high", "critical"] as const;
+const TASK_ACTIVE_STATUSES: TaskStatus[] = ["backlog", "todo", "in_progress", "blocked"];
+const TASK_LIST_LIMIT = 50;
+const TASK_MAX_LIST_LIMIT = 100;
+const TASK_TITLE_LENGTH = 160;
+const TASK_BOOT_ITEMS = 4;
+
+const TASK_COLUMNS = {
+  id: tasks.id,
+  workspaceId: tasks.workspaceId,
+  projectId: tasks.projectId,
+  title: tasks.title,
+  description: tasks.description,
+  status: tasks.status,
+  priority: tasks.priority,
+  blockedReason: tasks.blockedReason,
+  source: tasks.source,
+  revision: tasks.revision,
+  createdAt: tasks.createdAt,
+  updatedAt: tasks.updatedAt,
+  completedAt: tasks.completedAt,
+  createdBy: taskCreator.email,
+  completedBy: taskCompleter.email,
+};
+
+function assertTaskStatus(status: string): asserts status is TaskStatus {
+  if (!TASK_STATUSES.includes(status as TaskStatus)) {
+    throw new ServiceError("validation", `status must be one of: ${TASK_STATUSES.join(", ")}`);
+  }
+}
+
+function assertTaskPriority(priority: string): asserts priority is TaskPriority {
+  if (!TASK_PRIORITIES.includes(priority as TaskPriority)) {
+    throw new ServiceError("validation", `priority must be one of: ${TASK_PRIORITIES.join(", ")}`);
+  }
+}
+
+function validateTaskTitle(raw: string): string {
+  const title = (raw ?? "").trim();
+  if (!title) throw new ServiceError("validation", "title must not be empty");
+  if (title.length > TASK_TITLE_LENGTH) {
+    throw new ServiceError("validation", `title must be at most ${TASK_TITLE_LENGTH} characters`);
+  }
+  return title;
+}
+
+function validateOptionalTaskText(raw: string | null | undefined, field: string): string {
+  const value = (raw ?? "").trim();
+  if (value.length > MAX_CONTENT_LENGTH) {
+    throw new ServiceError("validation", `${field} must be at most ${MAX_CONTENT_LENGTH} characters`);
+  }
+  return value;
+}
+
+function assertRevision(revision: number | undefined) {
+  if (revision !== undefined && (!Number.isInteger(revision) || revision < 1)) {
+    throw new ServiceError("validation", "revision must be a positive integer");
+  }
+}
+
+function taskEventSource(input: TaskSource): TaskSource {
+  return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined)) as TaskSource;
+}
+
+async function workspaceOfTask(userId: string, taskId: string): Promise<string> {
+  assertUuid(userId, "userId");
+  assertUuid(taskId, "taskId");
+  const [task] = await db
+    .select({ workspaceId: tasks.workspaceId })
+    .from(tasks)
+    .innerJoin(memberships, eq(memberships.workspaceId, tasks.workspaceId))
+    .where(and(eq(tasks.id, taskId), eq(memberships.userId, userId)));
+  if (!task) throw new ServiceError("not_found", "task not found for this user");
+  return task.workspaceId;
+}
+
+async function assertTaskMemoryLinks(input: {
+  userId: string;
+  workspaceId: string;
+  projectId: string;
+  relatedMemoryIds: string[];
+}) {
+  const ids = [...new Set(input.relatedMemoryIds)];
+  for (const id of ids) assertUuid(id, "relatedMemoryIds");
+  if (!ids.length) return ids;
+
+  const found = await db
+    .select({ id: nodes.id })
+    .from(nodes)
+    .where(
+      and(
+        inArray(nodes.id, ids),
+        eq(nodes.workspaceId, input.workspaceId),
+        eq(nodes.projectId, input.projectId),
+        inArray(nodes.workspaceId, reachableWorkspaces(input.userId)),
+      ),
+    );
+  if (found.length !== ids.length) {
+    throw new ServiceError("not_found", "one or more related memories were not found in this project");
+  }
+  return ids;
+}
+
+async function attachTaskMemoryIds<T extends { id: string }>(rows: T[]) {
+  const links = rows.length
+    ? await db
+        .select({ taskId: taskMemoryLinks.taskId, nodeId: taskMemoryLinks.nodeId })
+        .from(taskMemoryLinks)
+        .where(inArray(taskMemoryLinks.taskId, rows.map((r) => r.id)))
+    : [];
+  return rows.map((row) => ({
+    ...row,
+    relatedMemoryIds: links.filter((link) => link.taskId === row.id).map((link) => link.nodeId),
+  }));
+}
+
+async function readTaskRows(filters: SQLWrapper[], limit: number, cursor?: string) {
+  const scoped = cursor ? [...filters, afterTaskCursor(cursor)] : filters;
+  const rows = await db
+    .select(TASK_COLUMNS)
+    .from(tasks)
+    .leftJoin(taskCreator, eq(taskCreator.id, tasks.createdBy))
+    .leftJoin(taskCompleter, eq(taskCompleter.id, tasks.completedBy))
+    .where(and(...scoped))
+    .orderBy(
+      sql`CASE ${tasks.status}
+        WHEN 'blocked' THEN 1
+        WHEN 'in_progress' THEN 2
+        WHEN 'todo' THEN CASE ${tasks.priority}
+          WHEN 'critical' THEN 3
+          WHEN 'high' THEN 4
+          WHEN 'medium' THEN 5
+          ELSE 6
+        END
+        WHEN 'backlog' THEN 7
+        WHEN 'done' THEN 8
+        ELSE 9
+      END`,
+      desc(tasks.updatedAt),
+      desc(tasks.id),
+    )
+    .limit(limit + 1);
+
+  const page = rows.slice(0, limit);
+  const last = page.at(-1);
+  return {
+    tasks: await attachTaskMemoryIds(page),
+    nextCursor: rows.length > limit && last ? `${last.updatedAt.toISOString()}|${last.id}` : null,
+  };
+}
+
+function afterTaskCursor(cursor: string) {
+  const [updatedAt, id] = cursor.split("|");
+  if (!id || Number.isNaN(Date.parse(updatedAt ?? ""))) {
+    throw new ServiceError("validation", "cursor is not one this endpoint handed out");
+  }
+  assertUuid(id, "cursor");
+  return sql`(${tasks.updatedAt}, ${tasks.id}) < (${updatedAt}::timestamptz, ${id}::uuid)`;
+}
+
+async function writeTaskEvent(input: {
+  workspaceId: string;
+  projectId: string;
+  taskId: string;
+  action: "created" | "updated" | "status_changed" | "archived" | "linked_memories";
+  actorId: string;
+  source: TaskSource;
+  payload?: unknown;
+}) {
+  await db.insert(taskEvents).values({
+    workspaceId: input.workspaceId,
+    projectId: input.projectId,
+    taskId: input.taskId,
+    action: input.action,
+    actorId: input.actorId,
+    source: taskEventSource(input.source),
+    payload: input.payload ?? {},
+  });
+}
+
+export async function listTasks(input: {
+  userId: string;
+  projectId: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  creator?: string;
+  active?: boolean;
+  completed?: boolean;
+  query?: string;
+  cursor?: string;
+  limit?: number;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  if (input.status) assertTaskStatus(input.status);
+  if (input.priority) assertTaskPriority(input.priority);
+  if (input.creator) assertUuid(input.creator, "creator");
+  const limit = input.limit ?? TASK_LIST_LIMIT;
+  if (!Number.isInteger(limit) || limit < 1 || limit > TASK_MAX_LIST_LIMIT) {
+    throw new ServiceError("validation", `limit must be an integer between 1 and ${TASK_MAX_LIST_LIMIT}`);
+  }
+  const workspaceId = await workspaceOfProject(input.userId, input.projectId);
+  const filters = [eq(tasks.workspaceId, workspaceId), eq(tasks.projectId, input.projectId)];
+  if (input.status) filters.push(eq(tasks.status, input.status));
+  else if (input.completed === true) filters.push(eq(tasks.status, "done"));
+  else if (input.active === true || input.completed === false) {
+    filters.push(inArray(tasks.status, TASK_ACTIVE_STATUSES));
+  } else {
+    filters.push(ne(tasks.status, "archived"));
+  }
+  if (input.priority) filters.push(eq(tasks.priority, input.priority));
+  if (input.creator) filters.push(eq(tasks.createdBy, input.creator));
+  const query = input.query?.trim();
+  if (query) {
+    const pattern = `%${query.replace(/[%_\\]/g, "\\$&")}%`;
+    filters.push(sql`(${tasks.title} ILIKE ${pattern} ESCAPE '\' OR ${tasks.description} ILIKE ${pattern} ESCAPE '\')`);
+  }
+  return readTaskRows(filters, limit, input.cursor);
+}
+
+export async function getTask(input: { userId: string; taskId: string }) {
+  assertUuid(input.userId, "userId");
+  const workspaceId = await workspaceOfTask(input.userId, input.taskId);
+  const [task] = await db
+    .select(TASK_COLUMNS)
+    .from(tasks)
+    .leftJoin(taskCreator, eq(taskCreator.id, tasks.createdBy))
+    .leftJoin(taskCompleter, eq(taskCompleter.id, tasks.completedBy))
+    .where(and(eq(tasks.id, input.taskId), eq(tasks.workspaceId, workspaceId)));
+  if (!task) throw new ServiceError("not_found", "task not found for this user");
+
+  const links = await db
+    .select({
+      id: nodes.id,
+      type: nodes.type,
+      content: nodes.content,
+      summary: nodes.summary,
+      status: nodes.status,
+      createdAt: nodes.createdAt,
+    })
+    .from(taskMemoryLinks)
+    .innerJoin(nodes, eq(nodes.id, taskMemoryLinks.nodeId))
+    .where(and(eq(taskMemoryLinks.taskId, input.taskId), eq(taskMemoryLinks.workspaceId, workspaceId)))
+    .orderBy(desc(taskMemoryLinks.createdAt));
+
+  const events = await db
+    .select({
+      id: taskEvents.id,
+      action: taskEvents.action,
+      actor: taskEventActor.email,
+      source: taskEvents.source,
+      payload: taskEvents.payload,
+      createdAt: taskEvents.createdAt,
+    })
+    .from(taskEvents)
+    .leftJoin(taskEventActor, eq(taskEventActor.id, taskEvents.actorId))
+    .where(and(eq(taskEvents.taskId, input.taskId), eq(taskEvents.workspaceId, workspaceId)))
+    .orderBy(desc(taskEvents.createdAt));
+
+  return { ...(await attachTaskMemoryIds([task]))[0], relatedMemories: links, events };
+}
+
+export async function createTask(input: {
+  userId: string;
+  projectId: string;
+  title: string;
+  description?: string | null;
+  priority?: TaskPriority;
+  status?: TaskStatus;
+  blockedReason?: string | null;
+  relatedMemoryIds?: string[];
+  source: TaskSource;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.projectId, "projectId");
+  const title = validateTaskTitle(input.title);
+  const description = validateOptionalTaskText(input.description, "description");
+  const priority = input.priority ?? "medium";
+  const status = input.status ?? "todo";
+  assertTaskPriority(priority);
+  assertTaskStatus(status);
+  const blockedReason =
+    status === "blocked" ? validateOptionalTaskText(input.blockedReason, "blockedReason") : null;
+  if (status === "blocked" && !blockedReason) {
+    throw new ServiceError("validation", "blockedReason is required when status is blocked");
+  }
+  const workspaceId = await workspaceOfProject(input.userId, input.projectId);
+  const relatedMemoryIds = await assertTaskMemoryLinks({
+    userId: input.userId,
+    workspaceId,
+    projectId: input.projectId,
+    relatedMemoryIds: input.relatedMemoryIds ?? [],
+  });
+
+  const taskId = await db.transaction(async (tx) => {
+    const now = new Date();
+    const [created] = await tx
+      .insert(tasks)
+      .values({
+        workspaceId,
+        projectId: input.projectId,
+        title,
+        description,
+        status,
+        priority,
+        blockedReason,
+        createdBy: input.userId,
+        completedBy: status === "done" ? input.userId : null,
+        completedAt: status === "done" ? now : null,
+        source: taskEventSource(input.source),
+      })
+      .returning({ id: tasks.id });
+
+    if (relatedMemoryIds.length) {
+      await tx.insert(taskMemoryLinks).values(
+        relatedMemoryIds.map((nodeId) => ({
+          taskId: created.id,
+          nodeId,
+          workspaceId,
+          projectId: input.projectId,
+        })),
+      );
+    }
+
+    await tx.insert(taskEvents).values({
+      workspaceId,
+      projectId: input.projectId,
+      taskId: created.id,
+      action: "created",
+      actorId: input.userId,
+      source: taskEventSource(input.source),
+      payload: { title, status, priority, relatedMemoryIds },
+    });
+
+    return created.id;
+  });
+  return getTask({ userId: input.userId, taskId });
+}
+
+export async function updateTask(input: {
+  userId: string;
+  taskId: string;
+  patch: TaskPatch;
+  revision?: number;
+  source: TaskSource;
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.taskId, "taskId");
+  assertRevision(input.revision);
+  const keys = Object.keys(input.patch);
+  if (!keys.length) throw new ServiceError("validation", "nothing to update");
+
+  const workspaceId = await workspaceOfTask(input.userId, input.taskId);
+  const [current] = await db
+    .select({
+      id: tasks.id,
+      projectId: tasks.projectId,
+      status: tasks.status,
+      revision: tasks.revision,
+      blockedReason: tasks.blockedReason,
+      completedAt: tasks.completedAt,
+    })
+    .from(tasks)
+    .where(and(eq(tasks.id, input.taskId), eq(tasks.workspaceId, workspaceId)));
+  if (!current) throw new ServiceError("not_found", "task not found for this user");
+
+  if (input.revision !== undefined && input.revision !== current.revision) {
+    throw new ServiceError("conflict", "task has changed; reload it before saving");
+  }
+
+  const patch = input.patch;
+  const updates: Partial<typeof tasks.$inferInsert> = { updatedAt: new Date() };
+  const changed: Record<string, unknown> = {};
+
+  if (patch.title !== undefined) {
+    updates.title = validateTaskTitle(patch.title);
+    changed.title = updates.title;
+  }
+  if (patch.description !== undefined) {
+    updates.description = validateOptionalTaskText(patch.description, "description");
+    changed.description = updates.description;
+  }
+  if (patch.priority !== undefined) {
+    assertTaskPriority(patch.priority);
+    updates.priority = patch.priority;
+    changed.priority = patch.priority;
+  }
+  if (patch.status !== undefined) {
+    assertTaskStatus(patch.status);
+    updates.status = patch.status;
+    changed.status = patch.status;
+    if (patch.status === "done" && current.status !== "done") {
+      updates.completedAt = new Date();
+      updates.completedBy = input.userId;
+      changed.completed = true;
+    }
+    if (current.status === "done" && patch.status !== "done") {
+      updates.completedAt = null;
+      updates.completedBy = null;
+      changed.reopened = true;
+    }
+    if (patch.status !== "blocked") {
+      updates.blockedReason = null;
+    }
+  }
+  if (patch.blockedReason !== undefined) {
+    updates.blockedReason = validateOptionalTaskText(patch.blockedReason, "blockedReason") || null;
+    changed.blockedReason = updates.blockedReason;
+  }
+
+  const nextStatus = (updates.status ?? current.status) as TaskStatus;
+  const nextBlockedReason =
+    updates.blockedReason !== undefined ? updates.blockedReason : current.blockedReason;
+  if (nextStatus === "blocked" && !nextBlockedReason) {
+    throw new ServiceError("validation", "blockedReason is required when status is blocked");
+  }
+
+  const linked =
+    patch.relatedMemoryIds === undefined
+      ? undefined
+      : await assertTaskMemoryLinks({
+          userId: input.userId,
+          workspaceId,
+          projectId: current.projectId,
+          relatedMemoryIds: patch.relatedMemoryIds,
+        });
+
+  const action =
+    updates.status === "archived"
+      ? "archived"
+      : updates.status !== undefined
+        ? "status_changed"
+        : linked !== undefined
+          ? "linked_memories"
+          : "updated";
+
+  await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(tasks)
+      .set({ ...updates, revision: sql`${tasks.revision} + 1` })
+      .where(
+        and(
+          eq(tasks.id, input.taskId),
+          eq(tasks.workspaceId, workspaceId),
+          input.revision === undefined ? undefined : eq(tasks.revision, input.revision),
+        ),
+      )
+      .returning({ id: tasks.id });
+    if (!updated) throw new ServiceError("conflict", "task has changed; reload it before saving");
+
+    if (linked !== undefined) {
+      await tx.delete(taskMemoryLinks).where(eq(taskMemoryLinks.taskId, input.taskId));
+      if (linked.length) {
+        await tx.insert(taskMemoryLinks).values(
+          linked.map((nodeId) => ({
+            taskId: input.taskId,
+            nodeId,
+            workspaceId,
+            projectId: current.projectId,
+          })),
+        );
+      }
+      changed.relatedMemoryIds = linked;
+    }
+
+    await tx.insert(taskEvents).values({
+      workspaceId,
+      projectId: current.projectId,
+      taskId: input.taskId,
+      action,
+      actorId: input.userId,
+      source: taskEventSource(input.source),
+      payload: changed,
+    });
+  });
+  return getTask({ userId: input.userId, taskId: input.taskId });
+}
+
+export async function taskBootSummary(input: { userId: string; projectId: string }) {
+  const workspaceId = await workspaceOfProject(input.userId, input.projectId);
+  const activeFilters = [
+    eq(tasks.workspaceId, workspaceId),
+    eq(tasks.projectId, input.projectId),
+    inArray(tasks.status, TASK_ACTIVE_STATUSES),
+  ];
+  const counts = await db
+    .select({ status: tasks.status, count: sql<number>`count(*)::int`.mapWith(Number) })
+    .from(tasks)
+    .where(and(...activeFilters))
+    .groupBy(tasks.status);
+  const important = await readTaskRows(activeFilters, TASK_BOOT_ITEMS);
+  const totalActive = counts.reduce((sum, row) => sum + Number(row.count), 0);
+  return {
+    counts: Object.fromEntries(counts.map((row) => [row.status, row.count])),
+    current: important.tasks.map((task) => ({
+      task_id: task.id,
+      title: task.title,
+      status: task.status,
+      priority: task.priority,
+      blocked_reason: task.blockedReason,
+      updated_at: task.updatedAt,
+    })),
+    showing: important.tasks.length,
+    total_active: totalActive,
+    more_available: totalActive > important.tasks.length,
+    tool: "get_tasks",
+  };
 }
 
 // --- Accounts and auth (plan section 10) ---
