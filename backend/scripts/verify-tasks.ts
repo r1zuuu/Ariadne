@@ -16,7 +16,7 @@ const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.j
 const { eq, inArray } = await import("drizzle-orm");
 const { createRestApp } = await import("../src/rest.js");
 const { db } = await import("../src/db/client.js");
-const { nodes, taskEvents, tasks, users, workspaces } = await import(
+const { nodes, taskActiveRuns, taskEvents, tasks, users, workspaces } = await import(
   "../src/db/schema.js"
 );
 const service = await import("../src/service.js");
@@ -204,18 +204,86 @@ assert.equal(agentCreated.isError, false);
 const agentBody = mcpJson(agentCreated) as { id: string; revision: number; status: string; source: { channel: string; client: string } };
 check("agent task creation records coder source", agentBody.source.channel, "coder");
 check("agent client is recorded", agentBody.source.client, "Codex");
+const started = await mcpClient.callTool({
+  name: "start_task_work",
+  arguments: {
+    task_id: agentBody.id,
+    source: { client: "Codex", session_id: "verify-live" },
+  },
+});
+assert.equal(started.isError, false);
+const startedBody = mcpJson(started) as {
+  run: { id: string; agent_kind: string; agent_client: string; expires_at: string };
+  task: { status: string; revision: number; active_runs: Array<{ id: string; agent_kind: string }> };
+};
+check("mcp start_task_work moves todo to in_progress", startedBody.task.status, "in_progress");
+check("mcp start_task_work bumps task revision", startedBody.task.revision, agentBody.revision + 1);
+check("mcp start_task_work returns codex run", startedBody.run.agent_kind, "codex");
+check("mcp start_task_work returns active run on task", startedBody.task.active_runs.length, 1);
+await new Promise((resolve) => setTimeout(resolve, 5));
+const heartbeat = await mcpClient.callTool({
+  name: "heartbeat_task_work",
+  arguments: { run_id: startedBody.run.id },
+});
+assert.equal(heartbeat.isError, false);
+const heartbeatBody = mcpJson(heartbeat) as { run: { expires_at: string } };
+check(
+  "heartbeat extends the run lease",
+  Date.parse(heartbeatBody.run.expires_at) >= Date.parse(startedBody.run.expires_at),
+  true,
+);
+check(
+  "heartbeat does not bump task revision",
+  (await service.getTask({ userId, taskId: agentBody.id })).revision,
+  startedBody.task.revision,
+);
+const claudeToken = await service.createApiToken({ userId, label: "Claude Code" });
+const [claudeClientSide, claudeServerSide] = InMemoryTransport.createLinkedPair();
+const claudeClient = new Client({ name: "verify-tasks-claude", version: "0" });
+await Promise.all([
+  createMcpServer({ userId, tokenId: claudeToken.id }).connect(claudeServerSide),
+  claudeClient.connect(claudeClientSide),
+]);
+const claudeStarted = await claudeClient.callTool({
+  name: "start_task_work",
+  arguments: {
+    task_id: agentBody.id,
+    source: { client: "Claude Code", session_id: "verify-claude" },
+  },
+});
+assert.equal(claudeStarted.isError, false);
+const claudeStartedBody = mcpJson(claudeStarted) as {
+  run: { id: string; agent_kind: string };
+  task: { active_runs: Array<{ id: string; agent_kind: string }> };
+};
+check("claude live run is classified", claudeStartedBody.run.agent_kind, "claude");
+check("multiple agents are visible on one task", claudeStartedBody.task.active_runs.length, 2);
+await db
+  .update(taskActiveRuns)
+  .set({ expiresAt: new Date(Date.now() - 1000) })
+  .where(eq(taskActiveRuns.id, startedBody.run.id));
+check(
+  "expired live runs disappear from detail",
+  (await service.getTask({ userId, taskId: agentBody.id })).activeRuns.length,
+  1,
+);
 const agentListed = await mcpClient.callTool({
   name: "get_tasks",
   arguments: { repo_ref: "github.com/r1zuuu/Tasks", active: true },
 });
 assert.equal(agentListed.isError, false);
-const agentListBody = mcpJson(agentListed) as { tasks: unknown[] };
+const agentListBody = mcpJson(agentListed) as { tasks: Array<{ id: string; active_runs: unknown[] }> };
 check("mcp get_tasks reads active tasks", agentListBody.tasks.length, 1);
+check(
+  "expired live runs disappear from list",
+  agentListBody.tasks.find((task) => task.id === agentBody.id)?.active_runs.length,
+  1,
+);
 const agentUpdated = await mcpClient.callTool({
   name: "update_task",
   arguments: {
     task_id: agentBody.id,
-    revision: agentBody.revision,
+    revision: startedBody.task.revision,
     status: "in_progress",
     source: { client: "Codex", session_id: "verify" },
   },
@@ -227,10 +295,68 @@ const boot = await service.getBootContext({ userId, tokenId: agentToken.id, repo
 check("boot context names the task tool", boot.tasks.tool, "get_tasks");
 check("boot context counts active tasks", boot.tasks.total_active, 1);
 check("boot context returns a compact current list", boot.tasks.current.length, 1);
+check("boot context includes fresh live runs only", boot.tasks.current[0].active_runs.length, 1);
+
+const stopped = await claudeClient.callTool({
+  name: "stop_task_work",
+  arguments: { run_id: claudeStartedBody.run.id, outcome: "paused" },
+});
+assert.equal(stopped.isError, false);
+check("stop_task_work removes the live run", (await service.getTask({ userId, taskId: agentBody.id })).activeRuns.length, 0);
+const afterStop = await service.getTask({ userId, taskId: agentBody.id });
+const doneForLive = await call(`/tasks/${agentBody.id}`, {
+  method: "PATCH",
+  token,
+  body: { revision: afterStop.revision, status: "done" },
+});
+check("done before live start rejection returns 200", doneForLive.status, 200);
+const startDone = await mcpClient.callTool({
+  name: "start_task_work",
+  arguments: {
+    task_id: agentBody.id,
+    source: { client: "Codex", session_id: "verify-live-done" },
+  },
+});
+check("done task rejects live start", startDone.isError, true);
+const archivedForLive = await call(`/tasks/${agentBody.id}`, {
+  method: "PATCH",
+  token,
+  body: { revision: doneForLive.body.revision, status: "archived" },
+});
+check("archive before live start rejection returns 200", archivedForLive.status, 200);
+const startArchived = await mcpClient.callTool({
+  name: "start_task_work",
+  arguments: {
+    task_id: agentBody.id,
+    source: { client: "Codex", session_id: "verify-live-archived" },
+  },
+});
+check("archived task rejects live start", startArchived.isError, true);
 
 const theirToken: string = (
   await call("/auth/register", { method: "POST", body: { email: OTHER, password: PASSWORD } })
 ).body.token;
+const restLiveTask = await call(`/projects/${projectId}/tasks`, {
+  method: "POST",
+  token,
+  body: { title: "Exercise REST live runs" },
+});
+const restStarted = await call(`/tasks/${restLiveTask.body.id}/runs`, {
+  method: "POST",
+  token,
+  body: { client: "Claude", sessionId: "rest-live" },
+});
+check("REST start task run returns 201", restStarted.status, 201);
+check("REST start task run classifies Claude", restStarted.body.run.agentKind, "claude");
+check("REST start moves todo task to in_progress", restStarted.body.task.status, "in_progress");
+const restRunId: string = restStarted.body.run.id;
+const restRevision: number = restStarted.body.task.revision;
+const restHeartbeat = await call(`/task-runs/${restRunId}/heartbeat`, {
+  method: "POST",
+  token,
+});
+check("REST heartbeat returns 200", restHeartbeat.status, 200);
+check("REST heartbeat keeps task revision unchanged", (await service.getTask({ userId, taskId: restLiveTask.body.id })).revision, restRevision);
 check(
   "another user cannot list my task project",
   (await call(`/projects/${projectId}/tasks`, { token: theirToken })).status,
@@ -246,9 +372,30 @@ check(
   })).status,
   404,
 );
+check(
+  "another user cannot start my task run",
+  (await call(`/tasks/${restLiveTask.body.id}/runs`, {
+    method: "POST",
+    token: theirToken,
+    body: { client: "Codex", sessionId: "outsider" },
+  })).status,
+  404,
+);
+check(
+  "another user cannot heartbeat my task run",
+  (await call(`/task-runs/${restRunId}/heartbeat`, { method: "POST", token: theirToken })).status,
+  404,
+);
+check(
+  "another user cannot stop my task run",
+  (await call(`/task-runs/${restRunId}`, { method: "DELETE", token: theirToken })).status,
+  404,
+);
 
 const events = await db.select().from(taskEvents).where(eq(taskEvents.taskId, agentBody.id));
-check("task event history is auditable", events.length >= 2, true);
+check("task event history is auditable", events.length >= 5, true);
+check("work_started event is auditable", events.some((event) => event.action === "work_started"), true);
+check("work_stopped event is auditable", events.some((event) => event.action === "work_stopped"), true);
 const taskRows = await db.select().from(tasks).where(eq(tasks.id, agentBody.id));
 check("task row survived verification", taskRows.length, 1);
 
@@ -273,8 +420,18 @@ check(
   true,
 );
 check(
+  "RLS lets the owner see live task run rows",
+  (await asRole(userId, "SELECT count(*)::int AS n FROM task_active_runs WHERE project_id = $1", [projectId])).rows[0].n > 0,
+  true,
+);
+check(
   "RLS hides task rows from outsiders",
   (await asRole(otherUserId, "SELECT count(*)::int AS n FROM tasks WHERE project_id = $1", [projectId])).rows[0].n,
+  0,
+);
+check(
+  "RLS hides live task runs from outsiders",
+  (await asRole(otherUserId, "SELECT count(*)::int AS n FROM task_active_runs WHERE project_id = $1", [projectId])).rows[0].n,
   0,
 );
 const smuggled = await asRole(
@@ -286,6 +443,17 @@ const smuggled = await asRole(
   (error: { code?: string }) => error.code,
 );
 check("RLS refuses writes into another workspace", smuggled, "42501");
+const smuggledRun = await asRole(
+  otherUserId,
+  "INSERT INTO task_active_runs (workspace_id, project_id, task_id, agent_client, session_id, expires_at) VALUES ($1, $2, $3, 'Codex', 'smuggled', now() + interval '2 minutes')",
+  [workspaceId, projectId, restLiveTask.body.id],
+).then(
+  () => "no error",
+  (error: { code?: string }) => error.code,
+);
+check("RLS refuses live run writes into another workspace", smuggledRun, "42501");
+
+check("REST stop task run returns 204", (await call(`/task-runs/${restRunId}`, { method: "DELETE", token })).status, 204);
 
 client.release();
 await appPool.end();

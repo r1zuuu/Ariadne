@@ -2166,6 +2166,7 @@ export async function stopTaskWork(input: {
       },
     });
   });
+  return { stopped: true };
 }
 
 export async function taskBootSummary(input: { userId: string; projectId: string }) {
