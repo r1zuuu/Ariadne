@@ -350,7 +350,18 @@
     "history": "Historia",
     "human": "człowiek",
     "agent": "agent",
+    "liveNow": "W toku teraz",
+    "activeWork": "Aktywna praca",
+    "workingAgent": "{client} pracuje nad tym zadaniem",
+    "runActor": "jako {who}",
+    "lastSeen": "widziany {when}",
+    "expires": "wygasa {when}",
     "createdBy": "utworzył {who}",
+    "agentKind": {
+      "codex": "Codex",
+      "claude": "Claude",
+      "agent": "Agent"
+    },
     "tab": {
       "all": "Wszystkie",
       "todo": "Do zrobienia",
@@ -389,7 +400,9 @@
       "updated": "Zmieniono",
       "status_changed": "Zmieniono status",
       "archived": "Zarchiwizowano",
-      "linked_memories": "Powiązano wpisy"
+      "linked_memories": "Powiązano wpisy",
+      "work_started": "Rozpoczęto pracę",
+      "work_stopped": "Zatrzymano pracę"
     }
   },
   "project": {

@@ -350,7 +350,18 @@
     "history": "History",
     "human": "human",
     "agent": "agent",
+    "liveNow": "In progress now",
+    "activeWork": "Active work",
+    "workingAgent": "{client} is working on this task",
+    "runActor": "as {who}",
+    "lastSeen": "seen {when}",
+    "expires": "expires {when}",
     "createdBy": "created by {who}",
+    "agentKind": {
+      "codex": "Codex",
+      "claude": "Claude",
+      "agent": "Agent"
+    },
     "tab": {
       "all": "All",
       "todo": "Todo",
@@ -389,7 +400,9 @@
       "updated": "Updated",
       "status_changed": "Status changed",
       "archived": "Archived",
-      "linked_memories": "Linked memories"
+      "linked_memories": "Linked memories",
+      "work_started": "Work started",
+      "work_stopped": "Work stopped"
     }
   },
   "project": {

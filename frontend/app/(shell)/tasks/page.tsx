@@ -19,6 +19,7 @@ import {
   type Node,
   type RelatedMemory,
   type Task,
+  type TaskActiveRun,
   type TaskDetail,
   type TaskPriority,
   type TaskStatus,
@@ -34,6 +35,11 @@ const EMPTY_CREATE = { title: "", description: "", priority: "medium" as TaskPri
 
 function who(email: string | null | undefined): string {
   return email ? email.split("@")[0] : "";
+}
+
+function freshRuns(runs: TaskActiveRun[]): TaskActiveRun[] {
+  const now = Date.now();
+  return runs.filter((run) => Date.parse(run.expiresAt) > now);
 }
 
 export default function TasksScreen() {
@@ -103,7 +109,7 @@ export default function TasksScreen() {
     window.addEventListener("focus", onFocus);
     const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") void load();
-    }, 30_000);
+    }, 15_000);
     return () => {
       window.removeEventListener("focus", onFocus);
       window.clearInterval(timer);
@@ -264,54 +270,59 @@ export default function TasksScreen() {
             <EmptyState title={t("empty")} note={t("emptyNote")} />
           ) : (
             <ul className="flex flex-col">
-              {tasks.map((task) => (
-                <li key={task.id} className="border-b border-hairline">
-                  <button
-                    type="button"
-                    onClick={() => void openDetail(task.id)}
-                    aria-expanded={selected === task.id}
-                    className="flex w-full flex-col gap-3 px-1 py-5 text-left transition-colors duration-state hover:bg-plaster-sunk/40 sm:px-3"
-                  >
-                    <div className="flex flex-wrap items-center gap-3">
-                      <TaskStatusLabel status={task.status} />
-                      <Meta
-                        items={[
-                          t(`priority.${task.priority}`),
-                          task.source?.channel === "coder" ? t("agent") : t("human"),
-                          task.createdBy ? t("createdBy", { who: who(task.createdBy) }) : null,
-                          stamp(task.updatedAt),
-                        ]}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-lead text-ink">{task.title}</p>
-                      {task.blockedReason ? (
-                        <p className="pt-1 text-small text-iron">{task.blockedReason}</p>
-                      ) : task.description ? (
-                        <p className="line-clamp-2 pt-1 text-small text-ink-2">
-                          {task.description}
-                        </p>
-                      ) : null}
-                    </div>
-                  </button>
-                  <Collapse open={selected === task.id}>
-                    {detail?.id === task.id ? (
-                      <TaskEditor
-                        task={detail}
-                        memories={memories}
-                        stamp={stamp}
-                        onSaved={async (updated) => {
-                          setDetail(updated);
-                          toast(t("toastSaved"));
-                          await load();
-                        }}
-                      />
-                    ) : (
-                      <p className="px-3 pb-5 text-small text-ink-3">{t("loading")}</p>
-                    )}
-                  </Collapse>
-                </li>
-              ))}
+              {tasks.map((task) => {
+                const activeRuns = freshRuns(task.activeRuns);
+                return (
+                  <li key={task.id} className="border-b border-hairline">
+                    <button
+                      type="button"
+                      onClick={() => void openDetail(task.id)}
+                      aria-expanded={selected === task.id}
+                      className="flex w-full flex-col gap-3 px-1 py-5 text-left transition-colors duration-state hover:bg-plaster-sunk/40 sm:px-3"
+                    >
+                      <div className="flex flex-wrap items-center gap-3">
+                        <TaskStatusLabel status={task.status} />
+                        <TaskLiveBadge runs={activeRuns} />
+                        <AgentRunChips runs={activeRuns} />
+                        <Meta
+                          items={[
+                            t(`priority.${task.priority}`),
+                            task.source?.channel === "coder" ? t("agent") : t("human"),
+                            task.createdBy ? t("createdBy", { who: who(task.createdBy) }) : null,
+                            stamp(task.updatedAt),
+                          ]}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-lead text-ink">{task.title}</p>
+                        {task.blockedReason ? (
+                          <p className="pt-1 text-small text-iron">{task.blockedReason}</p>
+                        ) : task.description ? (
+                          <p className="line-clamp-2 pt-1 text-small text-ink-2">
+                            {task.description}
+                          </p>
+                        ) : null}
+                      </div>
+                    </button>
+                    <Collapse open={selected === task.id}>
+                      {detail?.id === task.id ? (
+                        <TaskEditor
+                          task={detail}
+                          memories={memories}
+                          stamp={stamp}
+                          onSaved={async (updated) => {
+                            setDetail(updated);
+                            toast(t("toastSaved"));
+                            await load();
+                          }}
+                        />
+                      ) : (
+                        <p className="px-3 pb-5 text-small text-ink-3">{t("loading")}</p>
+                      )}
+                    </Collapse>
+                  </li>
+                );
+              })}
             </ul>
           )}
 
@@ -353,6 +364,7 @@ function TaskEditor({
 
   const related = new Set(draft.relatedMemoryIds);
   const blockedNeedsReason = draft.status === "blocked" && !draft.blockedReason?.trim();
+  const activeRuns = freshRuns(task.activeRuns);
 
   const save = async () => {
     setSaving(true);
@@ -437,6 +449,28 @@ function TaskEditor({
             value={draft.description}
             onChange={set("description")}
           />
+
+          {activeRuns.length ? (
+            <section className="border-t border-hairline pt-5">
+              <p className="text-label uppercase tracking-[0.12em] text-ink-3">
+                {t("activeWork")}
+              </p>
+              <ul className="flex flex-col pt-2">
+                {activeRuns.map((run) => (
+                  <li key={run.id} className="flex flex-wrap items-center gap-3 py-2">
+                    <AgentRunChips runs={[run]} />
+                    <Meta
+                      items={[
+                        run.actor ? t("runActor", { who: who(run.actor) }) : null,
+                        t("lastSeen", { when: stamp(run.lastSeenAt) }),
+                        t("expires", { when: stamp(run.expiresAt) }),
+                      ]}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <section className="border-t border-hairline pt-5">
             <p className="text-label uppercase tracking-[0.12em] text-ink-3">
@@ -566,6 +600,65 @@ function Select({
         ))}
       </select>
     </div>
+  );
+}
+
+function TaskLiveBadge({ runs }: { runs: TaskActiveRun[] }) {
+  const t = useTranslations("tasks");
+  if (!runs.length) return null;
+  return (
+    <span className="inline-flex items-center gap-[7px] rounded-label bg-thread/10 px-[7px] py-[2px] text-label uppercase tracking-[0.12em] text-thread">
+      <span className="relative flex h-[7px] w-[7px]" aria-hidden>
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-40" />
+        <span className="relative inline-flex h-[7px] w-[7px] rounded-full bg-current" />
+      </span>
+      {t("liveNow")}
+    </span>
+  );
+}
+
+function AgentRunChips({ runs }: { runs: TaskActiveRun[] }) {
+  const t = useTranslations("tasks");
+  if (!runs.length) return null;
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      {runs.map((run) => (
+        <span
+          key={run.id}
+          className="inline-flex items-center gap-[6px] rounded-label border border-edge/70 bg-surface px-[7px] py-[2px] text-data text-ink-2"
+          title={t("workingAgent", { client: run.agentClient })}
+        >
+          <AgentKindMark kind={run.agentKind} />
+          <span>{run.agentClient || t(`agentKind.${run.agentKind}`)}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function AgentKindMark({ kind }: { kind: TaskActiveRun["agentKind"] }) {
+  const shared = { width: 11, height: 11, viewBox: "0 0 12 12", "aria-hidden": true as const };
+  if (kind === "codex") {
+    return (
+      <svg {...shared} className="text-thread">
+        <rect x="2" y="2" width="8" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M4.2 6h3.6M6 4.2v3.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (kind === "claude") {
+    return (
+      <svg {...shared} className="text-ochre">
+        <path d="M6 1.8 10 10H2Z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+        <path d="M4.4 7.2h3.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...shared} className="text-aegean">
+      <circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M6 3.6v4.8M3.6 6h4.8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
   );
 }
 

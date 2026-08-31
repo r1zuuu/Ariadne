@@ -180,6 +180,23 @@ export type TaskStatus =
   | "archived";
 
 export type TaskPriority = "low" | "medium" | "high" | "critical";
+export type TaskAgentKind = "codex" | "claude" | "agent";
+
+export type TaskActiveRun = {
+  id: string;
+  workspaceId: string;
+  projectId: string;
+  taskId: string;
+  actor: string | null;
+  tokenId: string | null;
+  agentClient: string;
+  agentKind: TaskAgentKind;
+  sessionId: string;
+  source: { channel?: "app_form" | "coder"; client?: string; session_id?: string };
+  startedAt: string;
+  lastSeenAt: string;
+  expiresAt: string;
+};
 
 export type Task = {
   id: string;
@@ -198,11 +215,19 @@ export type Task = {
   completedAt: string | null;
   completedBy: string | null;
   relatedMemoryIds: string[];
+  activeRuns: TaskActiveRun[];
 };
 
 export type TaskEvent = {
   id: string;
-  action: "created" | "updated" | "status_changed" | "archived" | "linked_memories";
+  action:
+    | "created"
+    | "updated"
+    | "status_changed"
+    | "archived"
+    | "linked_memories"
+    | "work_started"
+    | "work_stopped";
   actor: string | null;
   source: { channel?: "app_form" | "coder"; client?: string };
   payload: Record<string, unknown>;
@@ -382,6 +407,21 @@ export const updateTask = (
     revision: number;
   }>,
 ) => request<TaskDetail>(`/tasks/${id}`, { method: "PATCH", body: patch });
+
+export const startTaskWork = (
+  id: string,
+  source: { client?: string; sessionId: string; commitSha?: string },
+) =>
+  request<{ run: TaskActiveRun; task: TaskDetail }>(`/tasks/${id}/runs`, {
+    method: "POST",
+    body: source,
+  });
+
+export const heartbeatTaskWork = (id: string) =>
+  request<{ run: TaskActiveRun }>(`/task-runs/${id}/heartbeat`, { method: "POST" });
+
+export const stopTaskWork = (id: string, outcome?: string | null) =>
+  request<void>(`/task-runs/${id}`, { method: "DELETE", body: { outcome } });
 
 // The label names a machine, and that is the whole of a token: it reaches every
 // archive this account belongs to, and the repository a coder stands in decides
