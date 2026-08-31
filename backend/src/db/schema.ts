@@ -368,8 +368,40 @@ export const taskEvents = pgTable(
     index("task_events_by_workspace").on(t.workspaceId, t.createdAt.desc()),
     check(
       "task_events_action_check",
-      sql`${t.action} IN ('created','updated','status_changed','archived','linked_memories')`,
+      sql`${t.action} IN ('created','updated','status_changed','archived','linked_memories','work_started','work_stopped')`,
     ),
+  ],
+);
+
+export const taskActiveRuns = pgTable(
+  "task_active_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    tokenId: uuid("token_id").references(() => apiTokens.id, { onDelete: "set null" }),
+    agentClient: text("agent_client").notNull(),
+    agentKind: text("agent_kind").notNull().default("agent"),
+    sessionId: text("session_id").notNull(),
+    source: jsonb("source").notNull().default(sql`'{}'::jsonb`),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [
+    unique().on(t.taskId, t.sessionId),
+    index("task_active_runs_by_project").on(t.workspaceId, t.projectId, t.expiresAt.desc()),
+    index("task_active_runs_by_task").on(t.taskId, t.expiresAt.desc()),
+    index("task_active_runs_expiry").on(t.expiresAt),
+    check("task_active_runs_kind_check", sql`${t.agentKind} IN ('codex','claude','agent')`),
   ],
 );
 

@@ -26,6 +26,7 @@ import {
   oauthAccounts,
   pendingActions,
   projects,
+  taskActiveRuns,
   taskEvents,
   taskMemoryLinks,
   tasks,
@@ -1391,6 +1392,7 @@ export type TaskSource = {
   commit_sha?: string;
   token_id?: string;
 };
+export type TaskAgentKind = "codex" | "claude" | "agent";
 
 export type TaskPatch = {
   title?: string;
@@ -1408,6 +1410,7 @@ const TASK_LIST_LIMIT = 50;
 const TASK_MAX_LIST_LIMIT = 100;
 const TASK_TITLE_LENGTH = 160;
 const TASK_BOOT_ITEMS = 4;
+const TASK_RUN_TTL_MS = 2 * 60 * 1000;
 
 const TASK_COLUMNS = {
   id: tasks.id,
@@ -1425,6 +1428,22 @@ const TASK_COLUMNS = {
   completedAt: tasks.completedAt,
   createdBy: taskCreator.email,
   completedBy: taskCompleter.email,
+};
+
+const TASK_ACTIVE_RUN_COLUMNS = {
+  id: taskActiveRuns.id,
+  workspaceId: taskActiveRuns.workspaceId,
+  projectId: taskActiveRuns.projectId,
+  taskId: taskActiveRuns.taskId,
+  actor: taskCreator.email,
+  tokenId: taskActiveRuns.tokenId,
+  agentClient: taskActiveRuns.agentClient,
+  agentKind: taskActiveRuns.agentKind,
+  sessionId: taskActiveRuns.sessionId,
+  source: taskActiveRuns.source,
+  startedAt: taskActiveRuns.startedAt,
+  lastSeenAt: taskActiveRuns.lastSeenAt,
+  expiresAt: taskActiveRuns.expiresAt,
 };
 
 function assertTaskStatus(status: string): asserts status is TaskStatus {
@@ -1518,7 +1537,7 @@ async function attachTaskMemoryIds<T extends { id: string }>(rows: T[]) {
   }));
 }
 
-async function readTaskRows(filters: SQLWrapper[], limit: number, cursor?: string) {
+async function readTaskRows(filters: SQLWrapper[], limit: number, cursor: string | undefined, userId: string) {
   const scoped = cursor ? [...filters, afterTaskCursor(cursor)] : filters;
   const rows = await db
     .select(TASK_COLUMNS)
@@ -1548,7 +1567,7 @@ async function readTaskRows(filters: SQLWrapper[], limit: number, cursor?: strin
   const page = rows.slice(0, limit);
   const last = page.at(-1);
   return {
-    tasks: await attachTaskMemoryIds(page),
+    tasks: await attachTaskActiveRuns(await attachTaskMemoryIds(page), userId),
     nextCursor: rows.length > limit && last ? `${last.updatedAt.toISOString()}|${last.id}` : null,
   };
 }
@@ -1566,7 +1585,14 @@ async function writeTaskEvent(input: {
   workspaceId: string;
   projectId: string;
   taskId: string;
-  action: "created" | "updated" | "status_changed" | "archived" | "linked_memories";
+  action:
+    | "created"
+    | "updated"
+    | "status_changed"
+    | "archived"
+    | "linked_memories"
+    | "work_started"
+    | "work_stopped";
   actorId: string;
   source: TaskSource;
   payload?: unknown;
@@ -1580,6 +1606,81 @@ async function writeTaskEvent(input: {
     source: taskEventSource(input.source),
     payload: input.payload ?? {},
   });
+}
+
+function requireTaskSessionId(source: TaskSource): string {
+  const sessionId = source.session_id?.trim();
+  if (!sessionId) {
+    throw new ServiceError("validation", "source.session_id is required");
+  }
+  return sessionId.slice(0, MAX_LABEL_LENGTH);
+}
+
+function taskRunExpires(now: Date): Date {
+  return new Date(now.getTime() + TASK_RUN_TTL_MS);
+}
+
+function deriveAgentKind(raw: string): TaskAgentKind {
+  const value = raw.toLowerCase();
+  if (value.includes("codex")) return "codex";
+  if (value.includes("claude")) return "claude";
+  return "agent";
+}
+
+async function taskRunIdentity(source: TaskSource) {
+  const tokenId = source.token_id;
+  const tokenLabel = tokenId
+    ? (
+        await db
+          .select({ label: apiTokens.label })
+          .from(apiTokens)
+          .where(eq(apiTokens.id, tokenId))
+      )[0]?.label
+    : undefined;
+  const agentClient = (source.client ?? tokenLabel ?? "Agent").trim().slice(0, MAX_LABEL_LENGTH) || "Agent";
+  return { agentClient, agentKind: deriveAgentKind(agentClient), tokenId };
+}
+
+export async function activeRunsForTasks(input: {
+  userId: string;
+  workspaceId: string;
+  taskIds: string[];
+}) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.workspaceId, "workspaceId");
+  const taskIds = [...new Set(input.taskIds)];
+  for (const id of taskIds) assertUuid(id, "taskIds");
+  if (!taskIds.length) return [];
+  const rows = await db
+    .select(TASK_ACTIVE_RUN_COLUMNS)
+    .from(taskActiveRuns)
+    .innerJoin(memberships, eq(memberships.workspaceId, taskActiveRuns.workspaceId))
+    .leftJoin(taskCreator, eq(taskCreator.id, taskActiveRuns.actorId))
+    .where(
+      and(
+        eq(taskActiveRuns.workspaceId, input.workspaceId),
+        eq(memberships.userId, input.userId),
+        inArray(taskActiveRuns.taskId, taskIds),
+        gt(taskActiveRuns.expiresAt, new Date()),
+      ),
+    )
+    .orderBy(desc(taskActiveRuns.lastSeenAt));
+  return rows;
+}
+
+async function attachTaskActiveRuns<T extends { id: string; workspaceId: string }>(rows: T[], userId: string) {
+  const workspaceId = rows[0]?.workspaceId;
+  const runs = workspaceId
+    ? await activeRunsForTasks({
+        userId,
+        workspaceId,
+        taskIds: rows.map((row) => row.id),
+      })
+    : [];
+  return rows.map((row) => ({
+    ...row,
+    activeRuns: runs.filter((run) => run.taskId === row.id),
+  }));
 }
 
 export async function listTasks(input: {
@@ -1619,7 +1720,7 @@ export async function listTasks(input: {
     const pattern = `%${query.replace(/[%_\\]/g, "\\$&")}%`;
     filters.push(sql`(${tasks.title} ILIKE ${pattern} ESCAPE '\' OR ${tasks.description} ILIKE ${pattern} ESCAPE '\')`);
   }
-  return readTaskRows(filters, limit, input.cursor);
+  return readTaskRows(filters, limit, input.cursor, input.userId);
 }
 
 export async function getTask(input: { userId: string; taskId: string }) {
@@ -1661,7 +1762,11 @@ export async function getTask(input: { userId: string; taskId: string }) {
     .where(and(eq(taskEvents.taskId, input.taskId), eq(taskEvents.workspaceId, workspaceId)))
     .orderBy(desc(taskEvents.createdAt));
 
-  return { ...(await attachTaskMemoryIds([task]))[0], relatedMemories: links, events };
+  return {
+    ...(await attachTaskActiveRuns(await attachTaskMemoryIds([task]), input.userId))[0],
+    relatedMemories: links,
+    events,
+  };
 }
 
 export async function createTask(input: {
@@ -1880,6 +1985,189 @@ export async function updateTask(input: {
   return getTask({ userId: input.userId, taskId: input.taskId });
 }
 
+async function taskRunForUser(userId: string, runId: string) {
+  assertUuid(userId, "userId");
+  assertUuid(runId, "runId");
+  const [run] = await db
+    .select(TASK_ACTIVE_RUN_COLUMNS)
+    .from(taskActiveRuns)
+    .innerJoin(memberships, eq(memberships.workspaceId, taskActiveRuns.workspaceId))
+    .leftJoin(taskCreator, eq(taskCreator.id, taskActiveRuns.actorId))
+    .where(and(eq(taskActiveRuns.id, runId), eq(memberships.userId, userId)));
+  if (!run) throw new ServiceError("not_found", "task run not found for this user");
+  return run;
+}
+
+function taskSourceFromRun(raw: unknown): TaskSource {
+  const source = (raw ?? {}) as Partial<TaskSource>;
+  const channel = source.channel === "app_form" || source.channel === "coder" ? source.channel : "coder";
+  return taskEventSource({
+    channel,
+    client: source.client,
+    session_id: source.session_id,
+    commit_sha: source.commit_sha,
+    token_id: source.token_id,
+  });
+}
+
+export async function startTaskWork(input: { userId: string; taskId: string; source: TaskSource }) {
+  assertUuid(input.userId, "userId");
+  assertUuid(input.taskId, "taskId");
+  const sessionId = requireTaskSessionId(input.source);
+  const workspaceId = await workspaceOfTask(input.userId, input.taskId);
+  const [current] = await db
+    .select({
+      id: tasks.id,
+      projectId: tasks.projectId,
+      status: tasks.status,
+    })
+    .from(tasks)
+    .where(and(eq(tasks.id, input.taskId), eq(tasks.workspaceId, workspaceId)));
+  if (!current) throw new ServiceError("not_found", "task not found for this user");
+  if (current.status === "done" || current.status === "archived") {
+    throw new ServiceError("validation", "reopen the task before starting live work");
+  }
+
+  const identity = await taskRunIdentity(input.source);
+  const source = taskEventSource(input.source);
+  const runId = await db.transaction(async (tx) => {
+    const now = new Date();
+    const expiresAt = taskRunExpires(now);
+    const [existing] = await tx
+      .select({
+        id: taskActiveRuns.id,
+        startedAt: taskActiveRuns.startedAt,
+        expiresAt: taskActiveRuns.expiresAt,
+      })
+      .from(taskActiveRuns)
+      .where(
+        and(
+          eq(taskActiveRuns.workspaceId, workspaceId),
+          eq(taskActiveRuns.taskId, input.taskId),
+          eq(taskActiveRuns.sessionId, sessionId),
+        ),
+      );
+    const startsFresh = !existing || existing.expiresAt <= now;
+
+    if (current.status === "todo" || current.status === "backlog") {
+      await tx
+        .update(tasks)
+        .set({
+          status: "in_progress",
+          blockedReason: null,
+          updatedAt: now,
+          revision: sql`${tasks.revision} + 1`,
+        })
+        .where(and(eq(tasks.id, input.taskId), eq(tasks.workspaceId, workspaceId)));
+      await tx.insert(taskEvents).values({
+        workspaceId,
+        projectId: current.projectId,
+        taskId: input.taskId,
+        action: "status_changed",
+        actorId: input.userId,
+        source,
+        payload: { from: current.status, status: "in_progress", liveRun: true },
+      });
+    }
+
+    const values = {
+      workspaceId,
+      projectId: current.projectId,
+      taskId: input.taskId,
+      actorId: input.userId,
+      tokenId: identity.tokenId,
+      agentClient: identity.agentClient,
+      agentKind: identity.agentKind,
+      sessionId,
+      source,
+      lastSeenAt: now,
+      expiresAt,
+      ...(startsFresh ? { startedAt: now } : {}),
+    };
+    const [run] = existing
+      ? await tx
+          .update(taskActiveRuns)
+          .set(values)
+          .where(eq(taskActiveRuns.id, existing.id))
+          .returning({ id: taskActiveRuns.id })
+      : await tx
+          .insert(taskActiveRuns)
+          .values(values)
+          .returning({ id: taskActiveRuns.id });
+
+    if (startsFresh) {
+      await tx.insert(taskEvents).values({
+        workspaceId,
+        projectId: current.projectId,
+        taskId: input.taskId,
+        action: "work_started",
+        actorId: input.userId,
+        source,
+        payload: {
+          runId: run.id,
+          agentClient: identity.agentClient,
+          agentKind: identity.agentKind,
+          sessionId,
+        },
+      });
+    }
+    return run.id;
+  });
+
+  return {
+    run: await taskRunForUser(input.userId, runId),
+    task: await getTask({ userId: input.userId, taskId: input.taskId }),
+  };
+}
+
+export async function heartbeatTaskWork(input: {
+  userId: string;
+  runId: string;
+  source?: TaskSource;
+}) {
+  const current = await taskRunForUser(input.userId, input.runId);
+  const now = new Date();
+  const updates: Partial<typeof taskActiveRuns.$inferInsert> = {
+    lastSeenAt: now,
+    expiresAt: taskRunExpires(now),
+  };
+  if (input.source) updates.source = taskEventSource(input.source);
+  await db
+    .update(taskActiveRuns)
+    .set(updates)
+    .where(and(eq(taskActiveRuns.id, input.runId), eq(taskActiveRuns.workspaceId, current.workspaceId)));
+  return { run: await taskRunForUser(input.userId, input.runId) };
+}
+
+export async function stopTaskWork(input: {
+  userId: string;
+  runId: string;
+  outcome?: string | null;
+  source?: TaskSource;
+}) {
+  const current = await taskRunForUser(input.userId, input.runId);
+  const outcome = validateOptionalTaskText(input.outcome, "outcome") || null;
+  const source = input.source ? taskEventSource(input.source) : taskSourceFromRun(current.source);
+  await db.transaction(async (tx) => {
+    await tx.delete(taskActiveRuns).where(eq(taskActiveRuns.id, input.runId));
+    await tx.insert(taskEvents).values({
+      workspaceId: current.workspaceId,
+      projectId: current.projectId,
+      taskId: current.taskId,
+      action: "work_stopped",
+      actorId: input.userId,
+      source,
+      payload: {
+        runId: input.runId,
+        agentClient: current.agentClient,
+        agentKind: current.agentKind,
+        sessionId: current.sessionId,
+        outcome,
+      },
+    });
+  });
+}
+
 export async function taskBootSummary(input: { userId: string; projectId: string }) {
   const workspaceId = await workspaceOfProject(input.userId, input.projectId);
   const activeFilters = [
@@ -1892,7 +2180,7 @@ export async function taskBootSummary(input: { userId: string; projectId: string
     .from(tasks)
     .where(and(...activeFilters))
     .groupBy(tasks.status);
-  const important = await readTaskRows(activeFilters, TASK_BOOT_ITEMS);
+  const important = await readTaskRows(activeFilters, TASK_BOOT_ITEMS, undefined, input.userId);
   const totalActive = counts.reduce((sum, row) => sum + Number(row.count), 0);
   return {
     counts: Object.fromEntries(counts.map((row) => [row.status, row.count])),
@@ -1903,6 +2191,14 @@ export async function taskBootSummary(input: { userId: string; projectId: string
       priority: task.priority,
       blocked_reason: task.blockedReason,
       updated_at: task.updatedAt,
+      active_runs: task.activeRuns.map((run) => ({
+        run_id: run.id,
+        agent_client: run.agentClient,
+        agent_kind: run.agentKind,
+        session_id: run.sessionId,
+        last_seen_at: run.lastSeenAt,
+        expires_at: run.expiresAt,
+      })),
     })),
     showing: important.tasks.length,
     total_active: totalActive,

@@ -38,6 +38,7 @@ import {
   getGraph,
   getReviewFeed,
   getTask,
+  heartbeatTaskWork,
   listApiTokens,
   listConversations,
   listInvites,
@@ -58,6 +59,8 @@ import {
   setAllPermission,
   setGeminiKey,
   signInWithProvider,
+  startTaskWork,
+  stopTaskWork,
   updateProfile,
   updateProject,
   updateTask,
@@ -111,6 +114,7 @@ const PROTECTED_PREFIXES = [
   "/projects",
   "/projects/*",
   "/tasks/*",
+  "/task-runs/*",
   "/pending",
   "/pending/*",
   "/nodes/*",
@@ -267,6 +271,30 @@ const taskCreateSchema = z.object({
 const taskPatchSchema = taskCreateSchema.partial().extend({
   revision: z.number().optional(),
 });
+
+const taskRunSourceSchema = z.object({
+  client: z.string().optional(),
+  sessionId: z.string(),
+  commitSha: z.string().optional(),
+});
+
+const taskRunStopSchema = z.object({
+  outcome: z.string().nullable().optional(),
+  source: taskRunSourceSchema.optional(),
+});
+
+const taskRunHeartbeatSchema = z.object({
+  source: taskRunSourceSchema.optional(),
+});
+
+function restTaskRunSource(source: z.infer<typeof taskRunSourceSchema>) {
+  return {
+    channel: "app_form" as const,
+    client: source.client,
+    session_id: source.sessionId,
+    commit_sha: source.commitSha,
+  };
+}
 
 // Reading the body and validating it fail the same way for the caller: a 400
 // with a reason, never a 500 on malformed JSON.
@@ -683,6 +711,40 @@ export function createRestApp() {
         source: { channel: "app_form" },
       }),
     );
+  });
+
+  app.post("/tasks/:id/runs", async (c) => {
+    const body = await readBody(c, taskRunSourceSchema);
+    return c.json(
+      await startTaskWork({
+        userId: userId(c),
+        taskId: c.req.param("id"),
+        source: restTaskRunSource(body),
+      }),
+      201,
+    );
+  });
+
+  app.post("/task-runs/:id/heartbeat", async (c) => {
+    const body = await readBody(c, taskRunHeartbeatSchema);
+    return c.json(
+      await heartbeatTaskWork({
+        userId: userId(c),
+        runId: c.req.param("id"),
+        source: body.source ? restTaskRunSource(body.source) : undefined,
+      }),
+    );
+  });
+
+  app.delete("/task-runs/:id", async (c) => {
+    const body = await readBody(c, taskRunStopSchema);
+    await stopTaskWork({
+      userId: userId(c),
+      runId: c.req.param("id"),
+      outcome: body.outcome,
+      source: body.source ? restTaskRunSource(body.source) : undefined,
+    });
+    return c.body(null, 204);
   });
 
   // --- Nodes: what the listing screens read (plan step 5a.1) ---

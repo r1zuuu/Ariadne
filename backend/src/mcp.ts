@@ -8,11 +8,14 @@ import {
   createTask,
   createNode,
   getBootContext,
+  heartbeatTaskWork,
   listTasks,
   requestDelete,
   requestUpdate,
   resolveProjectByRepoRef,
   searchNodes,
+  startTaskWork,
+  stopTaskWork,
   updateTask,
 } from "./service.js";
 
@@ -353,6 +356,71 @@ export function createMcpServer({ userId, tokenId }: Actor): McpServer {
             relatedMemoryIds: related_memory_ids,
           },
           source: { channel: "coder", token_id: tokenId, ...source },
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "start_task_work",
+    {
+      description:
+        "Call this when you are actively starting or resuming work on a task right now. " +
+        "It creates a short live lease, refreshes an existing lease for the same session, and moves backlog/todo tasks to in_progress.",
+      inputSchema: {
+        task_id: z.string().describe("uuid of the task you are actively working on"),
+        source: z.object({
+          client: z.string().optional().describe("agent/client name, e.g. Codex or Claude Code"),
+          session_id: z.string().describe("stable id reused for this working session"),
+          commit_sha: z.string().optional().describe("related commit, if there is one"),
+        }),
+      },
+    },
+    ({ task_id, source }) =>
+      run(() =>
+        startTaskWork({
+          userId,
+          taskId: task_id,
+          source: { channel: "coder", token_id: tokenId, ...source },
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "heartbeat_task_work",
+    {
+      description:
+        "Call this every 45 seconds while you are still actively working on a task run. " +
+        "It extends the live lease without changing the task itself or writing task history.",
+      inputSchema: {
+        run_id: z.string().describe("uuid returned by start_task_work"),
+      },
+    },
+    ({ run_id }) =>
+      run(() =>
+        heartbeatTaskWork({
+          userId,
+          runId: run_id,
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "stop_task_work",
+    {
+      description:
+        "Call this when you stop actively working on a task, whether it was completed, paused, blocked, or handed off. " +
+        "It removes the live lease and writes one auditable stop event.",
+      inputSchema: {
+        run_id: z.string().describe("uuid returned by start_task_work"),
+        outcome: z.string().optional().describe("brief outcome, e.g. completed, paused, blocked, handed off"),
+      },
+    },
+    ({ run_id, outcome }) =>
+      run(() =>
+        stopTaskWork({
+          userId,
+          runId: run_id,
+          outcome,
         }),
       ),
   );
