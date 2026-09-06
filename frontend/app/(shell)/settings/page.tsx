@@ -10,6 +10,7 @@ import {
   IconAccount,
   IconAutoApprove,
   IconKey,
+  IconSkills,
   IconToken,
 } from "@/components/icons";
 import { useToast } from "@/components/toast";
@@ -38,6 +39,13 @@ import {
   type Account,
   type ApiToken,
 } from "@/lib/api";
+import {
+  inApp,
+  linkAllSkills,
+  scanSkills,
+  summarise,
+  type SkillsState,
+} from "@/lib/skills";
 
 // Screen 08. Everything about the account rather than about a project: who you
 // are, what your coders may do, which tokens exist, and who else reads the same
@@ -100,6 +108,9 @@ export default function SettingsScreen() {
           <GeminiSection account={account} onSaved={setAccount} toast={toast} />
           <PermissionSection account={account} onSaved={setAccount} toast={toast} />
           <TokensSection toast={toast} />
+          {/* Last, and outside the account entirely: everything above belongs to
+              whoever is signed in, this one belongs to the computer. */}
+          <SkillsSection toast={toast} />
         </>
       )}
     </div>
@@ -563,6 +574,127 @@ function TokensSection({ toast }: { toast: Toast }) {
           </ul>
         )}
       </div>
+    </section>
+  );
+}
+
+// --- Skills: what the coders on this machine can reach ---
+//
+// The one section on this screen that never touches the backend. Agent skills
+// are directories on the disk this window runs on, one root per tool, and a
+// skill sitting in one root is invisible to a tool that reads another. The
+// button opens the missing doors between them, in every direction.
+//
+// No list, no browser, no per-skill switches. State plus one action, the same
+// shape as the tokens above: the reader is not here to curate skills, they are
+// here to find out that Codex is reading one of fifty-eight and fix it.
+
+type SkillsMode = "checking" | "browser" | "ready" | "failed";
+
+function SkillsSection({ toast }: { toast: Toast }) {
+  const t = useTranslations("settings");
+
+  const [mode, setMode] = useState<SkillsMode>("checking");
+  const [state, setState] = useState<SkillsState | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(() => {
+    // Read after mount, never in the initialiser: these screens are prerendered
+    // where there is no window at all, and `npm run dev` serves the same export
+    // in a browser where the disk is out of reach.
+    if (!inApp()) {
+      setMode("browser");
+      return;
+    }
+    void scanSkills()
+      .then((scan) => {
+        setState(summarise(scan));
+        setMode("ready");
+      })
+      .catch(() => setMode("failed"));
+  }, []);
+
+  useEffect(load, [load]);
+
+  const link = async () => {
+    setBusy(true);
+    try {
+      const report = await linkAllSkills();
+      const notes = [t("skillsLinked", { count: report.created.length })];
+      // Two different reasons to leave something alone, and both are the kind of
+      // silence that reads as a bug. A name held by two different directories is
+      // a person's decision; a refusal is the system's.
+      if (report.conflicts.length) {
+        notes.push(t("skillsConflicts", { count: report.conflicts.length }));
+      }
+      if (report.failed.length) {
+        notes.push(t("skillsFailedCount", { count: report.failed.length }));
+      }
+      toast(notes.join(" "));
+      load();
+    } catch {
+      toast(t("skillsError"), "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="mt-8 border-t border-hairline pt-7">
+      <SectionHeader title={t("skills")} icon={<IconSkills />} note={t("skillsLead")} />
+
+      {mode === "checking" ? (
+        <p className="text-body text-ink-3">{t("loading")}</p>
+      ) : mode === "browser" ? (
+        <p className="max-w-[62ch] text-body text-ink-2">{t("skillsBrowserOnly")}</p>
+      ) : mode === "failed" || !state ? (
+        <EmptyState
+          title={t("skillsError")}
+          note={t("skillsErrorNote")}
+          action={
+            <Button variant="secondary" onClick={load}>
+              {t("retry")}
+            </Button>
+          }
+        />
+      ) : (
+        <>
+          <Card className="divide-y divide-hairline p-6 pt-4">
+            {state.roots.map((root) => (
+              <div
+                key={root.id}
+                className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-body text-ink">{t(`skillsRoot.${root.id}`)}</p>
+                  <p className="truncate pt-1 font-data text-data text-ink-3">{root.path}</p>
+                </div>
+                <p className="shrink-0 text-data tabular text-ink-2">
+                  {root.exists
+                    ? t("skillsSeen", { seen: root.seen, total: state.total })
+                    : t("skillsMissingRoot")}
+                </p>
+              </div>
+            ))}
+          </Card>
+
+          <div className="flex flex-wrap items-center justify-between gap-5 pt-5">
+            <p className="max-w-[54ch] text-small text-ink-2">
+              {state.missing
+                ? t("skillsRestartNote")
+                : t("skillsAllShared")}
+              {/* Reported, not repaired: mending a dead link means deleting it,
+                  and nothing in this feature deletes. */}
+              {state.broken ? ` ${t("skillsBroken", { count: state.broken })}` : ""}
+            </p>
+            <Button onClick={link} loading={busy} disabled={state.missing === 0}>
+              {busy
+                ? t("skillsLinking")
+                : t("skillsShare", { count: state.missing })}
+            </Button>
+          </div>
+        </>
+      )}
     </section>
   );
 }

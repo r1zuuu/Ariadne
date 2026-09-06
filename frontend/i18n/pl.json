@@ -578,7 +578,27 @@
     "revoke": "Odwołaj",
     "geminiStored": "zapisany",
     "geminiReplace": "Podmień",
-    "cancel": "Anuluj"
+    "cancel": "Anuluj",
+    "skills": "Skille",
+    "skillsLead": "Umiejętności agentów leżą w katalogach na tym komputerze. Każde narzędzie czyta swój własny, więc skill widziany przez jedno bywa niewidoczny dla drugiego.",
+    "skillsRoot": {
+      "agents": "Wspólny magazyn",
+      "claude": "Claude",
+      "codex": "Codex CLI"
+    },
+    "skillsSeen": "{seen} z {total}",
+    "skillsMissingRoot": "nie zainstalowano",
+    "skillsShare": "Udostępnij brakujące ({count})",
+    "skillsLinking": "Udostępniam...",
+    "skillsAllShared": "Każde narzędzie widzi wszystkie skille.",
+    "skillsRestartNote": "Dowiązania powstają od razu. Działająca sesja Claude albo Codeksa zobaczy nowe skille dopiero po ponownym uruchomieniu.",
+    "skillsBroken": "{count, plural, one {Jedno dowiązanie prowadzi donikąd.} few {# dowiązania prowadzą donikąd.} many {# dowiązań prowadzi donikąd.} other {# dowiązania prowadzi donikąd.}}",
+    "skillsLinked": "{count, plural, =0 {Nie powstało żadne nowe dowiązanie.} one {Utworzono # dowiązanie.} few {Utworzono # dowiązania.} many {Utworzono # dowiązań.} other {Utworzono # dowiązania.}}",
+    "skillsConflicts": "{count, plural, one {Pominięto # nazwę: zajmuje ją inny katalog.} few {Pominięto # nazwy: zajmuje je inny katalog.} many {Pominięto # nazw: zajmuje je inny katalog.} other {Pominięto # nazwy: zajmuje je inny katalog.}}",
+    "skillsFailedCount": "{count, plural, one {# dowiązania nie udało się utworzyć.} few {# dowiązań nie udało się utworzyć.} many {# dowiązań nie udało się utworzyć.} other {# dowiązań nie udało się utworzyć.}}",
+    "skillsError": "Nie udało się odczytać katalogów ze skillami",
+    "skillsErrorNote": "Sprawdź, czy katalogi .agents, .claude i .codex są w Twoim katalogu domowym.",
+    "skillsBrowserOnly": "Skille leżą na dysku, więc czyta je tylko okno aplikacji. W przeglądarce ta sekcja nic nie pokazuje."
   },
   "conflict": {
     "title": "SPRZECZNOŚĆ",

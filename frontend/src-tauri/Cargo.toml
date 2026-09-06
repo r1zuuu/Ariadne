@@ -19,3 +19,6 @@ tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
 tauri = { version = "2.11.3", features = [] }
+# Already in the tree as one of tauri's own dependencies; declared here because
+# the skills commands derive Serialize on the shapes they hand back.
+serde = { version = "1", features = ["derive"] }
