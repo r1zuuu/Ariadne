@@ -4,23 +4,16 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
-import { headline } from "@/components/entry-card";
 import { useFailure } from "@/components/failure";
 import { Collapse } from "@/components/motion";
 import { useToast } from "@/components/toast";
 import { Button, Card, EmptyState, Input, Meta, PageHeader, Textarea } from "@/components/ui";
 import {
-  ApiError,
   createTask,
-  getTask,
-  listNodes,
   listTasks,
   updateTask,
-  type Node,
-  type RelatedMemory,
   type Task,
   type TaskActiveRun,
-  type TaskDetail,
   type TaskPriority,
   type TaskStatus,
 } from "@/lib/api";
@@ -28,7 +21,6 @@ import {
 type Tab = "all" | "todo" | "in_progress" | "blocked" | "done";
 
 const TABS: Tab[] = ["all", "todo", "in_progress", "blocked", "done"];
-const STATUSES: TaskStatus[] = ["backlog", "todo", "in_progress", "blocked", "done"];
 const PRIORITIES: TaskPriority[] = ["low", "medium", "high", "critical"];
 
 const EMPTY_CREATE = { title: "", description: "", priority: "medium" as TaskPriority };
@@ -58,9 +50,6 @@ export default function TasksScreen() {
   const [createOpen, setCreateOpen] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
   const [createDraft, setCreateDraft] = useState(EMPTY_CREATE);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [detail, setDetail] = useState<TaskDetail | null>(null);
-  const [memories, setMemories] = useState<Node[]>([]);
 
   const stamp = useCallback(
     (iso: string) =>
@@ -95,12 +84,7 @@ export default function TasksScreen() {
 
   useEffect(() => {
     setTasks(null);
-    setSelected(null);
-    setDetail(null);
-    if (projectId) {
-      void load();
-      void listNodes(projectId, 50, { sort: "updated" }).then((page) => setMemories(page.nodes));
-    }
+    if (projectId) void load();
   }, [projectId, load]);
 
   useEffect(() => {
@@ -116,14 +100,15 @@ export default function TasksScreen() {
     };
   }, [load, projectId]);
 
-  const openDetail = async (id: string) => {
-    setSelected((current) => (current === id ? null : id));
-    if (selected === id) {
-      setDetail(null);
-      return;
-    }
+  // The only thing a person changes here by hand. Everything else about a task -
+  // status, priority, what is blocking it, which entries it leans on - is
+  // written by whichever coder is doing the work, and a form for a human to
+  // duplicate that was six fields nobody filled in.
+  const rename = async (task: Task, title: string) => {
     try {
-      setDetail(await getTask(id));
+      await updateTask(task.id, { title, revision: task.revision });
+      toast(t("toastRenamed"));
+      await load();
     } catch (caught) {
       toast(failure(caught), "error");
     }
@@ -133,15 +118,15 @@ export default function TasksScreen() {
     if (!projectId) return;
     setCreateBusy(true);
     try {
-      const created = await createTask(projectId, {
+      // The row it makes arrives with the next load; there is nothing to open
+      // any more, so nothing here has to hold on to it.
+      await createTask(projectId, {
         title: createDraft.title,
         description: createDraft.description,
         priority: createDraft.priority,
       });
       setCreateDraft(EMPTY_CREATE);
       setCreateOpen(false);
-      setSelected(created.id);
-      setDetail(created);
       toast(t("toastCreated"));
       await load();
     } catch (caught) {
@@ -274,12 +259,7 @@ export default function TasksScreen() {
                 const activeRuns = freshRuns(task.activeRuns);
                 return (
                   <li key={task.id} className="border-b border-hairline">
-                    <button
-                      type="button"
-                      onClick={() => void openDetail(task.id)}
-                      aria-expanded={selected === task.id}
-                      className="flex w-full flex-col gap-3 px-1 py-5 text-left transition-colors duration-state hover:bg-plaster-sunk/40 sm:px-3"
-                    >
+                    <div className="flex flex-col gap-3 px-1 py-5 sm:px-3">
                       <div className="flex flex-wrap items-center gap-3">
                         <TaskStatusLabel status={task.status} />
                         <TaskLiveBadge runs={activeRuns} />
@@ -294,7 +274,7 @@ export default function TasksScreen() {
                         />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-lead text-ink">{task.title}</p>
+                        <TaskTitle task={task} onRename={rename} />
                         {task.blockedReason ? (
                           <p className="pt-1 text-small text-iron">{task.blockedReason}</p>
                         ) : task.description ? (
@@ -303,23 +283,7 @@ export default function TasksScreen() {
                           </p>
                         ) : null}
                       </div>
-                    </button>
-                    <Collapse open={selected === task.id}>
-                      {detail?.id === task.id ? (
-                        <TaskEditor
-                          task={detail}
-                          memories={memories}
-                          stamp={stamp}
-                          onSaved={async (updated) => {
-                            setDetail(updated);
-                            toast(t("toastSaved"));
-                            await load();
-                          }}
-                        />
-                      ) : (
-                        <p className="px-3 pb-5 text-small text-ink-3">{t("loading")}</p>
-                      )}
-                    </Collapse>
+                    </div>
                   </li>
                 );
               })}
@@ -339,233 +303,90 @@ export default function TasksScreen() {
   );
 }
 
-function TaskEditor({
+// The title, and the one thing on this screen a person edits.
+//
+// Two clicks rather than a pencil, because the pencil would be on every row of a
+// list nobody comes here to edit. Enter opens it from the keyboard, so the only
+// way in is not a gesture a keyboard cannot make.
+//
+// It looks like the text it replaces: same size, no box, one hairline that takes
+// up the thread while it has focus. A field with a border here would say the row
+// is a form, which is the thing being taken away.
+function TaskTitle({
   task,
-  memories,
-  stamp,
-  onSaved,
+  onRename,
 }: {
-  task: TaskDetail;
-  memories: Node[];
-  stamp: (iso: string) => string;
-  onSaved: (task: TaskDetail) => Promise<void>;
+  task: Task;
+  onRename: (task: Task, title: string) => Promise<void>;
 }) {
   const t = useTranslations("tasks");
-  const failure = useFailure();
-  const toast = useToast();
-  const [draft, setDraft] = useState(task);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(task.title);
   const [saving, setSaving] = useState(false);
-  const [memoryOpen, setMemoryOpen] = useState<string | null>(null);
 
-  useEffect(() => setDraft(task), [task]);
+  const open = () => {
+    setDraft(task.title);
+    setEditing(true);
+  };
 
-  const set = (key: keyof TaskDetail) => (event: { target: { value: string } }) =>
-    setDraft((prev) => ({ ...prev, [key]: event.target.value }));
-
-  const related = new Set(draft.relatedMemoryIds);
-  const blockedNeedsReason = draft.status === "blocked" && !draft.blockedReason?.trim();
-  const activeRuns = freshRuns(task.activeRuns);
-
-  const save = async () => {
+  const commit = async () => {
+    const title = draft.trim();
+    setEditing(false);
+    // Nothing typed, or nothing changed: leaving is not an edit, so it writes
+    // nothing and says nothing.
+    if (!title || title === task.title) {
+      setDraft(task.title);
+      return;
+    }
     setSaving(true);
     try {
-      await onSaved(
-        await updateTask(task.id, {
-          revision: task.revision,
-          title: draft.title,
-          description: draft.description,
-          status: draft.status,
-          priority: draft.priority,
-          blockedReason: draft.blockedReason,
-          relatedMemoryIds: draft.relatedMemoryIds,
-        }),
-      );
-    } catch (caught) {
-      toast(
-        caught instanceof ApiError && caught.code === "conflict"
-          ? t("conflict")
-          : failure(caught),
-        "error",
-      );
+      await onRename(task, title);
     } finally {
       setSaving(false);
     }
   };
 
+  if (editing) {
+    return (
+      <input
+        // eslint-disable-next-line jsx-a11y/no-autofocus
+        autoFocus
+        value={draft}
+        disabled={saving}
+        aria-label={t("renameLabel")}
+        onFocus={(event) => event.currentTarget.select()}
+        onChange={(event) => setDraft(event.target.value)}
+        // Clicking away is a decision to keep what was typed, the same as Enter.
+        onBlur={() => void commit()}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            void commit();
+          }
+          if (event.key === "Escape") {
+            setDraft(task.title);
+            setEditing(false);
+          }
+        }}
+        className="w-full border-b border-thread bg-transparent pb-1 text-lead text-ink outline-none disabled:opacity-50"
+      />
+    );
+  }
+
   return (
-    <div className="px-3 pb-6">
-      <Card className="p-6">
-        <div className="grid gap-5">
-          <Input
-            id={`title-${task.id}`}
-            label={t("field.title")}
-            value={draft.title}
-            maxLength={160}
-            onChange={set("title")}
-          />
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Select
-              id={`status-${task.id}`}
-              label={t("field.status")}
-              value={draft.status}
-              onChange={(status) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  status: status as TaskStatus,
-                  blockedReason: status === "blocked" ? prev.blockedReason : "",
-                }))
-              }
-              options={STATUSES.map((status) => ({ value: status, label: t(`status.${status}`) }))}
-            />
-            <Select
-              id={`priority-${task.id}`}
-              label={t("field.priority")}
-              value={draft.priority}
-              onChange={(priority) =>
-                setDraft((prev) => ({ ...prev, priority: priority as TaskPriority }))
-              }
-              options={PRIORITIES.map((priority) => ({
-                value: priority,
-                label: t(`priority.${priority}`),
-              }))}
-            />
-          </div>
-          {draft.status === "blocked" ? (
-            <Textarea
-              id={`blocked-${task.id}`}
-              label={t("field.blockedReason")}
-              rows={2}
-              value={draft.blockedReason ?? ""}
-              error={blockedNeedsReason ? t("blockedRequired") : undefined}
-              onChange={(event) =>
-                setDraft((prev) => ({ ...prev, blockedReason: event.target.value }))
-              }
-            />
-          ) : null}
-          <Textarea
-            id={`description-${task.id}`}
-            label={t("field.description")}
-            rows={4}
-            value={draft.description}
-            onChange={set("description")}
-          />
-
-          {activeRuns.length ? (
-            <section className="border-t border-hairline pt-5">
-              <p className="text-label uppercase tracking-[0.12em] text-ink-3">
-                {t("activeWork")}
-              </p>
-              <ul className="flex flex-col pt-2">
-                {activeRuns.map((run) => (
-                  <li key={run.id} className="flex flex-wrap items-center gap-3 py-2">
-                    <AgentRunChips runs={[run]} />
-                    <Meta
-                      items={[
-                        run.actor ? t("runActor", { who: who(run.actor) }) : null,
-                        t("lastSeen", { when: stamp(run.lastSeenAt) }),
-                        t("expires", { when: stamp(run.expiresAt) }),
-                      ]}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          <section className="border-t border-hairline pt-5">
-            <p className="text-label uppercase tracking-[0.12em] text-ink-3">
-              {t("relatedContext")}
-            </p>
-            {memories.length ? (
-              <ul className="flex flex-col pt-2">
-                {memories.map((memory) => (
-                  <li key={memory.id}>
-                    <label className="flex cursor-pointer items-start gap-3 py-2 text-small text-ink-2 transition-colors duration-state hover:text-ink">
-                      <input
-                        type="checkbox"
-                        checked={related.has(memory.id)}
-                        onChange={(event) => {
-                          const checked = event.target.checked;
-                          setDraft((prev) => ({
-                            ...prev,
-                            relatedMemoryIds: checked
-                              ? [...prev.relatedMemoryIds, memory.id]
-                              : prev.relatedMemoryIds.filter((id) => id !== memory.id),
-                          }));
-                        }}
-                        className="mt-[6px] h-[14px] w-[14px] accent-thread"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-ink">{memory.summary || headline(memory.content)}</span>
-                        <span className="text-data text-ink-3">{t(`memory.${memory.type}`)}</span>
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="pt-2 text-small text-ink-3">{t("noMemories")}</p>
-            )}
-          </section>
-
-          {task.relatedMemories.length ? (
-            <section className="border-t border-hairline pt-5">
-              <p className="text-label uppercase tracking-[0.12em] text-ink-3">
-                {t("linkedMemories")}
-              </p>
-              <ul className="flex flex-col pt-2">
-                {task.relatedMemories.map((memory) => (
-                  <RelatedMemoryRow
-                    key={memory.id}
-                    memory={memory}
-                    open={memoryOpen === memory.id}
-                    onOpen={() => setMemoryOpen(memoryOpen === memory.id ? null : memory.id)}
-                  />
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          <section className="border-t border-hairline pt-5">
-            <p className="text-label uppercase tracking-[0.12em] text-ink-3">
-              {t("history")}
-            </p>
-            <ul className="flex flex-col pt-2">
-              {task.events.map((event) => (
-                <li key={event.id} className="py-1 text-small text-ink-2">
-                  <Meta
-                    items={[
-                      t(`event.${event.action}`),
-                      event.actor ? who(event.actor) : null,
-                      event.source?.channel === "coder" ? t("agent") : t("human"),
-                      stamp(event.createdAt),
-                    ]}
-                  />
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={() => void save()} loading={saving} disabled={blockedNeedsReason}>
-              {saving ? t("saving") : t("save")}
-            </Button>
-            <Button
-              variant="secondary"
-              loading={saving}
-              onClick={() =>
-                void updateTask(task.id, { revision: task.revision, status: "archived" })
-                  .then(onSaved)
-                  .then(() => toast(t("toastArchived")))
-                  .catch((caught) => toast(failure(caught), "error"))
-              }
-            >
-              {t("archive")}
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </div>
+    <button
+      type="button"
+      title={t("renameHint")}
+      onDoubleClick={open}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") open();
+      }}
+      // cursor-text and nothing else: the row is not a control any more, so the
+      // only hint it needs is the one the pointer gives over editable text.
+      className="w-full cursor-text rounded-control text-left text-lead text-ink"
+    >
+      {task.title}
+    </button>
   );
 }
 
@@ -636,26 +457,38 @@ function AgentRunChips({ runs }: { runs: TaskActiveRun[] }) {
   );
 }
 
+// Each tool's own mark, in public/ at three times its drawn size (see
+// scripts/optimise-image.mjs). Redrawn in the house line weight they were two
+// abstract glyphs nobody could name; a logo's whole job is to be recognised, so
+// this is the one place in the app that shows somebody else's brand.
+//
+// It is also the only colour here the palette does not own. That is the price of
+// recognising a tool at a glance, and it is paid on a mark that identifies rather
+// than decorates.
+const AGENT_MARKS: Partial<Record<TaskActiveRun["agentKind"], string>> = {
+  claude: "/agent-claude.webp",
+  codex: "/agent-codex.webp",
+};
+
 function AgentKindMark({ kind }: { kind: TaskActiveRun["agentKind"] }) {
-  const shared = { width: 11, height: 11, viewBox: "0 0 12 12", "aria-hidden": true as const };
-  if (kind === "codex") {
-    return (
-      <svg {...shared} className="text-thread">
-        <rect x="2" y="2" width="8" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M4.2 6h3.6M6 4.2v3.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      </svg>
-    );
+  const mark = AGENT_MARKS[kind];
+  if (mark) {
+    // Empty alt and hidden from the tree: the chip around this already names the
+    // client in words, so announcing the mark would read the same thing twice.
+    // Plain img and not next/image - this export has no optimiser behind it.
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={mark} alt="" aria-hidden width={14} height={14} className="shrink-0" />;
   }
-  if (kind === "claude") {
-    return (
-      <svg {...shared} className="text-ochre">
-        <path d="M6 1.8 10 10H2Z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-        <path d="M4.4 7.2h3.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
-      </svg>
-    );
-  }
+  // An agent nobody has a mark for. Kept as a drawing so the row still carries
+  // something in the shape position rather than jumping a few pixels narrower.
   return (
-    <svg {...shared} className="text-aegean">
+    <svg
+      width={11}
+      height={11}
+      viewBox="0 0 12 12"
+      aria-hidden
+      className="shrink-0 text-aegean"
+    >
       <circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" strokeWidth="1.3" />
       <path d="M6 3.6v4.8M3.6 6h4.8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
     </svg>
@@ -690,34 +523,4 @@ function TaskStatusMark({ status }: { status: TaskStatus }) {
   if (status === "in_progress") return <svg {...shared}><path d="M4 1.1a2.9 2.9 0 1 1 0 5.8Z" fill="currentColor" /><circle cx="4" cy="4" r="2.9" fill="none" stroke="currentColor" strokeWidth="1.4" /></svg>;
   if (status === "archived" || status === "backlog") return <svg {...shared}><path d="M1 4h6" stroke="currentColor" strokeWidth="1.6" /></svg>;
   return <svg {...shared}><circle cx="4" cy="4" r="2.9" fill="none" stroke="currentColor" strokeWidth="1.4" /></svg>;
-}
-
-function RelatedMemoryRow({
-  memory,
-  open,
-  onOpen,
-}: {
-  memory: RelatedMemory;
-  open: boolean;
-  onOpen: () => void;
-}) {
-  const t = useTranslations("tasks");
-  return (
-    <li>
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-expanded={open}
-        className="flex w-full items-baseline gap-3 py-[5px] text-left text-small text-ink-2 transition-colors duration-state hover:text-ink"
-      >
-        <span className="shrink-0 text-data text-ink-3">{t(`memory.${memory.type}`)}</span>
-        <span className="min-w-0 flex-1 truncate">{memory.summary || headline(memory.content)}</span>
-      </button>
-      <Collapse open={open}>
-        <div className="border-l border-hairline py-2 pl-5">
-          <p className="whitespace-pre-wrap text-small leading-6 text-ink-2">{memory.content}</p>
-        </div>
-      </Collapse>
-    </li>
-  );
 }
