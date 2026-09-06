@@ -105,7 +105,14 @@ export default function EntryScreen() {
       await enter(token, false);
     } catch (caught) {
       // Cancelling is a decision, not a failure, and needs no red text.
-      if (!controller.signal.aborted) setError(providerMessage(caught, provider, t));
+      if (controller.signal.aborted) return;
+      // The copy below says "it did not happen" for every reason there is, which
+      // is right for the reader and useless for anyone fixing it: a webview that
+      // refused to open a browser and a provider that refused the account read
+      // exactly the same. The real error goes to the console, where the person
+      // debugging this is already looking.
+      console.error("[sign-in]", provider, caught);
+      setError(providerMessage(caught, provider, t));
     } finally {
       abort.current = null;
       setPending(null);

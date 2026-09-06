@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { openExternal } from "@/lib/desktop";
 import { useRef, useState } from "react";
 import { CommandBlock } from "./command-block";
 import { Button, Field, Label } from "./ui";
@@ -123,6 +124,10 @@ export function KeyStep({
         href={GEMINI_KEY_CONSOLE}
         target="_blank"
         rel="noreferrer"
+        onClick={(event) => {
+          event.preventDefault();
+          void openExternal(GEMINI_KEY_CONSOLE);
+        }}
         className="mt-5 inline-block text-small text-thread underline underline-offset-2"
       >
         {t("where")}

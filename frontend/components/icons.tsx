@@ -143,6 +143,20 @@ export function IconToken() {
   );
 }
 
+// One thing on disk, reaching two places. Not a folder and not a plug: the
+// section is about a single skill that several tools can open, and that is the
+// only shape worth drawing here.
+export function IconSkills() {
+  return (
+    <svg {...stroke}>
+      <rect x="1.5" y="6.25" width="5.5" height="5.5" rx="1.2" />
+      <path d="M7 9h2.5M9.5 9V4.75h2.4M9.5 9v4.25h2.4" />
+      <circle cx="13.6" cy="4.75" r="1.7" />
+      <circle cx="13.6" cy="13.25" r="1.7" />
+    </svg>
+  );
+}
+
 // --- The project ---
 
 // Where the project is in its life. A flag on the ground it has reached.

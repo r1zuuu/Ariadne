@@ -1,5 +1,7 @@
 // The only place that talks to the backend. Every screen goes through request().
 
+import { openExternal } from "@/lib/desktop";
+
 // Trailing slash trimmed: this is pasted by hand into .env.local, and one at the
 // end turns every call into BASE//path, which answers 404 and looks like a
 // broken server rather than a typo.
@@ -284,9 +286,10 @@ export async function signInWithProvider(provider: Provider, signal: AbortSignal
     .replace(/\//g, "_")
     .replace(/=+$/, "");
 
-  // Same mechanism the settings and onboarding screens already use for external
-  // links: Tauri sends _blank to the system browser, and in dev it is a tab.
-  window.open(`${BASE}/auth/${provider}/start?handoff=${handoff}`, "_blank");
+  // Awaited, and not window.open. In the desktop window window.open is dropped
+  // without a word, so this used to open nothing and then poll for three minutes
+  // for a token no browser was ever going to fetch.
+  await openExternal(`${BASE}/auth/${provider}/start?handoff=${handoff}`);
 
   const deadline = Date.now() + HANDOFF_TIMEOUT_MS;
   while (Date.now() < deadline) {

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Core defaults, plus the four window commands an undecorated window needs: the title bar draws its own minimise, maximise and close, and dragging it moves the window.",
+  "description": "Core defaults, the four window commands an undecorated window needs (the title bar draws its own minimise, maximise and close, and dragging it moves the window), and opening a URL in the system browser, which sign-in through Google and GitHub goes through.",
   "windows": [
     "main"
   ],
@@ -10,6 +10,8 @@
     "core:window:allow-start-dragging",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
-    "core:window:allow-close"
+    "core:window:allow-close",
+    "opener:allow-open-url",
+    "opener:allow-default-urls"
   ]
 }

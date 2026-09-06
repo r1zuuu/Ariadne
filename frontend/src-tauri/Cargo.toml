@@ -19,3 +19,9 @@ tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
 tauri = { version = "2.11.3", features = [] }
+# Already in the tree as one of tauri's own dependencies; declared here because
+# the skills commands derive Serialize on the shapes they hand back.
+serde = { version = "1", features = ["derive"] }
+# Opens a URL in the system browser. Without it window.open in the webview does
+# nothing at all, which is what silently broke sign-in through Google and GitHub.
+tauri-plugin-opener = "2"

@@ -578,7 +578,27 @@
     "revoke": "Revoke",
     "geminiStored": "saved",
     "geminiReplace": "Replace",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "skills": "Skills",
+    "skillsLead": "Agent skills live in directories on this computer. Each tool reads its own, so a skill one of them sees can be invisible to another.",
+    "skillsRoot": {
+      "agents": "Shared store",
+      "claude": "Claude",
+      "codex": "Codex CLI"
+    },
+    "skillsSeen": "{seen} of {total}",
+    "skillsMissingRoot": "not installed",
+    "skillsShare": "Share the missing ones ({count})",
+    "skillsLinking": "Sharing...",
+    "skillsAllShared": "Every tool sees every skill.",
+    "skillsRestartNote": "The links appear at once. A running Claude or Codex session will not see the new skills until it is started again.",
+    "skillsBroken": "{count, plural, one {One link leads nowhere.} other {# links lead nowhere.}}",
+    "skillsLinked": "{count, plural, =0 {No new link was made.} one {Made # link.} other {Made # links.}}",
+    "skillsConflicts": "{count, plural, one {Left # name alone: another directory holds it.} other {Left # names alone: another directory holds them.}}",
+    "skillsFailedCount": "{count, plural, one {# link could not be made.} other {# links could not be made.}}",
+    "skillsError": "Could not read the skill directories",
+    "skillsErrorNote": "Check that .agents, .claude and .codex are in your home directory.",
+    "skillsBrowserOnly": "Skills live on disk, so only the application window can read them. In a browser this section shows nothing."
   },
   "conflict": {
     "title": "CONTRADICTION",
