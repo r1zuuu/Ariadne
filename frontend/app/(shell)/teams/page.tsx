@@ -355,7 +355,7 @@ function JoinPanel({
   // The field, wherever it ends up: the two arrangements below differ in what
   // sits around it, never in what it is.
   const field = (
-    <div className="max-w-[46ch]">
+    <div className="measure-tight">
       <Input
         id="invite-code"
         label={t("code.label")}
@@ -399,7 +399,7 @@ function JoinPanel({
                 itself this sentence put "tutaj." alone on a second line, and
                 the browser evens the lines out better than a guessed width
                 can, in any of the two languages. */}
-            <p className="mx-auto max-w-[62ch] text-balance pt-4 text-body text-ink-2">
+            <p className="mx-auto measure text-balance pt-4 text-body text-ink-2">
               {t("code.leadAlone")}
             </p>
           </div>
@@ -544,7 +544,7 @@ function MyTeams({
       {mine.length ? (
         <section className="pt-9">
           <SectionHeader title={t("private")} />
-          <p className="max-w-[70ch] pb-4 text-small text-ink-2">{t("privateNote")}</p>
+          <p className="measure-wide pb-4 text-small text-ink-2">{t("privateNote")}</p>
           <ul className="flex flex-col gap-4">
             {mine.map((workspace) => (
               <li key={workspace.id}>

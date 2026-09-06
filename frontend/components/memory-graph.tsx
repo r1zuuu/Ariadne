@@ -125,7 +125,7 @@ export function MemoryGraph({ nodes, edges }: { nodes: Node[]; edges: GraphEdge[
       <div className="pt-4">
         {selected ? (
           <div className="border-l-2 border-thread/60 pl-5">
-            <p className="max-w-[68ch] whitespace-pre-wrap text-small leading-6 text-ink">
+            <p className="measure whitespace-pre-wrap text-small leading-6 text-ink">
               {selected.content}
             </p>
           </div>

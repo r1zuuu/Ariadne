@@ -139,19 +139,38 @@ export function Textarea({
   );
 }
 
+// Both carry a measure. They are the last prose in the system that had none, and
+// they sit inside a card that is as wide as the screen allows, so a note under a
+// field was running to 111 characters while every paragraph beside it held 66.
 function FieldNote({ id, error, note }: { id?: string; error?: string; note?: string }) {
   if (error) {
     return (
-      <p id={`${id}-error`} className="pt-2 text-small text-iron">
+      <p id={`${id}-error`} className="measure pt-2 text-small text-iron">
         {error}
       </p>
     );
   }
   return note ? (
-    <p id={`${id}-note`} className="pt-2 text-small text-ink-3">
+    <p id={`${id}-note`} className="measure pt-2 text-small text-ink-3">
       {note}
     </p>
   ) : null;
+}
+
+// The name of a card, one step above the labels inside it.
+//
+// It exists because a card that names itself was reaching for the same class as
+// the fields under it - text-small, medium, ink - so "Hasło" and "Obecne hasło"
+// were typographically identical and the card read as a list of three equal
+// labels. 15px carries seven different weight-and-colour combinations on the
+// settings screen already; a card title needed a step of its own rather than an
+// eighth variant of that one.
+export function CardTitle({ children, id }: { children: ReactNode; id?: string }) {
+  return (
+    <p id={id} className="text-body font-medium text-ink">
+      {children}
+    </p>
+  );
 }
 
 export function Card({
@@ -193,7 +212,7 @@ export function PageHeader({
     <div className="flex flex-wrap items-end justify-between gap-5 pb-7 pt-6">
       <div className="min-w-0">
         <h1 className="max-w-[14ch] text-display text-ink">{title}</h1>
-        {lead ? <p className="max-w-[62ch] pt-3 text-body text-ink-2">{lead}</p> : null}
+        {lead ? <p className="measure pt-3 text-body text-ink-2">{lead}</p> : null}
       </div>
       {actions ? <div className="flex shrink-0 gap-3 pb-2">{actions}</div> : null}
     </div>
@@ -227,16 +246,25 @@ export function SectionHeader({
   return (
     <div className="pb-4">
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="flex items-baseline gap-3 text-section text-ink">
+        {/* The gap between the words and the count is drawn by flex, and CSS gaps
+            do not put a space into the accessible name: the heading was computed
+            as "Tokeny agentow1". Naming the heading outright is the only way to
+            be sure of the separator. */}
+        <h2
+          aria-label={count !== undefined ? `${title} ${count}` : undefined}
+          className="flex items-baseline gap-3 text-section text-ink"
+        >
           {icon ? <span className="self-center text-ink-2">{icon}</span> : null}
           {title}
           {count !== undefined ? (
-            <span className="font-prose text-data tabular text-ink-3">{count}</span>
+            <span aria-hidden="true" className="font-prose text-data tabular text-ink-3">
+              {count}
+            </span>
           ) : null}
         </h2>
         {action}
       </div>
-      {note ? <p className="max-w-[68ch] pt-2 text-small text-ink-2">{note}</p> : null}
+      {note ? <p className="measure pt-2 text-small text-ink-2">{note}</p> : null}
     </div>
   );
 }
@@ -281,30 +309,54 @@ const STATUS_TONES = {
 // a cross is overruled, a dash is put away. Exported for the thread of
 // entries, which hangs the same four shapes on the project's timeline.
 export function StatusMark({ tone }: { tone: keyof typeof STATUS_TONES }) {
-  const shared = { width: 7, height: 7, viewBox: "0 0 8 8", "aria-hidden": true as const };
+  // Wider than tall, and sitting on a baseline, because these are marks made on
+  // a line of text rather than icons in a box. 13 by 9 at 11px drawn.
+  const shared = {
+    width: 11,
+    height: 8,
+    viewBox: "0 0 13 9",
+    fill: "none" as const,
+    stroke: "currentColor",
+    strokeWidth: 1.4,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true as const,
+  };
   switch (tone) {
+    // Caret. The proofreader's insertion point: something belongs here and has
+    // not been settled yet, which is what proposed means.
     case "proposed":
       return (
         <svg {...shared}>
-          <circle cx="4" cy="4" r="2.9" fill="none" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M1.4 7.2 6.5 2.1l5.1 5.1" />
         </svg>
       );
+    // Stet, "let it stand": the mark that cancels a deletion and keeps the text.
+    // A rule with the dots under it, which is how it is written on paper and the
+    // closest thing editing has to a word for confirmed.
     case "confirmed":
       return (
         <svg {...shared}>
-          <rect x="1" y="1" width="6" height="6" fill="currentColor" />
+          <path d="M1.2 3.4h10.6" />
+          <path d="M2.6 6.8h.01M6.5 6.8h.01M10.4 6.8h.01" strokeWidth="1.8" />
         </svg>
       );
+    // Dele. The deletion stroke through a line: this was struck out, and
+    // something else stands in its place.
     case "contradicted":
       return (
         <svg {...shared}>
-          <path d="M1.2 1.2 6.8 6.8M6.8 1.2 1.2 6.8" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M1.2 5.1h10.6" />
+          <path d="M9.2 1.6 3.8 8.4" />
         </svg>
       );
+    // Filed away. The line is still there, closed on both ends: nothing is
+    // struck and nothing is pending, it is simply put where it is kept.
     case "archived":
       return (
         <svg {...shared}>
-          <path d="M1 4h6" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M2.4 4.5h8.2" />
+          <path d="M1.4 2.6v3.8M11.6 2.6v3.8" strokeWidth="1.2" />
         </svg>
       );
   }
@@ -363,7 +415,7 @@ export function EmptyState({
         <circle cx="52" cy="7" r="2.2" fill="currentColor" />
       </svg>
       <p className="pt-4 text-body font-medium text-ink">{title}</p>
-      <p className="mx-auto max-w-[52ch] pt-2 text-small text-ink-2">{note}</p>
+      <p className="mx-auto measure pt-2 text-small text-ink-2">{note}</p>
       {action ? <div className="flex justify-center pt-5">{action}</div> : null}
     </div>
   );
@@ -396,8 +448,8 @@ export function Banner({
       className={`flex items-center gap-6 border-b px-8 py-4 ${BANNER_VARIANTS[variant]}`}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-small text-ink">{what}</p>
-        {means ? <p className="pt-1 text-small text-ink-2">{means}</p> : null}
+        <p className="measure text-small text-ink">{what}</p>
+        {means ? <p className="measure pt-1 text-small text-ink-2">{means}</p> : null}
       </div>
       {action ? (
         <Button variant="secondary" onClick={action.onClick}>

@@ -103,7 +103,7 @@ export default function ProjectScreen() {
                 <Prose
                   text={project.opis || t("aboutEmpty")}
                   lines={3}
-                  className={`max-w-[62ch] pt-4 text-body ${
+                  className={`measure pt-4 text-body ${
                     project.opis ? "text-ink-2" : "text-ink-3"
                   }`}
                 />
@@ -184,13 +184,13 @@ function DuplicateRepoNotice({ project }: { project: Project }) {
   return (
     <div className="mb-5 rounded-control border border-ochre/40 bg-ochre/[0.07] p-5">
       <p className="text-small font-medium text-ink">{t("title")}</p>
-      <p className="max-w-[70ch] pt-2 text-small text-ink-2">
+      <p className="measure-wide pt-2 text-small text-ink-2">
         {t("body", {
           repo: project.repoRef,
           where: sameRepoElsewhere.map((p) => `${p.name} (${p.workspaceName})`).join(", "),
         })}
       </p>
-      <p className="max-w-[70ch] pt-2 text-small text-ink-2">{t("fix")}</p>
+      <p className="measure-wide pt-2 text-small text-ink-2">{t("fix")}</p>
     </div>
   );
 }
@@ -354,7 +354,7 @@ function ReadView({ project }: { project: Project }) {
         <Prose
           text={project.ograniczenia || t("limitsEmpty")}
           lines={6}
-          className={`max-w-[68ch] text-body ${
+          className={`measure text-body ${
             project.ograniczenia ? "text-ink-2" : "text-ink-3"
           }`}
         />
@@ -538,7 +538,7 @@ function MoveSection({
           </option>
         ))}
       </select>
-      <p className="max-w-[64ch] pt-2 text-small text-ink-2">{t("note")}</p>
+      <p className="measure pt-2 text-small text-ink-2">{t("note")}</p>
       <div className="flex flex-wrap items-center gap-3 pt-4">
         <Button
           variant="secondary"
@@ -611,7 +611,7 @@ function DeleteSection({ project }: { project: Project }) {
   return (
     <div className="rounded-control border border-iron/40 bg-iron/[0.04] p-5">
       <p className="text-small font-medium text-ink">{t("title")}</p>
-      <p className="max-w-[64ch] pt-2 text-small text-ink-2">
+      <p className="measure pt-2 text-small text-ink-2">
         {t("warning", { count: String(project.nodeCount ?? 0) })}
       </p>
       <div className="pt-4">

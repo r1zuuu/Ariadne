@@ -24,7 +24,14 @@ export function RecordPreview({
   entries: Entry[];
   emptyNote: string;
 }) {
-  const filled = entries.filter((entry) => entry.value.trim());
+  // Optional chaining, because the values arrive from a record the wizard saved
+  // into localStorage and restores on the next visit. A record written by an
+  // older version - a profile question added, renamed or dropped since - hands
+  // this an entry whose value is undefined, and `.trim()` on it took the whole
+  // screen down. There is no way out of the wizard, so the person who hit that
+  // was left on a crash with nowhere to go, holding an account they could not
+  // finish setting up.
+  const filled = entries.filter((entry) => entry.value?.trim());
 
   return (
     <aside className="border-l border-hairline pl-8">

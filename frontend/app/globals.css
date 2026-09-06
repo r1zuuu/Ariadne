@@ -90,8 +90,16 @@
   /* Display serifs want weight, not tightness: tracking stays at zero so the
      serifs never collide. 700/600, not the elegant 400-500 print would take -
      on a screen the thin cuts read as grey fog, not as ink. */
-  --text-display: 64px;
-  --text-display--line-height: 72px;
+  /* Fluid, because the display size is the one step that cannot break a line to
+     fit. "Do zatwierdzenia" is a single 64px word wider than a narrow window's
+     content column, and a word that cannot break pushes the whole scroller: the
+     main pane measured 417px of view against 435px of content and the last
+     letter of the heading sat outside the window.
+     Below a 900px viewport it scales with the width and stops at 38px, which is
+     where the longest heading in either language still fits the narrowest
+     window the shell allows. Above it, the 64px this scale was drawn at. */
+  --text-display: clamp(38px, 4.2vw + 12px, 64px);
+  --text-display--line-height: 1.12;
   --text-display--font-weight: 700;
 
   --text-title: 34px;
@@ -195,6 +203,37 @@
   min-height: calc(100dvh - 38px - 2 * var(--spacing-7) - var(--spacing-10));
 }
 
+/* Reading measure, and the reason it is not written in `ch`.
+ *
+ * `1ch` is the width of the digit zero, and in Geist that glyph is 1.38 times
+ * the average prose character: at 15px the zero is 9.95px against 7.21px for
+ * ordinary text. So `max-w-[68ch]` asks for 68 characters and delivers 94, and
+ * every measure in the app was overshooting by the same 38%. The intent was
+ * always right - 54 to 68 characters is the band worth reading - the unit was
+ * not.
+ *
+ * These are in `em`, which tracks the element's own size, so one utility holds
+ * the same character count at 13px, 15px and 17px. 0.48em per character is the
+ * measured average for this face; the numbers below are that times the target.
+ */
+
+/* ~66 characters. The default for anything read a sentence at a time. */
+@utility measure {
+  max-width: 32em;
+}
+
+/* ~75 characters. For a body of text where breaking earlier costs more than the
+   extra width does: an entry someone is reading in full, a page lead. */
+@utility measure-wide {
+  max-width: 36em;
+}
+
+/* ~52 characters. A note beside a control, where the column is already narrow
+   and the text is a sentence, not a paragraph. */
+@utility measure-tight {
+  max-width: 25em;
+}
+
 /* Counters change while the reader is looking at them, so mono digits never
    shift width. */
 @utility tabular {
@@ -211,6 +250,10 @@
 
 @layer base {
   html {
+    /* The ground is #090b0f. Without this the browser paints its own furniture -
+       scrollbars, the list a <select> drops down, autofill - as if the page were
+       white, and a 15px light scrollbar runs down the side of every screen. */
+    color-scheme: dark;
     background: var(--color-plaster);
     color: var(--color-ink);
     font-family: var(--font-prose);

@@ -183,7 +183,11 @@
       "error": {
         "empty": "Wklej kod zaproszenia.",
         "bad": "Ten kod nie działa. Sprawdź, czy jest cały i czy wystawiono go na Twój adres."
-      }
+      },
+      "leadWaiting": "Zaproszenie wystawione na Twój adres jest już tutaj. Trafisz do cudzego archiwum razem z jego projektami, więc nie musisz zakładać własnego.",
+      "from": "od {who}",
+      "accept": "Dołącz",
+      "orPaste": "Albo wklej kod przekazany Ci z ręki"
     }
   },
   "common": {
@@ -391,7 +395,10 @@
     },
     "renameHint": "Kliknij dwa razy, żeby zmienić tytuł",
     "renameLabel": "Tytuł zadania",
-    "toastRenamed": "Tytuł zmieniony"
+    "toastRenamed": "Tytuł zmieniony",
+    "noMatch": "Nic nie pasuje do tego filtra",
+    "noMatchNote": "Zadania są na miejscu, tylko żadne nie odpowiada temu, czego szukasz.",
+    "clearFilters": "Wyczyść filtry"
   },
   "project": {
     "title": "Projekt",

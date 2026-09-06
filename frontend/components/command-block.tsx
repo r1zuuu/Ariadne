@@ -59,7 +59,7 @@ export function CommandBlock({
 
   return (
     <div>
-      <p className="max-w-[68ch] text-small text-ink-2">{what}</p>
+      <p className="measure text-small text-ink-2">{what}</p>
 
       <pre
         className="mt-5 overflow-x-auto rounded-card bg-canvas px-6 py-5 font-data text-canvas-ink"
@@ -90,8 +90,8 @@ export function CommandBlock({
         ) : null}
       </div>
 
-      <p className="max-w-[68ch] pt-6 text-small text-ink-2">{where}</p>
-      {warn ? <p className="max-w-[68ch] pt-3 text-small text-ochre">{warn}</p> : null}
+      <p className="measure pt-6 text-small text-ink-2">{where}</p>
+      {warn ? <p className="measure pt-3 text-small text-ochre">{warn}</p> : null}
     </div>
   );
 }

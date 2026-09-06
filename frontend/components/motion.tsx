@@ -82,17 +82,34 @@ export function FadeIn({
 export function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
   const still = useReducedMotion();
   return (
-    <m.div
-      initial={false}
-      animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }}
-      transition={{ duration: still ? 0 : ENTER, ease: EASE_OUT_QUINT }}
-      style={{ overflow: "hidden" }}
+    // Grid rows from 0fr to 1fr, not an animated height.
+    //
+    // Animating to `height: auto` means measuring the content once and writing
+    // that number into the style. The number then stops being true the moment
+    // anything inside changes or the screen re-renders mid-animation, and the
+    // panel keeps a height its contents outgrew. That is not hypothetical: the
+    // new-task form froze at 335px around 463px of content, so its priority
+    // field and both buttons sat below a clipped edge - present in the DOM,
+    // invisible on screen, and elementFromPoint over the submit button returned
+    // the tab strip behind it. The form could not be submitted at all.
+    //
+    // A 1fr row is content-sized by definition, so there is no measurement to go
+    // stale. The inner element does the clipping while the row is collapsing.
+    <div
       // Height zero still leaves a button inside reachable by Tab, which is a
       // focus landing on nothing visible. inert takes it out of the tree.
       inert={!open}
+      style={{
+        display: "grid",
+        gridTemplateRows: open ? "1fr" : "0fr",
+        opacity: open ? 1 : 0,
+        transition: still
+          ? "none"
+          : `grid-template-rows ${ENTER}s var(--ease-out-quint), opacity ${ENTER}s var(--ease-out-quint)`,
+      }}
     >
-      {children}
-    </m.div>
+      <div style={{ overflow: "hidden", minHeight: 0 }}>{children}</div>
+    </div>
   );
 }
 

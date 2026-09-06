@@ -57,6 +57,9 @@ export default function TasksScreen() {
     [locale],
   );
 
+  /** Whether anything is narrowing the list, which decides which nothing to show. */
+  const filtered = query.trim() !== "" || tab !== "all";
+
   const filters = useMemo(() => {
     const trimmed = query.trim();
     return {
@@ -252,7 +255,30 @@ export default function TasksScreen() {
           {tasks === null ? (
             <p className="pt-6 text-body text-ink-3">{t("loading")}</p>
           ) : tasks.length === 0 ? (
-            <EmptyState title={t("empty")} note={t("emptyNote")} />
+            // Two different nothings. An archive with no tasks in it needs to be
+            // told what would put one there; a search that matched none of seven
+            // needs to be told that the seven are still there and how to see
+            // them. Saying "nobody has left any work here yet" to someone who
+            // just typed a word is simply false.
+            filtered ? (
+              <EmptyState
+                title={t("noMatch")}
+                note={t("noMatchNote")}
+                action={
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setQuery("");
+                      setTab("all");
+                    }}
+                  >
+                    {t("clearFilters")}
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState title={t("empty")} note={t("emptyNote")} />
+            )
           ) : (
             <ul className="flex flex-col">
               {tasks.map((task) => {

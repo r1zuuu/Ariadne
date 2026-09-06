@@ -17,6 +17,7 @@ import { useToast } from "@/components/toast";
 import {
   Button,
   Card,
+  CardTitle,
   EmptyState,
   Input,
   Meta,
@@ -185,8 +186,14 @@ function AccountSection({
 
       <PasswordCard toast={toast} hasPassword={account.hasPassword} />
 
-      <div className="flex flex-wrap items-center gap-4 pt-6">
-        <p className="text-small font-medium text-ink">{t("language")}</p>
+      <div
+        role="group"
+        aria-labelledby="settings-language-label"
+        className="flex flex-wrap items-center gap-4 pt-6"
+      >
+        <p id="settings-language-label" className="text-small font-medium text-ink">
+          {t("language")}
+        </p>
         {/* The active language is a selected state, not a call to action:
             a full brand fill here outshouted every real CTA on the page. */}
         {LOCALES.map((code) => {
@@ -243,8 +250,8 @@ function PasswordCard({ toast, hasPassword }: { toast: Toast; hasPassword: boole
   if (!hasPassword) {
     return (
       <Card as="section" className="mt-5 p-6">
-        <p className="text-small font-medium text-ink">{t("password")}</p>
-        <p className="pt-2 text-small text-ink-2">{t("passwordViaProvider")}</p>
+        <CardTitle>{t("password")}</CardTitle>
+        <p className="measure pt-2 text-small text-ink-2">{t("passwordViaProvider")}</p>
       </Card>
     );
   }
@@ -252,7 +259,7 @@ function PasswordCard({ toast, hasPassword }: { toast: Toast; hasPassword: boole
   return (
     <Card as="section" className="mt-5 p-6">
       <form onSubmit={submit} className="flex flex-col gap-5">
-        <p className="text-small font-medium text-ink">{t("password")}</p>
+        <CardTitle>{t("password")}</CardTitle>
         <Input
           id="settings-current-password"
           type="password"
@@ -335,7 +342,7 @@ function GeminiSection({
       <SectionHeader title={t("gemini")} icon={<IconKey />} />
 
       <Card className="p-6">
-        <p className="max-w-[62ch] text-small text-ink-2">{t(`geminiState.${source}`)}</p>
+        <p className="measure text-small text-ink-2">{t(`geminiState.${source}`)}</p>
 
         {stored ? (
           <div className="flex flex-wrap items-center justify-between gap-4 pt-5">
@@ -452,7 +459,7 @@ function PermissionSection({
     <section className="mt-8 border-t border-hairline pt-7">
       <SectionHeader title={t("autoApprove")} icon={<IconAutoApprove />} />
       <Card className="flex flex-wrap items-center justify-between gap-5 p-6">
-        <p className="max-w-[54ch] text-small text-ink-2">
+        <p className="measure text-small text-ink-2">
           {account.allPermission ? t("autoApproveIsOn") : t("autoApproveIsOff")}
         </p>
         <Button variant="secondary" onClick={flip} loading={saving}>
@@ -651,7 +658,7 @@ function SkillsSection({ toast }: { toast: Toast }) {
       {mode === "checking" ? (
         <p className="text-body text-ink-3">{t("loading")}</p>
       ) : mode === "browser" ? (
-        <p className="max-w-[62ch] text-body text-ink-2">{t("skillsBrowserOnly")}</p>
+        <p className="measure text-body text-ink-2">{t("skillsBrowserOnly")}</p>
       ) : mode === "failed" || !state ? (
         <EmptyState
           title={t("skillsError")}
@@ -684,7 +691,7 @@ function SkillsSection({ toast }: { toast: Toast }) {
           </Card>
 
           <div className="flex flex-wrap items-center justify-between gap-5 pt-5">
-            <p className="max-w-[54ch] text-small text-ink-2">
+            <p className="measure text-small text-ink-2">
               {state.missing
                 ? t("skillsRestartNote")
                 : t("skillsAllShared")}

@@ -183,7 +183,11 @@
       "error": {
         "empty": "Paste the invitation code.",
         "bad": "That code does not work. Check that it is complete and was written for your address."
-      }
+      },
+      "leadWaiting": "An invitation written to your address is already here. You land in somebody else's archive with its projects, so you need none of your own.",
+      "from": "from {who}",
+      "accept": "Join",
+      "orPaste": "Or paste a code somebody handed you"
     }
   },
   "common": {
@@ -391,7 +395,10 @@
     },
     "renameHint": "Double click to rename",
     "renameLabel": "Task title",
-    "toastRenamed": "Title changed"
+    "toastRenamed": "Title changed",
+    "noMatch": "Nothing matches this filter",
+    "noMatchNote": "The tasks are still there; none of them answers what you are looking for.",
+    "clearFilters": "Clear the filters"
   },
   "project": {
     "title": "Project",

@@ -5,7 +5,13 @@ import { openExternal } from "@/lib/desktop";
 import { useRef, useState } from "react";
 import { CommandBlock } from "./command-block";
 import { Button, Field, Label } from "./ui";
-import { GEMINI_KEY_CONSOLE, serverUrl, type GeminiKeySource, type Workspace } from "@/lib/api";
+import {
+  GEMINI_KEY_CONSOLE,
+  serverUrl,
+  type GeminiKeySource,
+  type MyInvite,
+  type Workspace,
+} from "@/lib/api";
 
 // The three step bodies. The orchestrator in app/onboarding/page.tsx owns the
 // state, the network and the navigation; these only render and report changes.
@@ -73,7 +79,7 @@ export function ProfileStep({
           style={{ maxWidth: "68ch" }}
         />
       </div>
-      <p className="max-w-[68ch] pt-5 text-small text-ink-2">{t("note")}</p>
+      <p className="measure pt-5 text-small text-ink-2">{t("note")}</p>
     </div>
   );
 }
@@ -104,7 +110,7 @@ export function KeyStep({
   return (
     <div>
       <h1 className="max-w-[24ch] text-title">{t("title")}</h1>
-      <p className="max-w-[62ch] pt-5 text-body text-ink-2">{t(`lead.${source}`)}</p>
+      <p className="measure pt-5 text-body text-ink-2">{t(`lead.${source}`)}</p>
       <input
         id="gemini-key"
         type="password"
@@ -116,8 +122,8 @@ export function KeyStep({
         placeholder={t("hint")}
         className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread"
       />
-      {error ? <p className="max-w-[62ch] pt-4 text-small text-iron">{error}</p> : null}
-      <p className="max-w-[62ch] pt-4 text-small text-ink-3">
+      {error ? <p className="measure pt-4 text-small text-iron">{error}</p> : null}
+      <p className="measure pt-4 text-small text-ink-3">
         {t(source === "user" ? "keptIfEmpty" : "required")}
       </p>
       <a
@@ -208,7 +214,7 @@ export function ProjectStep({
   return (
     <div>
       <h1 className="text-title">{heading}</h1>
-      <p className="max-w-[64ch] pt-5 text-body text-ink-2">{t("repoLead")}</p>
+      <p className="measure pt-5 text-body text-ink-2">{t("repoLead")}</p>
       <div className="mt-7 divide-y divide-hairline border-y border-hairline">
       <Field
         id="name"
@@ -386,12 +392,17 @@ function GuardrailsField({
 export function JoinStep({
   code,
   error,
+  waiting,
   onCode,
+  onAccept,
   onBack,
 }: {
   code: string;
   error: string | null;
+  /** Invitations the server already holds against this address. */
+  waiting: MyInvite[];
   onCode: (value: string) => void;
+  onAccept: (code: string) => void;
   onBack: () => void;
 }) {
   const t = useTranslations("onboarding.join");
@@ -399,10 +410,43 @@ export function JoinStep({
   return (
     <div>
       <h1 className="max-w-[24ch] text-title">{t("title")}</h1>
-      <p className="max-w-[62ch] pt-5 text-body text-ink-2">{t("lead")}</p>
+      <p className="measure pt-5 text-body text-ink-2">
+        {waiting.length ? t("leadWaiting") : t("lead")}
+      </p>
+
+      {/* An invitation written to this address is already here and takes one
+          press. The teams screen has worked this way since it was built; this
+          step did not, and asked a person to go and find a code the server had
+          bound to their address and handed over on request. A code passed by
+          hand still has to be typed, so the field stays, under the rule. */}
+      {waiting.length ? (
+        <ul className="flex flex-col gap-3 pt-7">
+          {waiting.map((invite) => (
+            <li
+              key={invite.id}
+              className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-hairline bg-surface p-5"
+            >
+              <span className="min-w-0">
+                <span className="block text-body text-ink">{invite.workspaceName}</span>
+                {invite.invitedBy ? (
+                  <span className="block pt-1 text-data text-ink-3">
+                    {t("from", { who: invite.invitedBy })}
+                  </span>
+                ) : null}
+              </span>
+              <Button onClick={() => onAccept(invite.code)}>{t("accept")}</Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {waiting.length ? (
+        <p className="border-t border-hairline pt-7 text-small font-medium text-ink">
+          {t("orPaste")}
+        </p>
+      ) : null}
       <input
         id="invite-code"
-        autoFocus
+        autoFocus={waiting.length === 0}
         autoComplete="off"
         spellCheck={false}
         value={code}
@@ -410,8 +454,8 @@ export function JoinStep({
         placeholder={t("hint")}
         className="mt-7 w-full max-w-[620px] border-b border-edge bg-transparent pb-4 font-mono text-lead text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread"
       />
-      {error ? <p className="max-w-[62ch] pt-4 text-small text-iron">{error}</p> : null}
-      <p className="max-w-[62ch] pt-4 text-small text-ink-3">{t("note")}</p>
+      {error ? <p className="measure pt-4 text-small text-iron">{error}</p> : null}
+      <p className="measure pt-4 text-small text-ink-3">{t("note")}</p>
       <button
         type="button"
         onClick={onBack}
@@ -486,19 +530,19 @@ export function AgentStep({
           started in, and if that is not this project's, the archive it finds is
           a different one or none at all. */}
       <div className="mt-7 rounded-control border border-edge/60 bg-plaster-sunk p-5">
-        <p className="max-w-[68ch] text-small text-ink">{t("onceOnly")}</p>
+        <p className="measure text-small text-ink">{t("onceOnly")}</p>
         {joinedWorkspace ? (
           <>
-            <p className="max-w-[68ch] pt-3 text-small text-ink">
+            <p className="measure pt-3 text-small text-ink">
               {t("joinedArchive", { name: joinedWorkspace })}
             </p>
-            <p className="max-w-[68ch] pt-3 text-small text-ink-2">{t("joinedWhereToRun")}</p>
+            <p className="measure pt-3 text-small text-ink-2">{t("joinedWhereToRun")}</p>
           </>
         ) : (
           <>
-            <p className="max-w-[68ch] pt-3 text-small text-ink">{t("whereToRun")}</p>
+            <p className="measure pt-3 text-small text-ink">{t("whereToRun")}</p>
             <p className="pt-3 font-mono text-data text-ink-2">{repoRef}</p>
-            <p className="max-w-[68ch] pt-3 text-small text-ink-2">{t("mustMatch")}</p>
+            <p className="measure pt-3 text-small text-ink-2">{t("mustMatch")}</p>
           </>
         )}
       </div>
@@ -506,7 +550,7 @@ export function AgentStep({
       <div className="pt-6">
         {failed || !token ? (
           <div>
-            <p className="max-w-[68ch] text-small text-iron">{t("tokenFailed")}</p>
+            <p className="measure text-small text-iron">{t("tokenFailed")}</p>
             <div className="pt-5">
               <Button variant="secondary" onClick={onRegenerate}>
                 {t("regenerate")}
@@ -522,7 +566,7 @@ export function AgentStep({
           />
         ) : (
           <div>
-            <p className="max-w-[68ch] text-small text-ink-2">{t("other.note", { url: `${host}/mcp` })}</p>
+            <p className="measure text-small text-ink-2">{t("other.note", { url: `${host}/mcp` })}</p>
             <CommandBlock
               command={token}
               what={t("tokenWhat")}

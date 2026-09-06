@@ -9,3 +9,9 @@ setup.md
 # Wyniki pomiaru wyszukiwania: generowane przez scripts/eval-*.ts.
 # Zrodlem zestawu pytan jest scripts/eval-questions.ts, nie ten katalog.
 backend/eval/
+
+# Local copies of the real configuration, made before pointing the app at the
+# test database. Never committed: they hold the production connection strings.
+.env.production-backup
+frontend/.env.local.production-backup
+.env.test
