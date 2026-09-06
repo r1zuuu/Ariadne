@@ -204,6 +204,22 @@ Nie każde sprawdzenie kończy się znaleziskiem. Te wypadły czysto i nic w nic
 
 ---
 
+## 5. Audyt implementacyjny: theming, wydajnosc, anty-wzorce
+
+Wymiary z `impeccable audit`, ktore sprawdza sie w kodzie, a nie okiem. Wykonane, gdy przegladarka byla zablokowana. Wynik kazdej kontroli jest zapisany, takze wtedy, gdy nic nie znalazl.
+
+| Kontrola | Wynik | Dowod |
+|---|---|---|
+| Kolory poza tokenami | **czysto** | cztery wartosci hex w calej aplikacji, wszystkie w `GoogleMark` w `app/page.tsx`: oficjalne barwy znaku Google. Znak firmowy musi miec wlasne kolory, GitHub jest monochromatyczny i idzie za kolorem tekstu. |
+| Kosztowne filtry | **czysto** | zero `backdrop-blur`, `blur-[...]`, `drop-shadow` w calym drzewie |
+| Animacje wlasciwosci ukladu | **jedno trafienie** | `transition-[width]` na `ask.tsx:339`, czyli lista rozmow z U6. Szerokosc jest wlasciwoscia ukladu, wiec kazda klatka przelicza uklad. `animate-ping` na odznace zywego wykonania rusza tylko przezroczystoscia i skala, wiec jest w porzadku. |
+| Obrazy | **czysto** | dwa `<img>` w aplikacji: znak agenta przy 14px i obraz ekranu wejscia, ktory ma `srcSet`, `sizes` i puste `alt` |
+| Tokeny wysokosci i odstepow | **czysto** | skala z `globals.css` uzywana konsekwentnie, wysokosci stale pisane w nawiasach zgodnie z komentarzem w `ui.tsx` |
+
+Wniosek: warstwa implementacyjna jest zdrowa. Problemy, ktore ten audyt znalazl, siedza w typografii, w hierarchii i w jednym zalozeniu o pomiarze wysokosci (U8), a nie w jakosci kodu CSS.
+
+Do U6 dochodzi przez to druga przeslanka: gdy juz bedzie poszerzana, `transition-[width]` warto zamienic na `transform` albo `max-width`, zeby przestala przeliczac uklad co klatke.
+
 ## 5a. Audyt implementacyjny responsywnosci
 
 Wykonany z kodu, gdy przegladarka byla zablokowana. **To sa hipotezy do sprawdzenia wzrokiem, nie wyniki kontroli.** Zadna pozycja stad nie liczy sie jako zweryfikowana.
