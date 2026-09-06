@@ -204,6 +204,53 @@ Nie każde sprawdzenie kończy się znaleziskiem. Te wypadły czysto i nic w nic
 
 ---
 
+## 5a. Audyt implementacyjny responsywnosci
+
+Wykonany z kodu, gdy przegladarka byla zablokowana. **To sa hipotezy do sprawdzenia wzrokiem, nie wyniki kontroli.** Zadna pozycja stad nie liczy sie jako zweryfikowana.
+
+### Fakt, ktory zmienia znaczenie trzech szerokosci z briefu
+
+`frontend/src-tauri/tauri.conf.json`:
+
+```json
+"width": 1100, "height": 760, "minWidth": 880, "minHeight": 620
+```
+
+Produktem jest okno pulpitu, ktorego **nie da sie zwezic ponizej 880px**. Szerokosci **360, 390 i 768 sa nieosiagalne w aplikacji, ktora dostaje uzytkownik**. Sa osiagalne wylacznie w przegladarce pod `next dev`, bo ten sam eksport chodzi tam bez okna Tauri.
+
+Sprawdzam je mimo to, bo brief o to prosi. Ale kazde znalezisko z tych trzech kolumn bedzie oznaczone jako **dotyczace wyłącznie przegladarki**, i taki ma priorytet. Prawdziwa luka w pokryciu to **1280 i 1536**, czyli szerokosci, w ktorych okno realnie stoi.
+
+### Rozklad regul responsywnych
+
+| Plik | Klas responsywnych |
+|---|---|
+| `components/app-shell.tsx` | 15 |
+| `app/(shell)/teams/page.tsx` | 8 |
+| `components/ask.tsx` | 4 |
+| `app/page.tsx` | 3 |
+| `app/onboarding/page.tsx` | 2 |
+| `tasks`, `project`, `pending`, `home`, `composer` | **po 1** |
+| **`components/ui.tsx`** | **0** |
+
+Plik, z ktorego zbudowany jest kazdy ekran, nie ma ani jednej reguly zaleznej od szerokosci. Piec ekranow ma po jednej. Cala responsywnosc siedzi w powloce i na ekranie zespolow.
+
+To nie jest samo w sobie usterka: ukladem rzadzi glownie `flex-wrap` i `max-w`, ktore zwezaja sie same. Ale znaczy, ze zachowanie ponizej 1024px nie bylo projektowane, tylko wynika z domyslnych zachowan.
+
+### Hipotezy do sprawdzenia, gdy okno wroci
+
+| # | Miejsce | Czego szukac | Podstawa z kodu |
+|---|---|---|---|
+| H1 | `/home`, lista rozmow | znika calkowicie ponizej 1280px | `min-[1280px]` na `<aside>`, patrz U6 |
+| H2 | `/tasks`, rzad filtrow | zawijanie zakladek i pola szukania | `flex-wrap` plus `min-w-[220px] flex-1` obok pieciu zakladek |
+| H3 | `/settings`, rzad tokena | to samo | `flex-wrap` plus `min-w-[200px] flex-1` |
+| H4 | graf pamieci | karta wezla `w-[250px]` nie zwezi sie | jedyna stala szerokosc bez `max-` |
+| H5 | nawigacja | przejscie na same ikony przy 1024px, przy oknie o minimum 880px | `lg:` w `app-shell`, `w-[68px]` ponizej progu |
+| H6 | `/teams`, drzwi | `md:aspect-square` znika ponizej 768px, karty staja sie niskie | `min-h-[220px] md:aspect-square` |
+| H7 | ekran wejscia | panel z obrazem znika ponizej 1024px, formularz zostaje sam | `hidden ... lg:block` |
+| H8 | kreator | podglad profilu znika ponizej 1024px | `hidden lg:block` |
+
+Kazda z tych pozycji ma w macierzy komorke do wypelnienia wynikiem, nie hipoteza.
+
 ## 6. Macierz pokrycia
 
 Stan obecny: **wyłącznie 1920px**, rola `owner`, jeden motyw. Aplikacja nie ma przełącznika motywu ani reguł `prefers-color-scheme`, więc kolumna motywu ma jedną wartość.
