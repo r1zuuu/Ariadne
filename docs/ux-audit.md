@@ -144,6 +144,35 @@ Priorytety: **P0** blokada działania, **P1** poważny problem czytelności lub 
 - **Dowód:** tytuł „Czemu skille nie ida przez MCP?" ma 193px treści w 140px widoku. Każda pozycja listy jest ucięta.
 - **Dlaczego nie naprawione:** element jest pozycjonowany względem krawędzi kontenera i przy 1280px ma około 86px zapasu, więc poszerzenie może go wypchnąć poza obszar. Zmiana szerokości bez możliwości sprawdzenia przy 1280 i 1536 byłaby zmianą niezweryfikowaną. Czeka na odblokowanie viewportów.
 
+### U7 - wyszukiwanie bez trafien klamalo, ze nic tu nie ma. P2. NAPRAWIONE
+
+- **Ekran / rola:** `/tasks`, owner i member. Viewport 1920.
+- **Problem:** lista przefiltrowana do zera pokazywala komunikat pustego archiwum: „Nie ma tu zadan. Kiedy czlowiek albo agent zostawi konkretna prace na pozniej, pojawi sie tutaj."
+- **Skutek:** komu wpisal slowo w wyszukiwarke, temu aplikacja odpowiadala, ze nikt jeszcze nic nie zapisal. Zadan bylo siedem. Do tego zadnej drogi powrotu.
+- **Dowod:** zapytanie `qqqxyz-nic-takiego`, zrzut z komunikatem pustego archiwum przy siedmiu istniejacych zadaniach.
+- **Poprawka:** osobny stan dla listy przefiltrowanej, z przyciskiem czyszczacym naraz zapytanie i zakladke.
+- **Weryfikacja:** to samo zapytanie daje teraz „Nic nie pasuje do tego filtra" plus „Wyczysc filtry"; przycisk przywraca wszystkie siedem.
+
+### U8 - formularza nowego zadania nie dalo sie zatwierdzic. **P0.** NAPRAWIONE
+
+Najpowazniejsze znalezisko audytu.
+
+- **Ekran / rola:** `/tasks`, obie role. Viewport 1920.
+- **Problem:** `Collapse` animowal `height` do `auto`, co oznacza zmierzenie zawartosci raz i wpisanie tej liczby w styl. Liczba przestaje byc prawdziwa, gdy cokolwiek w srodku sie zmieni albo ekran przerysuje sie w trakcie animacji. Ekran zadan odswieza sie sam co 15 sekund i przy powrocie fokusu do okna, wiec animacja byla przerywana.
+- **Skutek:** panel trzymal **335px wokol 463px tresci**. Pole priorytetu i oba przyciski lezaly ponizej obcietej krawedzi: obecne w DOM, niewidoczne na ekranie. **Nie bylo zadnej drogi, zeby utworzyc zadanie z interfejsu.**
+- **Dowod:**
+
+```
+clientHeight panelu:            335
+scrollHeight panelu:            463
+"Utworz zadanie" ponizej krawedzi: 79px
+elementFromPoint w srodku przycisku: BUTTON "Do zrobienia"   <- zakladka pod spodem
+```
+
+- **Poprawka:** wiersze siatki od `0fr` do `1fr` zamiast animowanej wysokosci. Wiersz `1fr` jest z definicji wielkosci tresci, wiec nie ma pomiaru, ktory moglby sie zdezaktualizowac.
+- **Weryfikacja funkcjonalna:** `elementFromPoint` nad przyciskiem zwraca teraz `BUTTON "Utworz zadanie"`; zadanie wpisane w formularz zostalo utworzone, toast potwierdzil, wiersz pojawil sie na liscie.
+- **Regresje na ekranach dzielacych komponent:** `/pending` sprawdzony, panel wpisu rozwija sie z pelna trescia i przyciskami. `/teams`, `/database`, `ask` i `entry-card` uzywaja tego samego komponentu; sprawdzone wizualnie przez `/pending`, przebieg klikany niepelny.
+
 ### Sprawdzone i bez zarzutu
 
 Nie każde sprawdzenie kończy się znaleziskiem. Te wypadły czysto i nic w nich nie zmieniam.
