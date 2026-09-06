@@ -17,6 +17,7 @@ import { useToast } from "@/components/toast";
 import {
   Button,
   Card,
+  CardTitle,
   EmptyState,
   Input,
   Meta,
@@ -185,8 +186,14 @@ function AccountSection({
 
       <PasswordCard toast={toast} hasPassword={account.hasPassword} />
 
-      <div className="flex flex-wrap items-center gap-4 pt-6">
-        <p className="text-small font-medium text-ink">{t("language")}</p>
+      <div
+        role="group"
+        aria-labelledby="settings-language-label"
+        className="flex flex-wrap items-center gap-4 pt-6"
+      >
+        <p id="settings-language-label" className="text-small font-medium text-ink">
+          {t("language")}
+        </p>
         {/* The active language is a selected state, not a call to action:
             a full brand fill here outshouted every real CTA on the page. */}
         {LOCALES.map((code) => {
@@ -243,8 +250,8 @@ function PasswordCard({ toast, hasPassword }: { toast: Toast; hasPassword: boole
   if (!hasPassword) {
     return (
       <Card as="section" className="mt-5 p-6">
-        <p className="text-small font-medium text-ink">{t("password")}</p>
-        <p className="pt-2 text-small text-ink-2">{t("passwordViaProvider")}</p>
+        <CardTitle>{t("password")}</CardTitle>
+        <p className="measure pt-2 text-small text-ink-2">{t("passwordViaProvider")}</p>
       </Card>
     );
   }
@@ -252,7 +259,7 @@ function PasswordCard({ toast, hasPassword }: { toast: Toast; hasPassword: boole
   return (
     <Card as="section" className="mt-5 p-6">
       <form onSubmit={submit} className="flex flex-col gap-5">
-        <p className="text-small font-medium text-ink">{t("password")}</p>
+        <CardTitle>{t("password")}</CardTitle>
         <Input
           id="settings-current-password"
           type="password"

@@ -157,6 +157,22 @@ function FieldNote({ id, error, note }: { id?: string; error?: string; note?: st
   ) : null;
 }
 
+// The name of a card, one step above the labels inside it.
+//
+// It exists because a card that names itself was reaching for the same class as
+// the fields under it - text-small, medium, ink - so "Hasło" and "Obecne hasło"
+// were typographically identical and the card read as a list of three equal
+// labels. 15px carries seven different weight-and-colour combinations on the
+// settings screen already; a card title needed a step of its own rather than an
+// eighth variant of that one.
+export function CardTitle({ children, id }: { children: ReactNode; id?: string }) {
+  return (
+    <p id={id} className="text-body font-medium text-ink">
+      {children}
+    </p>
+  );
+}
+
 export function Card({
   as: Tag = "div",
   interactive = false,
@@ -230,11 +246,20 @@ export function SectionHeader({
   return (
     <div className="pb-4">
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="flex items-baseline gap-3 text-section text-ink">
+        {/* The gap between the words and the count is drawn by flex, and CSS gaps
+            do not put a space into the accessible name: the heading was computed
+            as "Tokeny agentow1". Naming the heading outright is the only way to
+            be sure of the separator. */}
+        <h2
+          aria-label={count !== undefined ? `${title} ${count}` : undefined}
+          className="flex items-baseline gap-3 text-section text-ink"
+        >
           {icon ? <span className="self-center text-ink-2">{icon}</span> : null}
           {title}
           {count !== undefined ? (
-            <span className="font-prose text-data tabular text-ink-3">{count}</span>
+            <span aria-hidden="true" className="font-prose text-data tabular text-ink-3">
+              {count}
+            </span>
           ) : null}
         </h2>
         {action}
