@@ -214,7 +214,7 @@ Nie każde sprawdzenie kończy się znaleziskiem. Te wypadły czysto i nic w nic
 
 ---
 
-## 5. Audyt implementacyjny: theming, wydajnosc, anty-wzorce
+## 6. Audyt implementacyjny: theming, wydajnosc, anty-wzorce
 
 Wymiary z `impeccable audit`, ktore sprawdza sie w kodzie, a nie okiem. Wykonane, gdy przegladarka byla zablokowana. Wynik kazdej kontroli jest zapisany, takze wtedy, gdy nic nie znalazl.
 
@@ -230,7 +230,7 @@ Wniosek: warstwa implementacyjna jest zdrowa. Problemy, ktore ten audyt znalazl,
 
 Do U6 dochodzi przez to druga przeslanka: gdy juz bedzie poszerzana, `transition-[width]` warto zamienic na `transform` albo `max-width`, zeby przestala przeliczac uklad co klatke.
 
-## 5a. Audyt implementacyjny responsywnosci
+## 7. Audyt implementacyjny responsywnosci
 
 Wykonany z kodu, gdy przegladarka byla zablokowana. **To sa hipotezy do sprawdzenia wzrokiem, nie wyniki kontroli.** Zadna pozycja stad nie liczy sie jako zweryfikowana.
 
@@ -277,7 +277,7 @@ To nie jest samo w sobie usterka: ukladem rzadzi glownie `flex-wrap` i `max-w`, 
 
 Kazda z tych pozycji ma w macierzy komorke do wypelnienia wynikiem, nie hipoteza.
 
-## 6. Macierz pokrycia
+## 8. Macierz pokrycia
 
 Metoda: `resize_window`, prawdziwa szerokosc odczytana z ramki wspolrzednych zrzutu i z `documentElement.clientWidth`. Dla kazdego ekranu mierzone: przepelnienie poziome dokumentu, przepelnienie panelu `main`, elementy z trescia szersza niz kontener bez zadeklarowanego obcinania, elementy wystajace poza prawa krawedz.
 
@@ -316,7 +316,7 @@ Jeden. `globals.css` nie zawiera `prefers-color-scheme` ani `data-theme`, aplika
 
 ---
 
-## 7. Znaleziska z przemiału viewportow
+## 9. Znaleziska z przemialu viewportow
 
 ### U10 - polka rozmow wypychala tresc poza panel. P2. NAPRAWIONE
 
@@ -334,3 +334,27 @@ Jeden. `globals.css` nie zawiera `prefers-color-scheme` ani `data-theme`, aplika
 - **Poprawka:** `clamp(38px, 4.2vw + 12px, 64px)` i interlinia jako wspolczynnik.
 - **Weryfikacja:** 500px daje 38px i zero przepelnienia z calym slowem w jednym wierszu; 1536px nadal daje 64px, czyli rozmiar, na ktory skala byla rysowana.
 
+## 10. Wyniki kontroli repozytorium
+
+Uruchomione po wszystkich poprawkach, na lokalnym srodowisku testowym.
+
+| Kontrola | Polecenie | Wynik |
+|---|---|---|
+| Typy frontendu | `npx tsc --noEmit` | przechodzi, zero bledow |
+| Build frontendu | `npm run build` | przechodzi, 12 stron |
+| Testy Rust | `cargo test --lib` | **4 przechodza** |
+| Weryfikacja REST | `npx tsx --env-file=../.env.test scripts/verify-rest.ts` | **189 sprawdzen przechodzi** |
+| Linter | — | **nie istnieje w tym repozytorium.** Nie raportuje go jako zaliczonego i nie dokladam go do projektu przy okazji audytu. |
+
+## 11. Stan kryteriow, bez upiekszania
+
+| # | Kryterium | Stan |
+|---|---|---|
+| 1 | powtarzalny seed z rolami i symulowanymi wykonawcami | **spelnione** |
+| 2 | kompletna macierz dla 360/390/768/1280/1536 | **czesciowo**: 768, 1280 i 1536 zmierzone, plus 500 i 1920 ponad wymog. 360 i 390 maja uzasadnione `n/o` z dowodem |
+| 3 | krytyczny audyt formularzy, odstepow, hierarchii, czytelnosci, nawigacji, interakcji, dostepnosci i stanow | **spelnione** |
+| 4 | wszystkie potwierdzone problemy naprawione i przesprawdzone, takze na ekranach dzielacych komponenty | **spelnione**: U1 do U12, kazdy zweryfikowany w przegladarce; regresja `Collapse` sprawdzona na `/pending` |
+| 5 | zrzuty przed/po na tych samych danych i viewportach plus kontrole repo | **czesciowo**: zrzuty i pomiary dla kazdej osiagalnej szerokosci, brak dla 360 i 390 z powodu z kryterium 2 |
+| 6 | raport z dowodami, ograniczeniami i instrukcja odtworzenia | **spelnione** |
+
+Czego nie zrobilem i nie udaje, ze zrobilem: **nie sprawdzilem 360 i 390 px**. `resize_window` zmienia okno systemowe, a Chrome w Windows nie schodzi ponizej okolo 500px viewportu; kazde zadanie 376 albo 406 wraca z ramka `500x...`. Nie przerobilem tych kolumn na „nie dotyczy" na podstawie `minWidth: 880` produktu, choc dawaloby to pretekst: brief prosil o sprawdzenie tych szerokosci i nie do mnie nalezy ich wykreslenie.
