@@ -285,7 +285,7 @@ Stan **po** naprawkach U1-U11. Wszystkie komorki oznaczone `czysto` znacza: `doc
 
 | Ekran | 360 | 390 | 500 | 768 | 1280 | 1536 | 1920 |
 |---|---|---|---|---|---|---|---|
-| Wejscie (logowanie) | n/o | n/o | czysto | czysto | czysto | czysto | czysto |
+| Wejscie (logowanie) | **czysto** | **czysto** | czysto | czysto | czysto | czysto | czysto |
 | Onboarding | n/o | n/o | — | — | — | — | czysto |
 | Przeglad `/home` | n/o | n/o | czysto | czysto | **czysto po U10** | czysto | czysto |
 | Projekt `/project` | n/o | n/o | czysto | czysto | czysto | czysto | czysto |
@@ -295,7 +295,11 @@ Stan **po** naprawkach U1-U11. Wszystkie komorki oznaczone `czysto` znacza: `doc
 | Zespoly `/teams` | n/o | n/o | czysto | czysto | czysto | czysto | czysto |
 | Ustawienia `/settings` | n/o | n/o | czysto | czysto | czysto | czysto | czysto |
 
-**`n/o` przy 360 i 390, z uzasadnieniem i z dowodem.** Chrome na Windows nie pozwala zwezic okna ponizej okolo 516px zewnetrznych, czyli **500px viewportu**. Zadanie 376 i 406 daje za kazdym razem ramke `500x...`. To limit przegladarki, nie aplikacji, i `resize_window` nie ma emulacji viewportu, tylko zmienia okno systemowe.
+**360 i 390: czesciowo zmierzone przez ramke.** Skoro okna nie da sie zwezic, wstawilem aplikacje w `<iframe>` o zadanej szerokosci na tym samym originie. Media queries i uklad licza sie wtedy wzgledem ramki, wiec progi responsywne, zawijanie, obcinanie i przepelnienie sa prawdziwe. Czego ramka **nie** dowodzi: jednostki `dvh` odnosza sie do jej wysokosci, nie do ekranu, wiec narzedzia `screen-content` i `screen-opening` nie sa tu sprawdzone.
+
+Zmierzone tak przy 360 i 390: **ekran logowania czysty na obu** - zero przepelnienia dokumentu, nic obcietego, naglowek 34px. Ekrany za logowaniem nie zdazyly: kontener bazy zgasl w trakcie i sesji nie dalo sie juz zalozyc.
+
+**Dlaczego pozostale ekrany maja `n/o`.** Chrome na Windows nie pozwala zwezic okna ponizej okolo 516px zewnetrznych, czyli **500px viewportu**. Zadanie 376 i 406 daje za kazdym razem ramke `500x...`. To limit przegladarki, nie aplikacji, i `resize_window` nie ma emulacji viewportu, tylko zmienia okno systemowe.
 
 Najblizszy zmierzony punkt to **500px i tam wszystko jest czyste**. Do tego produktem jest okno o `minWidth: 880`, wiec 360 i 390 sa o polowe wezsze niz cokolwiek, do czego uzytkownik moze doprowadzic aplikacje. Ryzyko oceniam jako niskie, ale **nie deklaruje tego jako sprawdzone**.
 
