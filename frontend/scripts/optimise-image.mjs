@@ -6,7 +6,7 @@
 // a script run by hand that produces committed files, and it is why this is not
 // wired into the build. The source PNG is not committed either, so this is a
 // record of how public/thread-*.webp were made rather than a step anyone repeats.
-import { statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import sharp from "sharp";
 
 const kb = (path) => (statSync(path).size / 1024).toFixed(0);
@@ -16,9 +16,16 @@ const kb = (path) => (statSync(path).size / 1024).toFixed(0);
 // 1600px window, and the second covers a HiDPI screen without shipping the full
 // 2208px original.
 const ART = "public/ascii-magic-1.png";
-console.log(`${ART.padEnd(34)} ${kb(ART)} kB  (source)`);
 
-for (const width of [1000, 1600]) {
+// The source is not committed, so on a fresh checkout this half has nothing to
+// do. Skipped rather than thrown, because the agent marks below are the part
+// anyone actually reruns and they should not need a 5 MB painting to be present.
+if (!existsSync(ART)) {
+  console.log(`${ART.padEnd(34)} skipped, source not here`);
+}
+console.log(existsSync(ART) ? `${ART.padEnd(34)} ${kb(ART)} kB  (source)` : "");
+
+for (const width of existsSync(ART) ? [1000, 1600] : []) {
   const out = `public/thread-${width}.webp`;
   await sharp(ART)
     .resize({ width, withoutEnlargement: true })
@@ -30,26 +37,76 @@ for (const width of [1000, 1600]) {
 }
 
 // The marks for Claude Code and Codex, shown beside a task somebody is working
-// on right now. They arrive as a 640px pixel-art PNG and a 768px gradient WebP
-// and are drawn at eleven pixels, so almost all of both files is waste.
+// on right now. They arrive as a 640px pixel-art PNG and a 768px WebP and are
+// drawn at fourteen pixels, so almost all of both files is waste.
 //
-// Trimmed first, because both sources carry a wide transparent margin that would
-// otherwise become empty space inside an eleven pixel box, leaving a mark too
-// small to recognise. 44px is three times the drawn size, which covers a HiDPI
-// screen with a little to spare.
+// The Codex source has no alpha channel at all: its "transparent" background is
+// a grey and white chequerboard painted into the pixels, the way stock sites
+// hand one out. Dropped in as it came, the mark sat on a pale square. So the
+// alpha is rebuilt here from chroma, which separates the two cleanly on this
+// image: the chequer tones measure 3 to 6, the flower 88 to 186. The ramp from
+// 12 to 40 keeps the antialiased rim from turning into a hard edge.
 //
-// nearest for the Claude mark and nothing else for the other: it is pixel art,
-// and a smooth kernel turns its hard edges into grey mush at this size.
-const MARKS = [
-  { from: "claudecode.png", to: "public/agent-claude.webp", kernel: "nearest" },
-  { from: "codex-icon.webp", to: "public/agent-codex.webp", kernel: "lanczos3" },
-];
+// It knocks the glyph out too, and that is correct: the > and _ inside the mark
+// are holes in the logo, not white ink, and they measure as background because
+// that is what they are.
+const CHROMA_CLEAR = 12;
+const CHROMA_SOLID = 40;
 
-for (const { from, to, kernel } of MARKS) {
-  await sharp(from)
+async function alphaFromChroma(file) {
+  const { data, info } = await sharp(file).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  const alpha = Buffer.alloc(info.width * info.height);
+  // Bounding box of everything that survives, so the wide empty margin goes
+  // before the resize rather than eating half of a fourteen pixel box.
+  let top = info.height, left = info.width, right = -1, bottom = -1;
+  for (let p = 0; p < alpha.length; p++) {
+    const i = p * info.channels;
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+    const value = Math.round(
+      255 * Math.min(1, Math.max(0, (chroma - CHROMA_CLEAR) / (CHROMA_SOLID - CHROMA_CLEAR))),
+    );
+    alpha[p] = value;
+    if (value > 8) {
+      const x = p % info.width;
+      const y = (p / info.width) | 0;
+      if (x < left) left = x;
+      if (x > right) right = x;
+      if (y < top) top = y;
+      if (y > bottom) bottom = y;
+    }
+  }
+  // Materialised to PNG rather than handed on as a raw pipeline: extract and
+  // resize chained onto a raw input silently did nothing here and wrote the
+  // source at full size. Two passes, no subtlety.
+  const rgba = await sharp(data, {
+    raw: { width: info.width, height: info.height, channels: info.channels },
+  })
+    .joinChannel(alpha, { raw: { width: info.width, height: info.height, channels: 1 } })
+    .png()
+    .toBuffer();
+
+  return { rgba, box: { left, top, width: right - left + 1, height: bottom - top + 1 } };
+}
+
+const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
+
+// 44px is three times the drawn size, which covers a HiDPI screen with a little
+// to spare. nearest for the Claude mark and nothing else: it is pixel art, and a
+// smooth kernel turns its hard edges into grey mush at this size.
+{
+  await sharp("claudecode.png")
     .trim()
-    .resize({ width: 44, height: 44, fit: "contain", kernel, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize({ width: 44, height: 44, fit: "contain", kernel: "nearest", background: TRANSPARENT })
     .webp({ quality: 90, alphaQuality: 100 })
-    .toFile(to);
-  console.log(`${to.padEnd(34)} ${kb(to)} kB`);
+    .toFile("public/agent-claude.webp");
+  console.log(`${"public/agent-claude.webp".padEnd(34)} ${kb("public/agent-claude.webp")} kB`);
+
+  const { rgba, box } = await alphaFromChroma("codex-icon.webp");
+  await sharp(rgba)
+    .extract(box)
+    .resize({ width: 44, height: 44, fit: "contain", background: TRANSPARENT })
+    .webp({ quality: 90, alphaQuality: 100 })
+    .toFile("public/agent-codex.webp");
+  console.log(`${"public/agent-codex.webp".padEnd(34)} ${kb("public/agent-codex.webp")} kB`);
 }
