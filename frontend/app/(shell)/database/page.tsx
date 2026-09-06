@@ -181,7 +181,7 @@ export default function DatabaseScreen() {
       <div className={empty ? "flex screen-opening flex-col justify-center" : ""}>
         <div className="pb-7 text-center">
           <h1 className="mx-auto max-w-[16ch] text-display text-ink">{t("title")}</h1>
-          <p className="mx-auto max-w-[62ch] pt-4 text-body text-ink-2">{t("lead")}</p>
+          <p className="mx-auto measure pt-4 text-body text-ink-2">{t("lead")}</p>
         </div>
 
         <Composer

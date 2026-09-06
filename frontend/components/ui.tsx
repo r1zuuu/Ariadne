@@ -139,16 +139,19 @@ export function Textarea({
   );
 }
 
+// Both carry a measure. They are the last prose in the system that had none, and
+// they sit inside a card that is as wide as the screen allows, so a note under a
+// field was running to 111 characters while every paragraph beside it held 66.
 function FieldNote({ id, error, note }: { id?: string; error?: string; note?: string }) {
   if (error) {
     return (
-      <p id={`${id}-error`} className="pt-2 text-small text-iron">
+      <p id={`${id}-error`} className="measure pt-2 text-small text-iron">
         {error}
       </p>
     );
   }
   return note ? (
-    <p id={`${id}-note`} className="pt-2 text-small text-ink-3">
+    <p id={`${id}-note`} className="measure pt-2 text-small text-ink-3">
       {note}
     </p>
   ) : null;
@@ -193,7 +196,7 @@ export function PageHeader({
     <div className="flex flex-wrap items-end justify-between gap-5 pb-7 pt-6">
       <div className="min-w-0">
         <h1 className="max-w-[14ch] text-display text-ink">{title}</h1>
-        {lead ? <p className="max-w-[62ch] pt-3 text-body text-ink-2">{lead}</p> : null}
+        {lead ? <p className="measure pt-3 text-body text-ink-2">{lead}</p> : null}
       </div>
       {actions ? <div className="flex shrink-0 gap-3 pb-2">{actions}</div> : null}
     </div>
@@ -236,7 +239,7 @@ export function SectionHeader({
         </h2>
         {action}
       </div>
-      {note ? <p className="max-w-[68ch] pt-2 text-small text-ink-2">{note}</p> : null}
+      {note ? <p className="measure pt-2 text-small text-ink-2">{note}</p> : null}
     </div>
   );
 }
@@ -363,7 +366,7 @@ export function EmptyState({
         <circle cx="52" cy="7" r="2.2" fill="currentColor" />
       </svg>
       <p className="pt-4 text-body font-medium text-ink">{title}</p>
-      <p className="mx-auto max-w-[52ch] pt-2 text-small text-ink-2">{note}</p>
+      <p className="mx-auto measure pt-2 text-small text-ink-2">{note}</p>
       {action ? <div className="flex justify-center pt-5">{action}</div> : null}
     </div>
   );
@@ -396,8 +399,8 @@ export function Banner({
       className={`flex items-center gap-6 border-b px-8 py-4 ${BANNER_VARIANTS[variant]}`}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-small text-ink">{what}</p>
-        {means ? <p className="pt-1 text-small text-ink-2">{means}</p> : null}
+        <p className="measure text-small text-ink">{what}</p>
+        {means ? <p className="measure pt-1 text-small text-ink-2">{means}</p> : null}
       </div>
       {action ? (
         <Button variant="secondary" onClick={action.onClick}>
