@@ -229,7 +229,7 @@ check(
   true,
 );
 const { tools: mcpTools } = await mcpClient.listTools();
-check("all five tools are registered", mcpTools.length, 5);
+check("all eleven tools are registered", mcpTools.length, 11);
 // A description that opens with what the tool is rather than when to call it is
 // how add_context ended up being reached for once a session, at the end or not
 // at all. One assertion covers every tool added later too.

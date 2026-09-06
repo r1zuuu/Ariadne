@@ -16,6 +16,7 @@ import {
   IconQueue,
   IconSettings,
   IconSignOut,
+  IconTasks,
   IconTeams,
 } from "@/components/icons";
 import { clearToken, type Project } from "@/lib/api";
@@ -27,7 +28,14 @@ import { clearToken, type Project } from "@/lib/api";
 // times. Data comes from AppProvider in the (shell) layout, so navigating
 // between screens neither refetches it nor remounts this frame.
 
-export type Section = "home" | "project" | "database" | "pending" | "teams" | "settings";
+export type Section =
+  | "home"
+  | "project"
+  | "tasks"
+  | "database"
+  | "pending"
+  | "teams"
+  | "settings";
 
 // `label` is not always the section name: "database" is what the screen has
 // always been called in the code and the URL, but "Dodaj kontekst" told a
@@ -51,6 +59,13 @@ const WORK_LINKS: NavLink[] = [
     href: "/project",
     needsProject: true,
     icon: <IconProject />,
+  },
+  {
+    section: "tasks",
+    label: "tasks",
+    href: "/tasks",
+    needsProject: true,
+    icon: <IconTasks />,
   },
   {
     section: "database",

@@ -11,6 +11,8 @@ import { asUser } from "./db/client.js";
 import {
   type NodeStatus,
   type NodeType,
+  type TaskPriority,
+  type TaskStatus,
   ServiceError,
   acceptInvite,
   approvePending,
@@ -24,6 +26,7 @@ import {
   createConversation,
   createInvite,
   createProject,
+  createTask,
   createWorkspace,
   declineInvite,
   deleteApiToken,
@@ -34,6 +37,8 @@ import {
   getConversation,
   getGraph,
   getReviewFeed,
+  getTask,
+  heartbeatTaskWork,
   listApiTokens,
   listConversations,
   listInvites,
@@ -41,6 +46,7 @@ import {
   listMyInvites,
   listNodes,
   listProjects,
+  listTasks,
   listWorkspaces,
   login,
   moveProject,
@@ -53,8 +59,11 @@ import {
   setAllPermission,
   setGeminiKey,
   signInWithProvider,
+  startTaskWork,
+  stopTaskWork,
   updateProfile,
   updateProject,
+  updateTask,
 } from "./service.js";
 import {
   authorizeUrl,
@@ -104,6 +113,8 @@ const PROTECTED_PREFIXES = [
   "/tokens/*",
   "/projects",
   "/projects/*",
+  "/tasks/*",
+  "/task-runs/*",
   "/pending",
   "/pending/*",
   "/nodes/*",
@@ -237,6 +248,54 @@ const listQuery = z.object({
   sort: z.enum(["created", "updated"]).optional(),
 });
 
+const taskQuery = z.object({
+  status: z.string().optional(),
+  priority: z.string().optional(),
+  creator: z.string().optional(),
+  active: z.enum(["true", "false"]).optional(),
+  completed: z.enum(["true", "false"]).optional(),
+  query: z.string().optional(),
+  cursor: z.string().optional(),
+  limit: z.coerce.number().optional(),
+});
+
+const taskCreateSchema = z.object({
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  status: z.string().optional(),
+  priority: z.string().optional(),
+  blockedReason: z.string().nullable().optional(),
+  relatedMemoryIds: z.array(z.string()).optional(),
+});
+
+const taskPatchSchema = taskCreateSchema.partial().extend({
+  revision: z.number().optional(),
+});
+
+const taskRunSourceSchema = z.object({
+  client: z.string().optional(),
+  sessionId: z.string(),
+  commitSha: z.string().optional(),
+});
+
+const taskRunStopSchema = z.object({
+  outcome: z.string().nullable().optional(),
+  source: taskRunSourceSchema.optional(),
+});
+
+const taskRunHeartbeatSchema = z.object({
+  source: taskRunSourceSchema.optional(),
+});
+
+function restTaskRunSource(source: z.infer<typeof taskRunSourceSchema>) {
+  return {
+    channel: "app_form" as const,
+    client: source.client,
+    session_id: source.sessionId,
+    commit_sha: source.commitSha,
+  };
+}
+
 // Reading the body and validating it fail the same way for the caller: a 400
 // with a reason, never a 500 on malformed JSON.
 async function readBody<T>(c: Context, schema: z.ZodType<T>): Promise<T> {
@@ -262,6 +321,7 @@ const STATUS_BY_CODE: Record<ServiceError["code"], 400 | 401 | 404 | 409 | 429> 
   // code cannot be added without answering what the REST side would say. 409:
   // the address is not missing, it names two projects and the caller must pick.
   ambiguous_repo: 409,
+  conflict: 409,
   not_found: 404,
 };
 
@@ -328,7 +388,7 @@ export function createRestApp() {
       cors({
         origin: ALLOWED_ORIGINS,
         allowHeaders: ["Content-Type", "Authorization"],
-        allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       }),
     );
   }
@@ -587,6 +647,104 @@ export function createRestApp() {
     return c.json(
       await moveProject({ userId: userId(c), projectId: c.req.param("id"), workspaceId }),
     );
+  });
+
+  // --- Tasks: shared operational state ---
+
+  app.get("/projects/:id/tasks", async (c) => {
+    const { status, priority, creator, active, completed, query, cursor, limit } = taskQuery.parse(
+      c.req.query(),
+    );
+    return c.json(
+      await listTasks({
+        userId: userId(c),
+        projectId: c.req.param("id"),
+        status: status as TaskStatus | undefined,
+        priority: priority as TaskPriority | undefined,
+        creator,
+        active: active === undefined ? undefined : active === "true",
+        completed: completed === undefined ? undefined : completed === "true",
+        query,
+        cursor,
+        limit,
+      }),
+    );
+  });
+
+  app.post("/projects/:id/tasks", async (c) => {
+    const body = await readBody(c, taskCreateSchema);
+    return c.json(
+      await createTask({
+        userId: userId(c),
+        projectId: c.req.param("id"),
+        title: body.title,
+        description: body.description,
+        status: body.status as TaskStatus | undefined,
+        priority: body.priority as TaskPriority | undefined,
+        blockedReason: body.blockedReason,
+        relatedMemoryIds: body.relatedMemoryIds,
+        source: { channel: "app_form" },
+      }),
+      201,
+    );
+  });
+
+  app.get("/tasks/:id", async (c) =>
+    c.json(await getTask({ userId: userId(c), taskId: c.req.param("id") })),
+  );
+
+  app.patch("/tasks/:id", async (c) => {
+    const { revision, ...patch } = await readBody(c, taskPatchSchema);
+    return c.json(
+      await updateTask({
+        userId: userId(c),
+        taskId: c.req.param("id"),
+        revision,
+        patch: {
+          title: patch.title,
+          description: patch.description,
+          status: patch.status as TaskStatus | undefined,
+          priority: patch.priority as TaskPriority | undefined,
+          blockedReason: patch.blockedReason,
+          relatedMemoryIds: patch.relatedMemoryIds,
+        },
+        source: { channel: "app_form" },
+      }),
+    );
+  });
+
+  app.post("/tasks/:id/runs", async (c) => {
+    const body = await readBody(c, taskRunSourceSchema);
+    return c.json(
+      await startTaskWork({
+        userId: userId(c),
+        taskId: c.req.param("id"),
+        source: restTaskRunSource(body),
+      }),
+      201,
+    );
+  });
+
+  app.post("/task-runs/:id/heartbeat", async (c) => {
+    const body = await readBody(c, taskRunHeartbeatSchema);
+    return c.json(
+      await heartbeatTaskWork({
+        userId: userId(c),
+        runId: c.req.param("id"),
+        source: body.source ? restTaskRunSource(body.source) : undefined,
+      }),
+    );
+  });
+
+  app.delete("/task-runs/:id", async (c) => {
+    const body = await readBody(c, taskRunStopSchema);
+    await stopTaskWork({
+      userId: userId(c),
+      runId: c.req.param("id"),
+      outcome: body.outcome,
+      source: body.source ? restTaskRunSource(body.source) : undefined,
+    });
+    return c.body(null, 204);
   });
 
   // --- Nodes: what the listing screens read (plan step 5a.1) ---
