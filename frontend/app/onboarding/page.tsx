@@ -26,11 +26,13 @@ import {
   getAccount,
   listProjects,
   mintToken,
+  myInvites,
   readToken,
   saveGeminiKey,
   saveProfile,
   serverUrl,
   type GeminiKeySource,
+  type MyInvite,
 } from "@/lib/api";
 
 // Screen 02. Collect a profile, create the first project, connect an agent, and
@@ -110,6 +112,11 @@ export default function OnboardingScreen() {
   // address as the team's copy, and their coder then writes to the wrong one.
   const [joining, setJoining] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
+  // Invitations the server already holds against this address. The wizard lives
+  // outside the shell, so AppProvider - the only other place that asks - never
+  // runs here, and this step used to send somebody looking for a code that was
+  // already bound to their address and handed over on request.
+  const [waiting, setWaiting] = useState<MyInvite[]>([]);
   const [joined, setJoined] = useState<{ id: string; name: string } | null>(null);
   const [agent, setAgent] = useState<Agent>("claude-code");
   const [token, setToken] = useState<string | null>(null);
@@ -183,6 +190,20 @@ export default function OnboardingScreen() {
     }
   }, [restored, step, profileIndex, answers, profile, card, joining, joined, agent, token]);
 
+  // Asked once, and never allowed to fail loudly: an invitation that cannot be
+  // listed leaves the pasted code exactly as it was, which is the path this step
+  // always had.
+  useEffect(() => {
+    if (!readToken()) return;
+    void myInvites()
+      .then((rows) => {
+        setWaiting(rows);
+        // Somebody with an invitation waiting is not here to invent a project.
+        if (rows.length) setJoining(true);
+      })
+      .catch(() => {});
+  }, []);
+
   // One token per machine, covering every archive this account belongs to, which
   // is what the last step of this wizard has always promised out loud.
   const mint = async () => {
@@ -200,7 +221,7 @@ export default function OnboardingScreen() {
       ? caught.message
       : tAuth("error.server", { url: HOST });
 
-  const advance = async () => {
+  const advance = async (codeOverride?: string) => {
     setFailure(null);
     setFieldError(null);
     setBusy(true);
@@ -242,7 +263,10 @@ export default function OnboardingScreen() {
       }
 
       if (step === 3 && joining) {
-        const code = inviteCode.trim();
+        // The override is the code of an invitation somebody pressed in the list.
+        // It is passed in rather than read from state because setInviteCode has
+        // not landed by the time this runs.
+        const code = (codeOverride ?? inviteCode).trim();
         if (!code) {
           setFieldError(t("join.error.empty"));
           return;
@@ -372,6 +396,11 @@ export default function OnboardingScreen() {
                 <JoinStep
                   code={inviteCode}
                   error={fieldError}
+                  waiting={waiting}
+                  onAccept={(code) => {
+                    setInviteCode(code);
+                    void advance(code);
+                  }}
                   onCode={setInviteCode}
                   onBack={() => {
                     setJoining(false);
