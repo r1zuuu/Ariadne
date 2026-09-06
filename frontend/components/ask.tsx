@@ -335,8 +335,21 @@ function ConversationShelf({
   if (!conversations.length) return null;
 
   return (
-    <aside className="group absolute left-full top-1/2 z-10 hidden -translate-y-1/2 pl-6 min-[1280px]:block">
-      <div className="w-[140px] transition-[width] duration-enter ease-out-quint group-hover:w-[200px] group-focus-within:w-[200px]">
+    // The shelf hangs in the gutter beside the composer, and the gutter has a
+    // fixed size: the outer column stops at 1080px and the composer at 760px, so
+    // there are (1080 - 760) / 2 = 160px each side, and the content column only
+    // reaches 1080 once the window passes 1380. Below that the gutter is
+    // narrower than the shelf, which is why this used to push the main pane 30px
+    // sideways at 1280 - the exact width it was set to appear at - and 4px at
+    // every width above it.
+    //
+    // 16px of padding plus 140px of shelf is 156, inside the 160 there is. The
+    // width no longer animates on hover: widening to 200 put it back outside the
+    // gutter, and it animated a layout property to get there, reflowing the page
+    // on every frame. Each row already carries the full title in its tooltip,
+    // which is what the widening was for.
+    <aside className="group absolute left-full top-1/2 z-10 hidden -translate-y-1/2 pl-5 min-[1380px]:block">
+      <div className="w-[140px]">
         <p className="pb-2 text-label uppercase tracking-[0.12em] text-ink-3/70">
           {t("historyTitle")}
         </p>
