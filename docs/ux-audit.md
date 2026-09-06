@@ -179,7 +179,17 @@ elementFromPoint w srodku przycisku: BUTTON "Do zrobienia"   <- zakladka pod spo
 - **Problem:** konto zaproszone do zespolu, logujac sie pierwszy raz, trafia do kreatora. Kreator ma sciezke dolaczania, ale lezy ona za obowiazkowym kluczem Gemini na kroku trzecim i prosi o **wklejenie kodu**. Kod jest juz zwiazany z adresem tej osoby i serwer wydaje go na zadanie. Kreator stoi poza powloka, wiec `AppProvider`, jedyne miejsce wolajace `/me/invites`, nigdy tam nie dziala.
 - **Dowod przed zmiana:** `/me/invites` zwrocilo zaproszenie do „Nic Ariadny", a jedyna kontrolka na ekranie kreatora to przycisk „Dalej". Ekran `/teams` byl osiagalny tylko przez recznie wpisany adres i pokazywal to samo zaproszenie z odznaka „1 zaproszenie".
 - **Poprawka:** `JoinStep` pobiera `myInvites()` i wypisuje czekajace zaproszenia z przyciskiem „Dolacz" na jedno nacisniecie, a kreator domyslnie wchodzi w sciezke dolaczania, gdy cos czeka. Pole na kod przekazany z reki zostaje, pod linia. Ekran zespolow dziala tak od poczatku; ten krok nie dzialal.
-- **Weryfikacja:** typecheck i build przechodza. **Przebieg w przegladarce niedokonczony** - patrz bloker drugi. Nie deklaruje tego jako sprawdzone klikaniem.
+- **Weryfikacja, przeklikana:** kreator sam wchodzi w sciezke dolaczania, wypisuje „Nic Ariadny, od owner@ux.test" z przyciskiem, a nacisniecie go przenosi na krok 4 i `GET /workspaces` zwraca juz dwa archiwa zamiast jednego. Zaproszony dolaczyl jednym nacisnieciem, bez wpisywania kodu.
+
+### U12 - kreator wywalal sie na wlasnym zapisanym stanie. P1. NAPRAWIONE
+
+- **Ekran:** `/onboarding`, kazda rola.
+- **Problem:** `RecordPreview` wolal `entry.value.trim()` bez zabezpieczenia. Wartosci pochodza z rekordu, ktory kreator sam zapisuje do `localStorage` i odtwarza przy nastepnym wejsciu. Rekord z wczesniejszej wersji, gdzie pytanie profilu doszlo, zmienilo nazwe albo wypadlo, podaje tu `undefined`.
+- **Skutek:** caly ekran przestaje sie renderowac. Wazy to wiecej, niz sugeruje jeden znak: z kreatora nie ma wyjscia, a jest to jedyna droga nowego konta. Kto na to trafil, zostawal na bledzie bez dokad isc, z kontem, ktorego nie da sie dokonczyc zakladac.
+- **Dowod:** `Runtime TypeError: Cannot read properties of undefined (reading 'trim')`, `components/record-preview.tsx:27`, stos przez `RecordPreview` do `OnboardingScreen`.
+- **Poprawka:** `entry.value?.trim()`.
+- **Weryfikacja:** ten sam rekord renderuje sie poprawnie, ekran wraca.
+- **Zostaje jako rekomendacja, poza zakresem tej poprawki:** kreator nie sprawdza ksztaltu odtwarzanego rekordu. Jeden brakujacy klucz nadal moze dac dziwny, choc juz nie pusty, ekran. Walidacja zapisu przy odczycie jest osobna zmiana.
 
 ### Sprawdzone i bez zarzutu
 
