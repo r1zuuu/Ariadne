@@ -391,7 +391,10 @@
     },
     "renameHint": "Double click to rename",
     "renameLabel": "Task title",
-    "toastRenamed": "Title changed"
+    "toastRenamed": "Title changed",
+    "noMatch": "Nothing matches this filter",
+    "noMatchNote": "The tasks are still there; none of them answers what you are looking for.",
+    "clearFilters": "Clear the filters"
   },
   "project": {
     "title": "Project",
