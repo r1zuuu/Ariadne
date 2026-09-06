@@ -636,26 +636,38 @@ function AgentRunChips({ runs }: { runs: TaskActiveRun[] }) {
   );
 }
 
+// Each tool's own mark, in public/ at three times its drawn size (see
+// scripts/optimise-image.mjs). Redrawn in the house line weight they were two
+// abstract glyphs nobody could name; a logo's whole job is to be recognised, so
+// this is the one place in the app that shows somebody else's brand.
+//
+// It is also the only colour here the palette does not own. That is the price of
+// recognising a tool at a glance, and it is paid on a mark that identifies rather
+// than decorates.
+const AGENT_MARKS: Partial<Record<TaskActiveRun["agentKind"], string>> = {
+  claude: "/agent-claude.webp",
+  codex: "/agent-codex.webp",
+};
+
 function AgentKindMark({ kind }: { kind: TaskActiveRun["agentKind"] }) {
-  const shared = { width: 11, height: 11, viewBox: "0 0 12 12", "aria-hidden": true as const };
-  if (kind === "codex") {
-    return (
-      <svg {...shared} className="text-thread">
-        <rect x="2" y="2" width="8" height="8" rx="2" fill="none" stroke="currentColor" strokeWidth="1.4" />
-        <path d="M4.2 6h3.6M6 4.2v3.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      </svg>
-    );
+  const mark = AGENT_MARKS[kind];
+  if (mark) {
+    // Empty alt and hidden from the tree: the chip around this already names the
+    // client in words, so announcing the mark would read the same thing twice.
+    // Plain img and not next/image - this export has no optimiser behind it.
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={mark} alt="" aria-hidden width={14} height={14} className="shrink-0" />;
   }
-  if (kind === "claude") {
-    return (
-      <svg {...shared} className="text-ochre">
-        <path d="M6 1.8 10 10H2Z" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-        <path d="M4.4 7.2h3.2" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
-      </svg>
-    );
-  }
+  // An agent nobody has a mark for. Kept as a drawing so the row still carries
+  // something in the shape position rather than jumping a few pixels narrower.
   return (
-    <svg {...shared} className="text-aegean">
+    <svg
+      width={11}
+      height={11}
+      viewBox="0 0 12 12"
+      aria-hidden
+      className="shrink-0 text-aegean"
+    >
       <circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" strokeWidth="1.3" />
       <path d="M6 3.6v4.8M3.6 6h4.8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
     </svg>

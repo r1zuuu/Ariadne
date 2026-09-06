@@ -1,4 +1,5 @@
-// Turns the entry screen's source painting into the two files the app ships.
+// Turns source images into the files the app ships: the entry screen's painting
+// and the two agent marks the task list uses.
 // Run from frontend/: node scripts/optimise-image.mjs
 //
 // sharp is not a dependency of this app; it arrives under Next. That is fine for
@@ -26,4 +27,29 @@ for (const width of [1000, 1600]) {
     .webp({ quality: 82 })
     .toFile(out);
   console.log(`${out.padEnd(34)} ${kb(out)} kB`);
+}
+
+// The marks for Claude Code and Codex, shown beside a task somebody is working
+// on right now. They arrive as a 640px pixel-art PNG and a 768px gradient WebP
+// and are drawn at eleven pixels, so almost all of both files is waste.
+//
+// Trimmed first, because both sources carry a wide transparent margin that would
+// otherwise become empty space inside an eleven pixel box, leaving a mark too
+// small to recognise. 44px is three times the drawn size, which covers a HiDPI
+// screen with a little to spare.
+//
+// nearest for the Claude mark and nothing else for the other: it is pixel art,
+// and a smooth kernel turns its hard edges into grey mush at this size.
+const MARKS = [
+  { from: "claudecode.png", to: "public/agent-claude.webp", kernel: "nearest" },
+  { from: "codex-icon.webp", to: "public/agent-codex.webp", kernel: "lanczos3" },
+];
+
+for (const { from, to, kernel } of MARKS) {
+  await sharp(from)
+    .trim()
+    .resize({ width: 44, height: 44, fit: "contain", kernel, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .webp({ quality: 90, alphaQuality: 100 })
+    .toFile(to);
+  console.log(`${to.padEnd(34)} ${kb(to)} kB`);
 }
