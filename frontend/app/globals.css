@@ -90,8 +90,16 @@
   /* Display serifs want weight, not tightness: tracking stays at zero so the
      serifs never collide. 700/600, not the elegant 400-500 print would take -
      on a screen the thin cuts read as grey fog, not as ink. */
-  --text-display: 64px;
-  --text-display--line-height: 72px;
+  /* Fluid, because the display size is the one step that cannot break a line to
+     fit. "Do zatwierdzenia" is a single 64px word wider than a narrow window's
+     content column, and a word that cannot break pushes the whole scroller: the
+     main pane measured 417px of view against 435px of content and the last
+     letter of the heading sat outside the window.
+     Below a 900px viewport it scales with the width and stops at 38px, which is
+     where the longest heading in either language still fits the narrowest
+     window the shell allows. Above it, the 64px this scale was drawn at. */
+  --text-display: clamp(38px, 4.2vw + 12px, 64px);
+  --text-display--line-height: 1.12;
   --text-display--font-weight: 700;
 
   --text-title: 34px;
