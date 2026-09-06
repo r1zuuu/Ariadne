@@ -309,30 +309,54 @@ const STATUS_TONES = {
 // a cross is overruled, a dash is put away. Exported for the thread of
 // entries, which hangs the same four shapes on the project's timeline.
 export function StatusMark({ tone }: { tone: keyof typeof STATUS_TONES }) {
-  const shared = { width: 7, height: 7, viewBox: "0 0 8 8", "aria-hidden": true as const };
+  // Wider than tall, and sitting on a baseline, because these are marks made on
+  // a line of text rather than icons in a box. 13 by 9 at 11px drawn.
+  const shared = {
+    width: 11,
+    height: 8,
+    viewBox: "0 0 13 9",
+    fill: "none" as const,
+    stroke: "currentColor",
+    strokeWidth: 1.4,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true as const,
+  };
   switch (tone) {
+    // Caret. The proofreader's insertion point: something belongs here and has
+    // not been settled yet, which is what proposed means.
     case "proposed":
       return (
         <svg {...shared}>
-          <circle cx="4" cy="4" r="2.9" fill="none" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M1.4 7.2 6.5 2.1l5.1 5.1" />
         </svg>
       );
+    // Stet, "let it stand": the mark that cancels a deletion and keeps the text.
+    // A rule with the dots under it, which is how it is written on paper and the
+    // closest thing editing has to a word for confirmed.
     case "confirmed":
       return (
         <svg {...shared}>
-          <rect x="1" y="1" width="6" height="6" fill="currentColor" />
+          <path d="M1.2 3.4h10.6" />
+          <path d="M2.6 6.8h.01M6.5 6.8h.01M10.4 6.8h.01" strokeWidth="1.8" />
         </svg>
       );
+    // Dele. The deletion stroke through a line: this was struck out, and
+    // something else stands in its place.
     case "contradicted":
       return (
         <svg {...shared}>
-          <path d="M1.2 1.2 6.8 6.8M6.8 1.2 1.2 6.8" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M1.2 5.1h10.6" />
+          <path d="M9.2 1.6 3.8 8.4" />
         </svg>
       );
+    // Filed away. The line is still there, closed on both ends: nothing is
+    // struck and nothing is pending, it is simply put where it is kept.
     case "archived":
       return (
         <svg {...shared}>
-          <path d="M1 4h6" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M2.4 4.5h8.2" />
+          <path d="M1.4 2.6v3.8M11.6 2.6v3.8" strokeWidth="1.2" />
         </svg>
       );
   }
