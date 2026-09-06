@@ -173,6 +173,14 @@ elementFromPoint w srodku przycisku: BUTTON "Do zrobienia"   <- zakladka pod spo
 - **Weryfikacja funkcjonalna:** `elementFromPoint` nad przyciskiem zwraca teraz `BUTTON "Utworz zadanie"`; zadanie wpisane w formularz zostalo utworzone, toast potwierdzil, wiersz pojawil sie na liscie.
 - **Regresje na ekranach dzielacych komponent:** `/pending` sprawdzony, panel wpisu rozwija sie z pelna trescia i przyciskami. `/teams`, `/database`, `ask` i `entry-card` uzywaja tego samego komponentu; sprawdzone wizualnie przez `/pending`, przebieg klikany niepelny.
 
+### U9 - kreator prosil o kod zaproszenia, ktory serwer juz mial. P1. NAPRAWIONE
+
+- **Ekran / rola:** `/onboarding`, konto `invited@ux.test`. Viewport 1920.
+- **Problem:** konto zaproszone do zespolu, logujac sie pierwszy raz, trafia do kreatora. Kreator ma sciezke dolaczania, ale lezy ona za obowiazkowym kluczem Gemini na kroku trzecim i prosi o **wklejenie kodu**. Kod jest juz zwiazany z adresem tej osoby i serwer wydaje go na zadanie. Kreator stoi poza powloka, wiec `AppProvider`, jedyne miejsce wolajace `/me/invites`, nigdy tam nie dziala.
+- **Dowod przed zmiana:** `/me/invites` zwrocilo zaproszenie do „Nic Ariadny", a jedyna kontrolka na ekranie kreatora to przycisk „Dalej". Ekran `/teams` byl osiagalny tylko przez recznie wpisany adres i pokazywal to samo zaproszenie z odznaka „1 zaproszenie".
+- **Poprawka:** `JoinStep` pobiera `myInvites()` i wypisuje czekajace zaproszenia z przyciskiem „Dolacz" na jedno nacisniecie, a kreator domyslnie wchodzi w sciezke dolaczania, gdy cos czeka. Pole na kod przekazany z reki zostaje, pod linia. Ekran zespolow dziala tak od poczatku; ten krok nie dzialal.
+- **Weryfikacja:** typecheck i build przechodza. **Przebieg w przegladarce niedokonczony** - patrz bloker drugi. Nie deklaruje tego jako sprawdzone klikaniem.
+
 ### Sprawdzone i bez zarzutu
 
 Nie każde sprawdzenie kończy się znaleziskiem. Te wypadły czysto i nic w nich nie zmieniam.
@@ -191,7 +199,7 @@ Nie każde sprawdzenie kończy się znaleziskiem. Te wypadły czysto i nic w nic
 
 | Bloker | Dowód | Czego potrzebuję | Wpływ |
 |---|---|---|---|
-| `resize_window` nie zmienia viewportu | trzy próby (1280, 390, 900): narzędzie raportuje sukces, `window.innerWidth` zostaje 1920, `outerWidth` spada do 0 | okno Chrome przywrócone z maksymalizacji: dwuklik w pasek tytułu albo Win+strzałka w dół | **cała macierz 360/390/768/1280/1536 niewykonana**, U6 nie do naprawienia bez tego |
+| Okno Chrome nie przyjmuje zmiany rozmiaru **ani wejscia z klawiatury i myszy** | `resize_window` raportuje sukces, `innerWidth` zostaje 1920, `outerWidth` spada do 0. Rozstrzygajacy pomiar: `document.visibilityState === "hidden"`, a klikniecie w pole, ktore `elementFromPoint` potwierdza jako trafialne, zostawia `activeElement === BODY` i wpisany tekst nigdzie nie ladu.<br><br>**Korekta wczesniejszej diagnozy:** pisalem, ze okno jest zmaksymalizowane. Dowod mowi co innego - okno jest **zminimalizowane albo w tle**. | przywroc okno Chrome z paska zadan na wierzch i zostaw je w trybie okienkowym, nie zmaksymalizowanym | **macierz 360/390/768/1280/1536 niewykonana**, U6 nie do naprawienia, U9 niedokonczone w przegladarce |
 | Logowanie przez Google i GitHub lokalnie | konsole dostawców nie znają `http://localhost:3000/auth/*/callback` | rejestracja adresu zwrotnego albo audyt tego przepływu na produkcji | przepływ OAuth **niesprawdzony**, nie „sprawdzony i działa" |
 
 ---
