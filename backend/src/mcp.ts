@@ -103,7 +103,15 @@ Read before you write. get_project_context opens a session. search_context answe
 
 Write the moment a choice is settled, not when the session ends: by then the reason is gone and only the diff is left. A choice not to do something counts, and is the one the code never records.
 
-Leave out what the repository already answers: what the code does, what a commit changed, what a test covers.`;
+Leave out what the repository already answers: what the code does, what a commit changed, what a test covers.
+
+Tasks are the other half of the archive: not what was decided, but what is still to be done. get_tasks opens the list, create_task adds to it, update_task moves it.
+
+Read the list when you open the session, straight after the context. Work somebody else left is the fastest answer to "what next", and starting without looking is how two agents do the same job twice.
+
+Write a task the moment concrete work is named and left undone, whether you found it, were asked for it, or chose to defer it. Verb plus object, and enough detail for an agent who was not in this conversation. Vague unease is not a task; the reason behind it is context.
+
+While you are actually working: start_task_work takes a short lease saying this task is being worked on right now, heartbeat_task_work every 45 seconds holds it, and stop_task_work ends it and says how it went. Without the lease nobody else can see that the task is taken.`;
 
 // The token says who is speaking, and nothing about where. Which archive a call
 // reaches follows from the repository it names, so one token covers every
