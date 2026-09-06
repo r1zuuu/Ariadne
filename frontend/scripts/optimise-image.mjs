@@ -95,14 +95,14 @@ const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
 // to spare. nearest for the Claude mark and nothing else: it is pixel art, and a
 // smooth kernel turns its hard edges into grey mush at this size.
 {
-  await sharp("claudecode.png")
+  await sharp("scripts/marks/claude-code.png")
     .trim()
     .resize({ width: 44, height: 44, fit: "contain", kernel: "nearest", background: TRANSPARENT })
     .webp({ quality: 90, alphaQuality: 100 })
     .toFile("public/agent-claude.webp");
   console.log(`${"public/agent-claude.webp".padEnd(34)} ${kb("public/agent-claude.webp")} kB`);
 
-  const { rgba, box } = await alphaFromChroma("codex-icon.webp");
+  const { rgba, box } = await alphaFromChroma("scripts/marks/codex.webp");
   await sharp(rgba)
     .extract(box)
     .resize({ width: 44, height: 44, fit: "contain", background: TRANSPARENT })
