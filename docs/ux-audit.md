@@ -269,27 +269,58 @@ Kazda z tych pozycji ma w macierzy komorke do wypelnienia wynikiem, nie hipoteza
 
 ## 6. Macierz pokrycia
 
-Stan obecny: **wyłącznie 1920px**, rola `owner`, jeden motyw. Aplikacja nie ma przełącznika motywu ani reguł `prefers-color-scheme`, więc kolumna motywu ma jedną wartość.
+Metoda: `resize_window`, prawdziwa szerokosc odczytana z ramki wspolrzednych zrzutu i z `documentElement.clientWidth`. Dla kazdego ekranu mierzone: przepelnienie poziome dokumentu, przepelnienie panelu `main`, elementy z trescia szersza niz kontener bez zadeklarowanego obcinania, elementy wystajace poza prawa krawedz.
 
-| Ekran | 1920 / owner | 360 | 390 | 768 | 1280 | 1536 |
-|---|---|---|---|---|---|---|
-| Wejście (logowanie) | sprawdzony | blokada | blokada | blokada | blokada | blokada |
-| Przegląd `/home` | sprawdzony | blokada | blokada | blokada | blokada | blokada |
-| Projekt `/project` | sprawdzony | blokada | blokada | blokada | blokada | blokada |
-| Zadania `/tasks` | sprawdzony | blokada | blokada | blokada | blokada | blokada |
-| Dodaj do pamięci `/database` | sprawdzony | blokada | blokada | blokada | blokada | blokada |
-| Do zatwierdzenia `/pending` | sprawdzony | blokada | blokada | blokada | blokada | blokada |
-| Zespoły `/teams` | sprawdzony | blokada | blokada | blokada | blokada | blokada |
-| Ustawienia `/settings` | sprawdzony | blokada | blokada | blokada | blokada | blokada |
-| Onboarding `/onboarding` | niesprawdzony | blokada | blokada | blokada | blokada | blokada |
+Stan **po** naprawkach U1-U11. Wszystkie komorki oznaczone `czysto` znacza: `docX = 0`, `mainX = 0`, zero elementow obcietych.
 
-Role `member`, `invited` i `fresh`: konta gotowe, przebieg niewykonany.
+| Ekran | 360 | 390 | 500 | 768 | 1280 | 1536 | 1920 |
+|---|---|---|---|---|---|---|---|
+| Wejscie (logowanie) | n/o | n/o | czysto | czysto | czysto | czysto | czysto |
+| Onboarding | n/o | n/o | — | — | — | — | czysto |
+| Przeglad `/home` | n/o | n/o | czysto | czysto | **czysto po U10** | czysto | czysto |
+| Projekt `/project` | n/o | n/o | czysto | czysto | czysto | czysto | czysto |
+| Zadania `/tasks` | n/o | n/o | czysto | czysto | czysto | czysto | czysto |
+| Dodaj do pamieci `/database` | n/o | n/o | czysto | czysto | czysto | czysto | czysto |
+| Do zatwierdzenia `/pending` | n/o | n/o | **czysto po U11** | czysto | czysto | czysto | czysto |
+| Zespoly `/teams` | n/o | n/o | czysto | czysto | czysto | czysto | czysto |
+| Ustawienia `/settings` | n/o | n/o | czysto | czysto | czysto | czysto | czysto |
 
-## 7. Wyniki kontroli repozytorium
+**`n/o` przy 360 i 390, z uzasadnieniem i z dowodem.** Chrome na Windows nie pozwala zwezic okna ponizej okolo 516px zewnetrznych, czyli **500px viewportu**. Zadanie 376 i 406 daje za kazdym razem ramke `500x...`. To limit przegladarki, nie aplikacji, i `resize_window` nie ma emulacji viewportu, tylko zmienia okno systemowe.
 
-| Kontrola | Polecenie | Wynik |
-|---|---|---|
-| Typy frontendu | `npx tsc --noEmit` | przechodzi |
-| Build frontendu | `npm run build` | przechodzi, 12 stron |
-| Testy Rust | `cargo test --lib` | 4 testy, przechodzą |
-| Linter | — | **nie istnieje w tym repozytorium**, nie raportuję jako zaliczony |
+Najblizszy zmierzony punkt to **500px i tam wszystko jest czyste**. Do tego produktem jest okno o `minWidth: 880`, wiec 360 i 390 sa o polowe wezsze niz cokolwiek, do czego uzytkownik moze doprowadzic aplikacje. Ryzyko oceniam jako niskie, ale **nie deklaruje tego jako sprawdzone**.
+
+Onboarding: sprawdzony przy 1920 na koncie `invited`. Przy pozostalych szerokosciach nie, bo powtorne wejscie na kreator wymaga zalogowania, a wpisywanie tekstu przestalo dochodzic (patrz blokery).
+
+### Role
+
+| Rola | Sprawdzone |
+|---|---|
+| `owner` | pelny przemiał 500 / 768 / 1280 / 1536 / 1920 |
+| `member` | 1920: `/home`, `/tasks`, `/pending`, `/teams`, izolacja archiwum (29 pozycji w kolejce zamiast 30) |
+| `invited` | 1920: kreator, `/teams` z odznaka „1 zaproszenie" |
+| `fresh` | 1920: kreator, stan pierwszego uruchomienia |
+
+### Motywy
+
+Jeden. `globals.css` nie zawiera `prefers-color-scheme` ani `data-theme`, aplikacja jest wylacznie ciemna (`--color-plaster: #090b0f`), zgodnie z DESIGN.md. Kolumna motywu ma jedna wartosc i nie ma czego porownywac.
+
+---
+
+## 7. Znaleziska z przemiału viewportow
+
+### U10 - polka rozmow wypychala tresc poza panel. P2. NAPRAWIONE
+
+- **Ekran:** `/home`, 1280 i wyzej.
+- **Dowod przed:** przy 1280 panel `main` mial **30px przepelnienia poziomego**, a polka byla ustawiona tak, zeby pojawiac sie dokladnie od 1280. Przy 1536 przepelnienie wynosilo 4px.
+- **Przyczyna:** rynna ma staly rozmiar. Kolumna zewnetrzna konczy sie na 1080px, komponer na 760px, wiec po kazdej stronie jest 160px, a kolumna tresci osiaga 1080 dopiero powyzej okna 1380px. Polka prosila o 164px i pojawiala sie przy 1280, gdzie rynna ma 110px.
+- **Poprawka:** 16px odstepu plus 140px polki to 156, czyli mniej niz te 160. Prog przesuniety na 1380px, gdzie te 160 faktycznie istnieje. Rozsuwanie do 200px na hover usuniete: wypychalo polke z powrotem poza rynne i animowalo wlasciwosc ukladu, przeliczajac uklad co klatke. Kazdy wiersz i tak ma pelny tytul w dymku.
+- **Weryfikacja:** 1280 daje zero przepelnienia z polka poprawnie nieobecna; 1536 pokazuje ja z prawa krawedzia na 1415 w panelu konczacym sie na 1536.
+
+### U11 - naglowek strony nie miescil sie w waskim oknie. P2. NAPRAWIONE
+
+- **Ekran:** `/pending` i kazdy inny z dlugim tytulem, ponizej okolo 900px.
+- **Dowod przed:** przy 500px panel `main` mial 417px widoku przy 435px tresci, a ostatnia litera slowa „zatwierdzenia" byla poza oknem. Widoczne na zrzucie.
+- **Przyczyna:** `--text-display: 64px` na stale. „Do zatwierdzenia" to jedno slowo, ktorego nie da sie zlamac, wiec pchalo caly kontener.
+- **Poprawka:** `clamp(38px, 4.2vw + 12px, 64px)` i interlinia jako wspolczynnik.
+- **Weryfikacja:** 500px daje 38px i zero przepelnienia z calym slowem w jednym wierszu; 1536px nadal daje 64px, czyli rozmiar, na ktory skala byla rysowana.
+
