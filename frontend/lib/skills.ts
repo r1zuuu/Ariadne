@@ -4,6 +4,8 @@
 
 import { invoke } from "@tauri-apps/api/core";
 
+export { inApp } from "@/lib/desktop";
+
 export type RootId = "agents" | "claude" | "codex";
 
 export type RootInfo = {
@@ -32,17 +34,6 @@ export type LinkReport = {
   conflicts: string[];
   failed: { root: RootId; name: string; reason: "name" | "refused" }[];
 };
-
-/**
- * Whether this window can reach the disk at all.
- *
- * `npm run dev` serves the same frontend in a browser, where invoke does not
- * exist. Without this guard the settings screen throws halfway through every
- * development session.
- */
-export function inApp(): boolean {
-  return typeof window !== "undefined" && "isTauri" in window;
-}
 
 export const scanSkills = () => invoke<Scan>("skills_scan");
 export const linkAllSkills = () => invoke<LinkReport>("skills_link_all");

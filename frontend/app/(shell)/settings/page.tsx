@@ -39,6 +39,7 @@ import {
   type Account,
   type ApiToken,
 } from "@/lib/api";
+import { openExternal } from "@/lib/desktop";
 import {
   inApp,
   linkAllSkills,
@@ -384,6 +385,10 @@ function GeminiSection({
                 href={GEMINI_KEY_CONSOLE}
                 target="_blank"
                 rel="noreferrer"
+                onClick={(event) => {
+                  event.preventDefault();
+                  void openExternal(GEMINI_KEY_CONSOLE);
+                }}
                 className="text-small text-thread underline underline-offset-2"
               >
                 {t("geminiWhere")}
