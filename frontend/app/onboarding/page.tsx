@@ -419,7 +419,10 @@ export default function OnboardingScreen() {
                 different kind of thing from the question, and uniform spacing was
                 making the whole screen read as one undifferentiated column. */}
             <div className="mt-9 flex items-center gap-6 border-t border-hairline pb-8 pt-6">
-              <Button onClick={() => void advance()} disabled={busy}>
+              {/* The large size, the same as the entry screen's. Both are the one
+                  forward action of a full screen someone is standing on, and the
+                  wizard's was the smallest control on it at 70 by 36. */}
+              <Button size="lg" onClick={() => void advance()} disabled={busy}>
                 {step === 4 ? t("finish") : t("next")}
               </Button>
               {canGoBack ? (
