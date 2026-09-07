@@ -1,220 +1,268 @@
-# Ariadne
+<p align="center">
+  <img src="frontend/src-tauri/icons/128x128.png" width="80" height="80" alt="Ariadne icon">
+</p>
 
-**Ariadne stores the *why* of a project, so an LLM coding agent stops paying for the same context twice.**
-A desktop app for the person, an MCP server for their coder, one archive behind both.
+<h1 align="center">Ariadne</h1>
 
-[**⬇ Download for Windows**](https://github.com/r1zuuu/Ariadne/releases/latest) · [MIT License](LICENSE)
+<p align="center">
+  <strong>Keep the thread between coding sessions.</strong><br>
+  Shared project memory and tasks for you, your team, and your AI coding agents.
+</p>
+
+<p align="center">
+  <a href="https://github.com/r1zuuu/Ariadne/releases/latest"><strong>Download for Windows</strong></a>
+  · <a href="#guides">Polski / English</a>
+  · <a href="#developer-reference">Developer reference</a>
+  · <a href="LICENSE">MIT license</a>
+</p>
+
+---
+
+A new chat should not mean explaining your project all over again. Ariadne keeps the decisions, rejected approaches, constraints, and unfinished work that would otherwise stay in yesterday’s conversation.
+
+**You manage the project in a desktop app. Your coding agents read and update the same archive through MCP.** Move from Claude Code to Codex, return after a week, or bring in a teammate: the recorded context stays with the project.
+
+| What you want to do | How Ariadne helps |
+| --- | --- |
+| **Pick up where you left off** | Gives an agent a project overview, the latest session summary, an index of recorded decisions, and a summary of tasks. |
+| **Stop revisiting settled decisions** | Retrieves the reasoning behind a choice, including rejected approaches and notes tied to files or symbols. |
+| **Hand work to another agent** | Keeps a shared task list with priorities, blockers, links to memory, and visible agent activity. |
+| **Keep control of project knowledge** | Lets you review agent proposals, inspect authorship, and track decisions that have been replaced. |
+| **Ask your project a question** | Answers from retrieved archive entries, with references you can open and inspect. |
+| **Reuse skills across coding tools** | Links local skill folders across Claude Code, Codex, and the shared agents directory from the desktop app. |
+
+<sub>Early release · Windows 10/11 x64 installer · Polish and English interface · Hosted backend or your own instance</sub>
+
+## Guides
 
 <details>
-<summary><b>🇵🇱 Polski (kliknij, aby rozwinąć)</b></summary>
+<summary><strong>🇵🇱 Polski — co możesz z tym zrobić i jak zacząć</strong></summary>
 
-## Co to jest
+### Pamięć projektu, która zostaje po zamknięciu czatu
 
-Agent czyta repozytorium i wie z niego, co robi kod i gdzie leży. Ariadne trzyma warstwę, której żadne repozytorium nie zawiera: jakie podejścia zostały odrzucone i dlaczego, które ograniczenia są prawdziwe, w którą pułapkę ktoś już wpadł.
+Kończysz sesję z Claude Code. Macie wybrane rozwiązanie, dwa odrzucone podejścia i poprawkę do zrobienia później. Następnego dnia otwierasz Codex — albo projekt przejmuje druga osoba.
 
-Decyzje, notatki i podsumowania sesji. Każdy wpis to jedna myśl z dopiętym pochodzeniem, wyszukiwana po znaczeniu, nie po słowie kluczowym, i podawana temu agentowi, który otwiera następną sesję.
+Ariadne daje kolejnemu agentowi dostęp do tego, co zapisaliście: **dlaczego wybraliście to rozwiązanie, czego nie próbować ponownie i co zostało do zrobienia.** W aplikacji widzisz te same wpisy i zadania, z informacją o ich autorach i statusie.
 
-## Instalacja
+### Przykład jednej sesji
 
-Windows 10 albo 11, 64-bit. [**Pobierz instalator**](https://github.com/r1zuuu/Ariadne/releases/latest) (`Ariadne_0.1.0_x64-setup.exe`, 2,6 MB). W tym samym wydaniu jest też `.msi`, jeśli wolisz. Nic więcej nie stawiasz: aplikacja rozmawia z hostowanym backendem, więc nie ma bazy do zainstalowania ani serwera do uruchomienia.
+1. **Na początku:** agent pobiera kontekst projektu i sprawdza zadania.
+2. **Przed zmianą:** wyszukuje wcześniejsze ustalenia dotyczące danego pliku lub rozwiązania.
+3. **W trakcie:** zapisuje podjętą decyzję wraz z uzasadnieniem, a odłożoną pracę dodaje jako zadanie.
+4. **W aplikacji:** przeglądasz propozycje agenta i zatwierdzasz wiedzę, która ma służyć w kolejnych sesjach.
+5. **Przy powrocie:** ty, współpracownik lub inny agent korzystacie z tego samego archiwum.
 
-**Windows pokaże ostrzeżenie i zaraz wyjaśniam dlaczego.** Instalator nie jest podpisany cyfrowo, bo certyfikat kosztuje kilkaset dolarów rocznie, a ten projekt takich pieniędzy nie ma. SmartScreen ocenia plik po reputacji podpisu, więc niepodpisany plik z małego projektu dostaje niebieski ekran „Windows protected your PC". Kliknij **Więcej informacji**, potem **Uruchom mimo to**.
+To przepływ oparty na wywołaniach narzędzi MCP: agent musi z nich korzystać. Ariadne nie importuje automatycznie całej rozmowy.
 
-Jeśli wolisz sprawdzić niż zaufać, porównaj sumę kontrolną przed uruchomieniem:
+### Co możesz robić
 
-```powershell
-Get-FileHash Ariadne_0.1.0_x64-setup.exe -Algorithm SHA256
-```
+**Zachowywać uzasadnienia decyzji.** Zapisuj wybory technologii, ograniczenia, odrzucone pomysły i podsumowania sesji. Powiąż wpis z plikiem, symbolem lub commitem, żeby agent mógł odnaleźć go przed kolejną zmianą.
 
-```
-413c99cd5d641767c30f68022dc4a7a68e9264c1f13dd79d505fcb532b35e360  Ariadne_0.1.0_x64-setup.exe
-f70a00a367a8e35c021768a68f64910cb45ae2218ae9d6cb6fd7e5bb580e71b1  Ariadne_0.1.0_x64_en-US.msi
-```
+**Przekazywać konkretne zadania.** Ty i agenci korzystacie ze wspólnej listy: priorytety, statusy, powód blokady i powiązane ustalenia. Aktywność agenta przy zadaniu jest zgłaszana osobno, więc widać, nad czym właśnie pracuje. To informacja o pracy, a nie blokada uniemożliwiająca innemu agentowi edycję kodu.
 
-Wersji na macOS i Linuksa jeszcze nie ma. Tauri buduje tylko na system, na którym stoi, a to powstało na Windowsie. Obie są możliwe i żadnej nie zrobiono.
+**Kontrolować, co staje się wiedzą projektu.** Domyślnie nowe wpisy codera trafiają jako propozycje, a jego poprawki i archiwizacje czekają na zatwierdzenie. Możesz włączyć szersze uprawnienia. Wyszukiwanie MCP zwraca zatwierdzone wpisy; aplikacja pozwala też obejrzeć propozycje, sprzeczności i historię zastąpionych decyzji.
 
-### Dwie rzeczy, zanim zaczniesz
+**Pytać bez otwierania terminala.** Na przykład: „Dlaczego wybraliśmy ten sposób logowania?” albo „Jakie ograniczenia zapisaliśmy dla eksportu PDF?”. Asystent odpowiada na podstawie odnalezionych wpisów i wskazuje źródła. Możesz również dodawać i poprawiać pamięć zwykłym językiem.
 
-**Zaloguj się przez Google albo GitHub.** Resetu hasła jeszcze nie ma, więc konta założonego mailem z zapomnianym hasłem nie da się odzyskać.
+**Pracować z zespołem.** Zaproś drugą osobę do przestrzeni i udostępnij jej projekty. Każdy korzysta ze swojego konta i tokenu agenta, a wpisy zachowują autorstwo. Graf pozwala przeglądać powiązania między zapisanymi ustaleniami.
 
-**Przynieś własny klucz Gemini.** Wyszukiwanie i asystent chodzą na Gemini, a serwer nie ma własnego klucza: każde wywołanie płaci konto, które o nie poprosiło. Klucz weźmiesz z [aistudio.google.com](https://aistudio.google.com/apikey), jest darmowy próg. Wklej go w ustawieniach przy pierwszym uruchomieniu. Bez niego aplikacja dalej zapisuje i pokazuje wszystko, ale asystent i szukanie po znaczeniu zostają wyłączone.
+**Udostępniać lokalne skills między narzędziami.** W ustawieniach sprawdzisz, które skills widzą Claude Code i Codex, i utworzysz brakujące dowiązania do tych samych folderów. Bez utrzymywania osobnych kopii. Ta funkcja działa na danym komputerze, nie synchronizuje skills w chmurze.
 
-Backend stoi na darmowym planie, który usypia, kiedy nikt nie korzysta. Jeśli pierwszy ekran się ociąga, to znaczy, że się budzi.
+### Zacznij od aplikacji
 
-## Jak to działa
+1. [Pobierz wydanie dla Windows](https://github.com/r1zuuu/Ariadne/releases/latest) — instalator `.exe` lub `.msi`.
+2. Zaloguj się przez **Google lub GitHub**. Reset hasła konta e-mail nie jest jeszcze dostępny.
+3. Dodaj własny [klucz Gemini](https://aistudio.google.com/apikey) w ustawieniach. Jest potrzebny do funkcji AI, w tym tworzenia embeddingów przy zapisie pamięci, wyszukiwania i asystenta. Wywołania korzystają z limitów i rozliczeń twojego konta Google.
+4. Utwórz projekt i powiąż go z repozytorium. Projekt bez remote może używać identyfikatora `local/<nazwa projektu>`.
+5. Podłącz codera zgodnie z instrukcją w aplikacji, używając swojego tokenu. Poproś go o pobranie kontekstu i listy zadań z Ariadne.
 
-```
-Claude Code / Codex ──MCP──┐
-                           ├──> Backend Node ──> Postgres + pgvector
-Aplikacja (Tauri) ───REST──┘
-```
+Instalator korzysta z hostowanego backendu — nie musisz lokalnie stawiać bazy ani serwera. Kod na `main` może być nowszy niż ostatni instalator; informacje o paczce znajdziesz w wydaniu.
 
-- **Backend** (`backend/`) to Hono na Node 22, Drizzle nad Postgresem i endpoint MCP streamable-HTTP pod `/mcp`. Agent uwierzytelnia się tokenem, który mówi, kto dzwoni; o tym, co może zobaczyć, decydują przestrzenie, do których ten token należy.
-- **Baza** to Postgres 17 z pgvector. Izolacja między przestrzeniami ma dwa zamki, nie jeden: warstwa serwisowa filtruje, a row-level security (migracja `0008`) i tak odmawia. Nawet gdyby ktoś usunął filtr z `service.ts`, jedna przestrzeń nie przeczyta drugiej.
-- **Wyszukiwanie** jest hybrydowe: pgvector po znaczeniu, pełnotekstowe Postgresa po dokładnym słowie (migracja `0010`). `docs/rag-case-study.md` opisuje, co to zmieniło, a czego nie.
-- **Frontend** (`frontend/`) to statyczny eksport Next.js w oknie Tauri, z polskimi i angielskimi napisami przez next-intl.
-- **Gemini** robi embeddingi i odpowiedzi asystenta, płatne z konta, które o nie poprosiło, kluczem zapisanym w ustawieniach. Serwer nie ma własnego.
+### Obecny etap
 
-## Uruchomienie u siebie
+Ariadne jest rozwijanym, otwartym projektem. Dostępny instalator to **v0.1.0 dla Windows**; nie ma jeszcze gotowych paczek dla macOS i Linuksa.
 
-Potrzebujesz Node 22+, Dockera i Rusta, jeśli chcesz zbudować okno aplikacji.
+Instalator nie jest podpisany cyfrowo, więc Windows może wyświetlić ostrzeżenie SmartScreen. Sumy SHA-256 i instrukcja ich sprawdzenia znajdują się w [opisie wydania](https://github.com/r1zuuu/Ariadne/releases/tag/v0.1.0).
 
-```bash
-cp .env.example .env          # uzupełnij hasła
-docker compose up -d          # Postgres 17 z pgvector na :5432
-cd backend && npm install && npx drizzle-kit migrate && npm run dev
-```
+Hostowany backend działa na darmowym planie, może się wybudzać przy pierwszym połączeniu i nie ma gwarancji dostępności. Ważne ustalenia zachowuj również poza nim lub uruchom własną instancję. Zaproszenia do przestrzeni używają kodów; nie ma jeszcze wysyłki e-maili, resetu hasła ani limitu logowań utrzymującego się po restarcie.
 
-Migracja `0008` tworzy rolę `ariadne_app` bez hasła. Nadaj je w psql, zanim serwer będzie mógł się przez nią połączyć:
-
-```sql
-ALTER ROLE ariadne_app LOGIN PASSWORD 'haslo z twojego .env';
-```
-
-Frontend, w drugim terminalu:
-
-```bash
-cd frontend && npm install && npm run tauri dev
-```
-
-Adres API jest wkompilowany w statyczny eksport, więc to zmienna z czasu budowania. Do buildu celującego gdziekolwiek indziej niż `localhost:3000` ustaw `NEXT_PUBLIC_ARIADNE_URL` w `frontend/.env.local` i zbuduj od nowa.
-
-### Podpięcie codera
-
-Wygeneruj token w aplikacji w ustawieniach, potem:
-
-```bash
-claude mcp add --transport http ariadne http://localhost:3000/mcp --header "Authorization: Bearer <token>"
-```
-
-## Sprawdzanie
-
-Nie ma tu frameworka testowego. Każda warstwa ma jeden skrypt, który przechodzi przez prawdziwą rzecz z asercjami i pada głośno:
-
-```bash
-cd backend
-npx tsx scripts/verify-service.ts   # warstwa serwisowa na żywej bazie
-npx tsx scripts/verify-rest.ts      # każda trasa REST, obie role, razem z RLS
-npx tsx scripts/verify-tasks.ts     # dzierżawy zadań i ich maszyna stanów
-```
-
-`scripts/seed-ux.ts` wypełnia lokalną bazę każdym stanem interfejsu, na który warto spojrzeć. Odmawia uruchomienia gdziekolwiek poza localhostem.
-
-## Stan
-
-Wersja 0.1.0, zbudowana przez jedną osobę w trakcie nauki. Działa od końca do końca: dwie osoby w jednej przestrzeni, każda ze swoim agentem, czytają i piszą do tego samego archiwum. Czego jeszcze nie ma: maila (więc zaproszenia są kodami do skopiowania, a resetu hasła nie ma), limitu logowań przeżywającego restart i jakiegokolwiek monitoringu poza zakładką z logami u hostingodawcy.
-
-Hostowany backend, na który celuje to wydanie, stoi na darmowych planach i utrzymuje go jedna osoba po godzinach. Traktuj go jako miejsce do wypróbowania rzeczy, nie jako usługę z obietnicą dostępności: twoje archiwum jest coś warte, więc cokolwiek, czego szkoda by ci było stracić, powinno leżeć też gdzie indziej. Postawienie własnego opisuje sekcja wyżej, a aplikacja jest o jedną flagę budowania od wskazania na niego.
-
-`PRODUCT.md` mówi, dla kogo to jest. `DESIGN.md` to specyfikacja interfejsu. `docs/ux-audit.md` to audyt aplikacji w obecnym stanie, razem z tym, co jest w niej dalej nie tak.
+Poniżej znajdziesz zwijaną instrukcję uruchomienia u siebie, opis MCP i architektury.
 
 </details>
 
 <details>
-<summary><b>🇬🇧 English (click to expand)</b></summary>
+<summary><strong>🇬🇧 English — workflows, features, and getting started</strong></summary>
 
-## What it is
+### Project memory that outlives the chat
 
-An agent reads the repository for what the code does and where it lives. Ariadne holds the layer no repository contains: which approaches were rejected and why, which constraints are real, which trap someone already fell into.
+You finish a session with Claude Code: one approach chosen, two rejected, and a fix left for later. Tomorrow you open Codex — or a teammate takes over.
 
-Decisions, notes and end-of-session summaries. Each one a single thought with its provenance attached, retrieved by meaning rather than by keyword, and handed back to whichever agent opens the next session.
+Ariadne gives the next agent access to what you recorded: **why that approach was chosen, what not to repeat, and what still needs doing.** You see the same entries and tasks in the app, with their authors and status.
 
-## Install
+### A session with Ariadne
 
-Windows 10 or 11, 64-bit. [**Download the installer**](https://github.com/r1zuuu/Ariadne/releases/latest) (`Ariadne_0.1.0_x64-setup.exe`, 2.6 MB). There is also an `.msi` in the same release if you prefer it. Nothing else to set up: the app talks to a hosted backend, so there is no database to install and no server to start.
+1. **Start:** the agent retrieves project context and checks the task list.
+2. **Before a change:** it searches for earlier decisions about the relevant file or approach.
+3. **During work:** it records a settled decision with its reasoning and creates tasks for concrete work left undone.
+4. **Review:** you inspect the agent’s proposals in the app and confirm the knowledge future sessions should use.
+5. **Return:** you, a teammate, or another agent pick up from the same archive.
 
-**Windows will warn you, and here is why.** The installer is not code-signed: a certificate costs several hundred dollars a year, which this project does not have. SmartScreen judges a file by the reputation of its signature, so an unsigned one from a small project gets a blue "Windows protected your PC" screen. Click **More info**, then **Run anyway**.
+This workflow depends on the agent calling the MCP tools. Ariadne does not automatically import the entire conversation.
 
-If you would rather verify than trust, compare the checksum before running it:
+### What you can do
 
-```powershell
-Get-FileHash Ariadne_0.1.0_x64-setup.exe -Algorithm SHA256
-```
+**Keep the reasoning.** Record technology choices, constraints, rejected ideas, and session summaries. Attach files, symbols, or commits so an agent can find relevant context before changing something.
 
-```
-413c99cd5d641767c30f68022dc4a7a68e9264c1f13dd79d505fcb532b35e360  Ariadne_0.1.0_x64-setup.exe
-f70a00a367a8e35c021768a68f64910cb45ae2218ae9d6cb6fd7e5bb580e71b1  Ariadne_0.1.0_x64_en-US.msi
-```
+**Hand off actionable work.** People and agents share tasks with priorities, statuses, blocker reasons, and links to recorded decisions. Agents report live work separately, making current activity visible. These activity leases are not exclusive locks on tasks or code.
 
-No macOS or Linux build yet. Tauri builds only for the system it runs on, and this was built on Windows. Both are possible and neither is done.
+**Review what becomes project knowledge.** By default, new coder entries are proposals, and coder edits and archival requests require approval. Broader permissions are optional. MCP search returns confirmed entries; the app also lets you inspect proposals, conflicts, and superseded decisions.
 
-### Two things to know before you start
+**Ask the archive.** “Why did we choose this authentication flow?” or “What constraints did we record for PDF export?” The assistant answers from retrieved entries and includes source references. You can also add or revise memory in plain language.
 
-**Sign in with Google or GitHub.** There is no password reset yet, so an account made with an email and a forgotten password cannot be recovered.
+**Share context with a team.** Invite someone into a workspace and share its projects. Each member uses their own account and agent token; records retain their authorship. Explore connections between recorded entries in the graph.
 
-**Bring your own Gemini key.** Search and the assistant run on Gemini, and the server has no key of its own: every call is billed to the account that asked. Get a key at [aistudio.google.com](https://aistudio.google.com/apikey), which has a free tier, and paste it into Settings on first run. Without it the app still records and shows everything, but the assistant and search by meaning stay switched off.
+**Share local skills across tools.** Settings shows which skills Claude Code and Codex can see and creates missing directory links to the same skill folders. There are no separate copies to keep in sync. This is local to the computer, not cloud skill synchronization.
 
-The backend runs on a free plan that sleeps when nobody uses it. If the first screen takes a while, it is waking up.
+### Get started
 
-## How it works
+1. [Download the Windows release](https://github.com/r1zuuu/Ariadne/releases/latest) — choose the `.exe` or `.msi` installer.
+2. Sign in with **Google or GitHub**. Email-account password reset is not available yet.
+3. Add your own [Gemini API key](https://aistudio.google.com/apikey) in Settings. AI features require it, including embedding new memory entries, search, and the assistant. Calls use your Google account’s quotas and billing.
+4. Create a project and associate it with its repository. Projects without a remote can use `local/<project name>`.
+5. Follow the in-app instructions to connect your coder with your token. Ask it to retrieve Ariadne’s project context and tasks.
 
-```
-Claude Code / Codex ──MCP──┐
-                           ├──> Node backend ──> Postgres + pgvector
-Desktop app (Tauri) ──REST─┘
-```
+The installer connects to a hosted backend, so there is no local database or server to set up. Code on `main` may be newer than the latest installer; consult the release notes for the packaged build.
 
-- **Backend** (`backend/`) is Hono on Node 22, Drizzle over Postgres, and an MCP streamable-HTTP endpoint at `/mcp`. Agents authenticate with a bearer token that says who is calling; the workspaces that token belongs to decide what it can reach.
-- **Database** is Postgres 17 with pgvector. Isolation between workspaces has two locks, not one: the service layer filters, and row-level security (migration `0008`) refuses anyway. Even with the filter deleted from `service.ts`, one workspace cannot read another.
-- **Search** is hybrid: pgvector for meaning, Postgres full-text for the exact word (migration `0010`). `docs/rag-case-study.md` records what that changed and what it did not.
-- **Frontend** (`frontend/`) is a Next.js static export running inside a Tauri window, with Polish and English copy through next-intl.
-- **Gemini** does the embeddings and the assistant's answers, paid for by the account that asked, using the key it saved in settings. The server has no key of its own.
+### Current status
 
-## Running it locally
+Ariadne is an actively developed open-source project. The available installer is **v0.1.0 for Windows**. There are no packaged macOS or Linux builds yet.
 
-Needs Node 22+, Docker, and Rust if you want to build the desktop window.
+The installer is unsigned, so Windows may show a SmartScreen warning. SHA-256 checksums and verification instructions are in the [release notes](https://github.com/r1zuuu/Ariadne/releases/tag/v0.1.0).
 
-```bash
-cp .env.example .env          # fill in the passwords
-docker compose up -d          # Postgres 17 with pgvector on :5432
-cd backend && npm install && npx drizzle-kit migrate && npm run dev
-```
-
-Migration `0008` creates the `ariadne_app` role without a password. Give it one in psql before the server can connect as it:
-
-```sql
-ALTER ROLE ariadne_app LOGIN PASSWORD 'the password from your .env';
-```
-
-The frontend, in a second terminal:
-
-```bash
-cd frontend && npm install && npm run tauri dev
-```
-
-The API address is compiled into the static export, so it is a build-time variable. For a build pointing anywhere but `localhost:3000`, set `NEXT_PUBLIC_ARIADNE_URL` in `frontend/.env.local` and rebuild.
-
-### Connecting a coder
-
-Generate a token in the app under Settings, then:
-
-```bash
-claude mcp add --transport http ariadne http://localhost:3000/mcp --header "Authorization: Bearer <token>"
-```
-
-## Verifying it
-
-There is no test framework here. Each layer has one runnable script that asserts its way through the real thing and fails loudly:
-
-```bash
-cd backend
-npx tsx scripts/verify-service.ts   # service layer against a live database
-npx tsx scripts/verify-rest.ts      # every REST route, both roles, RLS included
-npx tsx scripts/verify-tasks.ts     # task leases and their state machine
-```
-
-`scripts/seed-ux.ts` fills a local database with every interface state worth looking at. It refuses to run against anything but localhost.
-
-## Status
-
-Version 0.1.0, built by one person while learning. It works end to end: two people in one workspace, each with their own agent, reading and writing the same archive. What it does not have yet is email (so invitations are codes you copy, and there is no password reset), a rate limit that survives a restart, and any monitoring beyond the hosting provider's log tab.
-
-The hosted backend this release points at runs on free tiers, maintained by one person as a side project. Treat it as somewhere to try the thing, not as a service with an uptime promise: your archive is worth keeping, so anything you would hate to lose should live somewhere else too. Running your own is the section above, and the app is a build flag away from pointing at it.
-
-`PRODUCT.md` explains who it is for. `DESIGN.md` is the interface spec. `docs/ux-audit.md` is an audit of the app as it stands, including what is still wrong with it.
+The hosted backend runs on a free tier, may need to wake on first access, and has no uptime guarantee. Keep another copy of important decisions or run your own instance. Workspace invitations use codes; email delivery, password reset, and login rate limits that survive a restart are not implemented yet.
 
 </details>
 
-## License
+## Developer reference
 
-MIT. See [LICENSE](LICENSE).
+<details>
+<summary><strong>MCP — context, memory, and task tools</strong></summary>
+
+Ariadne exposes a Streamable HTTP MCP endpoint at `/mcp`, authenticated with a bearer token created in the app. Project lookup uses `repo_ref`, usually the repository’s Git remote URL.
+
+For a **local backend**, connect Claude Code with:
+
+```bash
+claude mcp add --scope user --transport http ariadne http://localhost:3000/mcp --header "Authorization: Bearer <token>"
+```
+
+For the hosted backend or another deployment, use that instance’s URL instead of localhost. The app’s onboarding provides connection instructions. Other compatible MCP clients need the same endpoint and bearer authentication.
+
+| Purpose | Tools |
+| --- | --- |
+| Open a session | `get_project_context` |
+| Retrieve recorded knowledge | `search_context` |
+| Record or revise memory | `add_context`, `update_context`, `delete_context` |
+| Read and manage tasks | `get_tasks`, `create_task`, `update_task` |
+| Report current work | `start_task_work`, `heartbeat_task_work`, `stop_task_work` |
+
+The boot context includes a sampled decision index with total counts and file references, rather than the entire archive. Agents should search for the full entries relevant to their work.
+
+Task updates can include a `revision` to reject stale writes. Live work uses renewable leases; the MCP instructions ask agents to send a heartbeat every 45 seconds and stop the run when finished, paused, blocked, or handed off.
+
+The [tool definitions](backend/src/mcp.ts) contain the full input schemas and agent instructions.
+
+</details>
+
+<details>
+<summary><strong>Architecture and retrieval</strong></summary>
+
+The desktop app uses REST and coding agents use MCP. Both call the same service layer and read the same workspace archive.
+
+| Layer | Implementation |
+| --- | --- |
+| Desktop | Tauri 2, Next.js static export, React, Polish/English interface |
+| API and MCP | Node.js 22+, Hono, MCP SDK |
+| Storage | PostgreSQL 17, pgvector, Drizzle |
+| Retrieval | Vector similarity + identifier-aware PostgreSQL full-text search, merged with Reciprocal Rank Fusion |
+| AI | Gemini embeddings and assistant responses using each user’s API key |
+| Workspace access | Service-layer authorization and PostgreSQL row-level security |
+| Local skills | Tauri/Rust filesystem commands; Windows junctions or Unix symlinks |
+
+Memory entries retain their source and can carry code anchors. Their lifecycle distinguishes proposed, confirmed, contradicted, and archived knowledge. Tasks track operational work separately from those knowledge statuses.
+
+**Retrieval has an accompanying case study.** It compares vector and hybrid search across 62 questions over 180 fragments, explains why identifier queries behave differently from prose, and documents the decision to remove LLM-based identifier extraction.
+
+The published benchmark measures the earlier hybrid variant with that extra model call; it is not a benchmark of the final regex-only implementation. [Read the methodology, results, and trade-offs →](docs/rag-case-study.md)
+
+</details>
+
+<details>
+<summary><strong>Run locally / uruchom u siebie</strong></summary>
+
+Requirements: **Node.js 22+**, **Docker with Compose**, and **Rust plus the platform build prerequisites** for the Tauri desktop app. For browser development, use the Next.js dev server; local skill sharing requires the desktop app.
+
+Po polsku: skopiuj konfigurację, ustaw hasła, uruchom bazę i migracje, a następnie nadaj hasło roli aplikacyjnej. Backend i frontend uruchom w osobnych terminalach. Wersja przeglądarkowa nie obsługuje lokalnych skills.
+
+**1. Database and dependencies — from the repository root**
+
+```bash
+cp .env.example .env
+# Set your database passwords and matching connection URLs in .env.
+docker compose up -d
+
+cd backend
+npm install
+npx drizzle-kit migrate
+```
+
+**2. Give the application role its password**
+
+Migration `0008` creates `ariadne_app` without a password. Connect to the database as the owner and run:
+
+```sql
+ALTER ROLE ariadne_app LOGIN PASSWORD 'replace-with-your-app-role-password';
+```
+
+Use the same password in `DATABASE_URL_APP` in the root `.env`. `DATABASE_URL` is the owner connection for migrations; `DATABASE_URL_APP` is the restricted runtime connection used for row-level security.
+
+**3. Start the backend — from `backend/`**
+
+```bash
+npm run dev
+```
+
+**4. Start the frontend — in a second terminal, from the repository root**
+
+```bash
+cd frontend
+npm install
+npm run tauri dev
+```
+
+For browser development, run `npm run dev` instead and open `http://localhost:3001`.
+
+The API defaults to `http://localhost:3000`. For a different backend, set `NEXT_PUBLIC_ARIADNE_URL` in `frontend/.env.local` before building. It is compiled into the static export, so changing a packaged app’s target requires a rebuild.
+
+Each user supplies their Gemini key in the app. The root `GEMINI_API_KEY` variable is for the embedding-check script, not a shared server key. Google/GitHub sign-in on your own instance also requires provider configuration; see [the OAuth implementation](backend/src/oauth.ts).
+
+**Verification**
+
+The backend has integration verification scripts that exercise a running local setup. Consult each script for its setup requirements:
+
+```bash
+cd backend
+npx tsx scripts/verify-service.ts
+npx tsx scripts/verify-rest.ts
+npx tsx scripts/verify-tasks.ts
+```
+
+The [UX seed script](backend/scripts/seed-ux.ts) populates interface states for local inspection and refuses non-localhost databases.
+
+</details>
+
+---
+
+[Product](PRODUCT.md) · [Interface design](DESIGN.md) · [Retrieval case study](docs/rag-case-study.md) · [UX audit](docs/ux-audit.md)
+
+Released under the [MIT License](LICENSE).
