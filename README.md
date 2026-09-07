@@ -13,6 +13,48 @@ back to whichever agent opens the next session.
 It is a desktop app for the person, and an MCP server for their coder. Both read
 and write the same archive.
 
+## Install
+
+Windows 10 or 11, 64-bit. [**Download the installer**](https://github.com/r1zuuu/Ariadne/releases/latest)
+(`Ariadne_0.1.0_x64-setup.exe`, 2.6 MB). There is also an `.msi` in the same
+release if you prefer it. Nothing else to set up: the app talks to a hosted
+backend, so there is no database to install and no server to start.
+
+**Windows will warn you, and here is why.** The installer is not code-signed:
+a certificate costs several hundred dollars a year, which this project does not
+have. SmartScreen judges a file by the reputation of its signature, so an
+unsigned one from a small project gets a blue "Windows protected your PC"
+screen. Click **More info**, then **Run anyway**.
+
+If you would rather verify than trust, compare the checksum before running it:
+
+```powershell
+Get-FileHash Ariadne_0.1.0_x64-setup.exe -Algorithm SHA256
+```
+
+```
+413c99cd5d641767c30f68022dc4a7a68e9264c1f13dd79d505fcb532b35e360  Ariadne_0.1.0_x64-setup.exe
+f70a00a367a8e35c021768a68f64910cb45ae2218ae9d6cb6fd7e5bb580e71b1  Ariadne_0.1.0_x64_en-US.msi
+```
+
+No macOS or Linux build yet. Tauri builds only for the system it runs on, and
+this was built on Windows. Both are possible and neither is done.
+
+### Two things to know before you start
+
+**Sign in with Google or GitHub.** There is no password reset yet, so an account
+made with an email and a forgotten password cannot be recovered.
+
+**Bring your own Gemini key.** Search and the assistant run on Gemini, and the
+server has no key of its own: every call is billed to the account that asked.
+Get a key at [aistudio.google.com](https://aistudio.google.com/apikey), which
+has a free tier, and paste it into Settings on first run. Without it the app
+still records and shows everything, but the assistant and search by meaning stay
+switched off.
+
+The backend runs on a free plan that sleeps when nobody uses it. If the first
+screen takes a while, it is waking up.
+
 ## How it works
 
 ```
@@ -95,6 +137,12 @@ people in one workspace, each with their own agent, reading and writing the same
 archive. What it does not have yet is email (so invitations are codes you copy,
 and there is no password reset), a rate limit that survives a restart, and any
 monitoring beyond the hosting provider's log tab.
+
+The hosted backend this release points at runs on free tiers, maintained by one
+person as a side project. Treat it as somewhere to try the thing, not as a
+service with an uptime promise: your archive is worth keeping, so anything you
+would hate to lose should live somewhere else too. Running your own is the
+section above, and the app is a build flag away from pointing at it.
 
 `PRODUCT.md` explains who it is for. `DESIGN.md` is the interface spec.
 `docs/ux-audit.md` is an audit of the app as it stands, including what is still
