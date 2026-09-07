@@ -6,7 +6,7 @@ A desktop app for the person, an MCP server for their coder, one archive behind 
 [**⬇ Download for Windows**](https://github.com/r1zuuu/Ariadne/releases/latest) · [MIT License](LICENSE)
 
 <details>
-<summary><b>🇵🇱 Polszczyzna (kliknij, aby rozwinąć)</b></summary>
+<summary><b>🇵🇱 Polski (kliknij, aby rozwinąć)</b></summary>
 
 ## Co to jest
 
