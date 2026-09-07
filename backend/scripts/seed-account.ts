@@ -1,7 +1,7 @@
-// Creates the real account and its first project card by hand; the app gets a
+// Creates an account and its first project card by hand; the app gets a
 // registration form and a project form in step 5b. Re-runnable: refreshes the
 // profile and the card, leaves existing nodes untouched.
-// Run from backend/: npx tsx scripts/seed-account.ts [password]
+// Run from backend/: npx tsx scripts/seed-account.ts <email> [password]
 //
 // Pass a password to make the account usable through POST /auth/login. Without
 // one, a fresh row gets a placeholder hash that no password can match.
@@ -10,29 +10,33 @@ process.loadEnvFile("../.env");
 // not apply to. It writes an account's first rows, from outside any session.
 process.env.DATABASE_URL_APP = process.env.DATABASE_URL;
 
-const EMAIL = "stanislaw@rayzacher.pl";
-const PASSWORD = process.argv[2];
+const [EMAIL, PASSWORD] = process.argv.slice(2);
+if (!EMAIL) {
+  console.error("usage: npx tsx scripts/seed-account.ts <email> [password]");
+  process.exit(1);
+}
 
+// Sample profile and card. Both are illustrations of what the archive holds:
+// the profile is what every agent session opens with, the card is what
+// get_project_context answers. Edit them to seed a real account.
 const PROFILE = [
-  "Stas (Stanislaw Rayzacher), junior frontend developer, uczy sie budujac.",
-  "Chce rozumiec dlaczego cos robimy tak, nie tylko co - tlumacz decyzje, nie tylko kod.",
-  "Nie znosi over-engineeringu: najprostsze rozwiazanie, ktore dziala, wygrywa.",
-  "Zna Next.js, React, TypeScript, Tailwind, React Native.",
-  "Rozmowa po polsku, kod i komentarze po angielsku.",
+  "Frontend developer, learning by building.",
+  "Wants to know why a thing is done this way, not only what was done: explain decisions, not just code.",
+  "Dislikes over-engineering: the simplest solution that works wins.",
+  "Knows Next.js, React, TypeScript, Tailwind.",
 ].join(" ");
 
-// Card of the project we hook up first (plan step 4).
 const PROJECT = {
   name: "Portfolio",
-  repoRef: "https://github.com/r1zuuu/portfolio.git",
-  opis: "Osobista strona portfolio: pokazuje projekty i umiejetnosci przy szukaniu pierwszej pracy we frontendzie.",
-  stack: "Next.js App Router, React, TypeScript, Tailwind, next-intl (EN/PL), Framer Motion, three.js, deploy na Vercel",
-  dlaKogo: "dla siebie",
-  grupaOdbiorcza: "rekruterzy i pracodawcy przegladajacy portfolio juniora",
+  repoRef: "https://github.com/example/portfolio.git",
+  opis: "Personal portfolio site: shows projects and skills while looking for a first frontend job.",
+  stack: "Next.js App Router, React, TypeScript, Tailwind, next-intl (EN/PL), deployed on Vercel",
+  dlaKogo: "for myself",
+  grupaOdbiorcza: "recruiters and employers reading a junior portfolio",
   konwencjeRef: "CLAUDE.md",
   ograniczenia:
-    "Zero backendu i bazy, strona jest statyczna. Teksty tylko przez i18n/en.json i i18n/pl.json, nigdy na sztywno w komponencie. Kazda strona ma generateStaticParams dla obu jezykow.",
-  etap: "produkcja",
+    "No backend and no database, the site is static. Copy lives only in i18n/en.json and i18n/pl.json, never hardcoded in a component. Every page has generateStaticParams for both languages.",
+  etap: "production",
 };
 
 const { db } = await import("../src/db/client.js");
