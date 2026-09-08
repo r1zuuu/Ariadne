@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { type Agent } from "@/components/connect";
 import {
   AgentStep,
   JoinStep,
@@ -11,7 +12,6 @@ import {
   ProfileStep,
   ProjectStep,
   effectiveRepoRef,
-  type Agent,
   type Answers,
   type Card,
 } from "@/components/onboarding-steps";

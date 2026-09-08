@@ -1,11 +1,12 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { LOCALES, useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { useFailure } from "@/components/failure";
 import { CommandBlock } from "@/components/command-block";
+import { AgentChoice, connectCommand, mcpUrl, type Agent } from "@/components/connect";
 import {
   IconAccount,
   IconAutoApprove,
@@ -472,13 +473,37 @@ function PermissionSection({
 
 // --- Tokens: what a coder connects with ---
 
+// One numbered step of the walkthrough. The numeral is decorative - the ol
+// already numbers the list for anything reading the markup, and a screen reader
+// announcing "1. one. Open a terminal" is the same digit twice.
+function Step({ n, children }: { n: number; children: ReactNode }) {
+  return (
+    <li className="grid grid-cols-[28px_1fr] gap-x-4 pt-7 first:pt-0">
+      <span aria-hidden="true" className="font-data text-data text-ink-3">
+        {n}
+      </span>
+      <div className="min-w-0">{children}</div>
+    </li>
+  );
+}
+
 function TokensSection({ toast }: { toast: Toast }) {
   const t = useTranslations("settings");
+  // The agent's own name and the sentence for an agent with no ready-made
+  // command are the same facts the wizard states; only the words around them
+  // belong to this screen.
+  const tAgent = useTranslations("onboarding.agent");
   const failure = useFailure();
+  // Which addresses a coder may report and be recognised. The walkthrough below
+  // is the one place someone can compare them against the directory they are
+  // about to stand in, and getting it wrong is the most common way a correct
+  // command still finds nothing.
+  const { projects } = useApp();
 
   const [tokens, setTokens] = useState<ApiToken[] | null>(null);
   const [label, setLabel] = useState("");
   const [fresh, setFresh] = useState<string | null>(null);
+  const [agent, setAgent] = useState<Agent>("claude-code");
   const [working, setWorking] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -524,16 +549,84 @@ function TokensSection({ toast }: { toast: Toast }) {
       />
 
       {/* Shown once and never again, so it sits above the list where it cannot
-          be scrolled past. */}
+          be scrolled past.
+
+          It used to be the token on its own, under a sentence telling the
+          reader to paste it "where your agent asks for the Ariadne token" -
+          which assumes they have already seen the command that does the asking.
+          The only screen that ever printed it is the first-run wizard, and
+          app/onboarding/page.tsx sends an account that already has a project
+          straight past it. That account is precisely the one standing here:
+          somebody setting up a second machine, told by the lead above that this
+          is how you do it, and then handed a string with nowhere to put it. */}
       {fresh ? (
-        <div className="pb-6">
-          <CommandBlock
-            command={fresh}
-            what={t("tokenOnce")}
-            where={t("tokenOnceWhere")}
-            copyLabel={t("copyToken")}
-          />
-        </div>
+        <Card className="mb-7 p-6">
+          <CardTitle>{t("connectTitle")}</CardTitle>
+          <p className="measure pt-3 text-small text-ink-2">{t("connectLead")}</p>
+
+          <div className="mt-6 border-y border-hairline">
+            <AgentChoice agent={agent} name="settings-agent" onAgent={setAgent} />
+          </div>
+
+          <ol className="pt-7">
+            <Step n={1}>
+              <p className="measure text-small text-ink">{t("step1")}</p>
+              {projects && projects.length > 0 ? (
+                <ul className="pt-3">
+                  {projects.map((project) => (
+                    <li key={project.id} className="pt-1 font-data text-data text-ink-2">
+                      {project.repoRef}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <p className="measure pt-3 text-small text-ink-2">
+                {projects && projects.length === 0 ? t("step1NoProjects") : t("step1Match")}
+              </p>
+            </Step>
+
+            <Step n={2}>
+              {agent === "claude-code" ? (
+                <CommandBlock
+                  command={connectCommand(fresh)}
+                  what={t("step2")}
+                  where={t("step2Where")}
+                  warn={t("tokenOnce")}
+                />
+              ) : (
+                <>
+                  <p className="measure text-small text-ink-2">
+                    {tAgent("other.note", { url: mcpUrl })}
+                  </p>
+                  <div className="pt-5">
+                    <CommandBlock
+                      command={fresh}
+                      what={tAgent("tokenWhat")}
+                      where={tAgent("tokenWhere")}
+                      warn={t("tokenOnce")}
+                      copyLabel={t("copyToken")}
+                    />
+                  </div>
+                </>
+              )}
+            </Step>
+
+            <Step n={3}>
+              <p className="measure text-small text-ink">{t("step3")}</p>
+              {agent === "claude-code" ? (
+                <p className="measure pt-3 text-small text-ink-2">{t("step3Verify")}</p>
+              ) : null}
+            </Step>
+          </ol>
+
+          {/* The same warning the wizard gives, for the same reason: standing in
+              one project's directory, the command reads as something to repeat
+              per project, and the second attempt answers "already exists in user
+              config" - which looks like a refusal and is the opposite. */}
+          <div className="mt-7 rounded-control border border-edge/60 bg-plaster-sunk p-5">
+            <p className="measure text-small text-ink">{t("connectOnceOnly")}</p>
+          </div>
+        </Card>
       ) : null}
 
       <Card className="flex flex-wrap items-end gap-5 p-6">
@@ -553,6 +646,14 @@ function TokensSection({ toast }: { toast: Toast }) {
           {working === "mint" ? t("minting") : t("mint")}
         </Button>
       </Card>
+
+      {/* The address outlives every token on the list, and until now the only
+          place that said it out loud was the wizard. Someone reconfiguring a
+          coder by hand, or reading a config file that already has a token in it,
+          has no other way to check what it should point at. */}
+      <p className="pt-4 text-small text-ink-3">
+        {t("endpoint")} <span className="font-data text-data text-ink-2">{mcpUrl}</span>
+      </p>
 
       <div className="pt-5">
         {tokens === null ? (

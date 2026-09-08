@@ -4,10 +4,10 @@ import { useTranslations } from "next-intl";
 import { openExternal } from "@/lib/desktop";
 import { useRef, useState } from "react";
 import { CommandBlock } from "./command-block";
+import { AgentChoice, connectCommand, mcpUrl, type Agent } from "./connect";
 import { Button, Field, Label } from "./ui";
 import {
   GEMINI_KEY_CONSOLE,
-  serverUrl,
   type GeminiKeySource,
   type MyInvite,
   type Workspace,
@@ -15,9 +15,6 @@ import {
 
 // The three step bodies. The orchestrator in app/onboarding/page.tsx owns the
 // state, the network and the navigation; these only render and report changes.
-
-const AGENTS = ["claude-code", "codex", "other"] as const;
-export type Agent = (typeof AGENTS)[number];
 
 export const PROFILE_QUESTIONS = ["q1", "q2", "q3", "q4"] as const;
 export type Answers = Record<(typeof PROFILE_QUESTIONS)[number], string>;
@@ -492,29 +489,12 @@ export function AgentStep({
   onRegenerate: () => void;
 }) {
   const t = useTranslations("onboarding.agent");
-  const host = serverUrl.replace(/\/$/, "");
 
   return (
     <div>
       <h1 className="text-title">{t("title")}</h1>
       <div className="mt-7 border-y border-hairline">
-        <Field id="agent" label={t("label")}>
-          <div role="radiogroup" aria-labelledby="agent" className="flex flex-wrap gap-6 py-3">
-            {AGENTS.map((option) => (
-              <label key={option} className="flex cursor-pointer items-center gap-3 text-body">
-                <input
-                  type="radio"
-                  name="agent"
-                  value={option}
-                  checked={agent === option}
-                  onChange={() => onAgent(option)}
-                  className="accent-thread"
-                />
-                {t(`option.${option}`)}
-              </label>
-            ))}
-          </div>
-        </Field>
+        <AgentChoice agent={agent} name="agent" onAgent={onAgent} />
       </div>
 
       {/* Two things that only become wrong later, said before the command
@@ -559,14 +539,14 @@ export function AgentStep({
           </div>
         ) : agent === "claude-code" ? (
           <CommandBlock
-            command={`claude mcp add --scope user --transport http ariadne ${host}/mcp --header "Authorization: Bearer ${token}"`}
+            command={connectCommand(token)}
             what={t("what")}
             where={t("where")}
             warn={t("tokenOnce")}
           />
         ) : (
           <div>
-            <p className="measure text-small text-ink-2">{t("other.note", { url: `${host}/mcp` })}</p>
+            <p className="measure text-small text-ink-2">{t("other.note", { url: mcpUrl })}</p>
             <CommandBlock
               command={token}
               what={t("tokenWhat")}
