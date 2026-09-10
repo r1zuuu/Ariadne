@@ -60,6 +60,8 @@ export default function TasksScreen() {
   const [createBusy, setCreateBusy] = useState(false);
   const [createDraft, setCreateDraft] = useState(EMPTY_CREATE);
 
+  const [tabCounts, setTabCounts] = useState<Partial<Record<Tab, number>>>({});
+
   const stamp = useCallback(
     (iso: string) =>
       new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(new Date(iso)),
@@ -86,12 +88,21 @@ export default function TasksScreen() {
         const page = await listTasks(projectId, { ...filters, cursor });
         setTasks((prev) => (cursor && prev ? [...prev, ...page.tasks] : page.tasks));
         setNextCursor(page.nextCursor);
+        if (tab === "all" && !query.trim() && !cursor) {
+          setTabCounts({
+            all: page.tasks.length,
+            todo: page.tasks.filter((t) => t.status === "todo").length,
+            in_progress: page.tasks.filter((t) => t.status === "in_progress").length,
+            blocked: page.tasks.filter((t) => t.status === "blocked").length,
+            done: page.tasks.filter((t) => t.status === "done").length,
+          });
+        }
       } catch (caught) {
         setError(failure(caught));
         if (!cursor) setTasks([]);
       }
     },
-    [failure, filters, projectId],
+    [failure, filters, projectId, query, tab],
   );
 
   useEffect(() => {
@@ -116,6 +127,16 @@ export default function TasksScreen() {
     try {
       await updateTask(task.id, { title, revision: task.revision });
       toast(t("toastRenamed"));
+      await load();
+    } catch (caught) {
+      toast(failure(caught), "error");
+    }
+  };
+
+  const changeStatus = async (task: Task, newStatus: TaskStatus) => {
+    try {
+      await updateTask(task.id, { status: newStatus, revision: task.revision });
+      toast(t("event.status_changed"));
       await load();
     } catch (caught) {
       toast(failure(caught), "error");
@@ -248,8 +269,8 @@ export default function TasksScreen() {
 
           {/* Structured Modern Toolbar */}
           <div className="flex flex-col gap-3.5 border-b border-hairline pb-5 sm:flex-row sm:items-center sm:justify-between">
-            {/* Search Input with embedded icon */}
-            <div className="w-full sm:max-w-[280px]">
+            {/* Search Input with embedded icon and clear button */}
+            <div className="relative w-full sm:max-w-[300px]">
               <Input
                 id="task-search"
                 placeholder={t("search") + "..."}
@@ -273,9 +294,21 @@ export default function TasksScreen() {
                 }
                 className="!h-[38px] text-small"
               />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-ink-3 hover:text-ink transition-colors"
+                  aria-label="Wyczyść wyszukiwanie"
+                >
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4l8 8M12 4l-8 8" />
+                  </svg>
+                </button>
+              ) : null}
             </div>
 
-            {/* Segmented Filter Tabs */}
+            {/* Segmented Filter Tabs with Counts */}
             <div
               className="inline-flex flex-wrap rounded-control border border-edge/60 bg-plaster-sunk p-1 gap-1"
               role="tablist"
@@ -288,13 +321,24 @@ export default function TasksScreen() {
                   role="tab"
                   aria-selected={tab === item}
                   onClick={() => setTab(item)}
-                  className={`rounded-[5px] px-3 py-1 text-small font-medium transition-all duration-state ${
+                  className={`inline-flex items-center gap-1.5 rounded-[5px] px-3 py-1 text-small font-medium transition-all duration-state ${
                     tab === item
                       ? "bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,0.35)]"
                       : "text-ink-2 hover:bg-surface/50 hover:text-ink"
                   }`}
                 >
-                  {t(`tab.${item}`)}
+                  <span>{t(`tab.${item}`)}</span>
+                  {typeof tabCounts[item] === "number" ? (
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[11px] font-mono leading-none ${
+                        tab === item
+                          ? "bg-thread/20 text-thread-deep font-semibold"
+                          : "bg-surface-2 text-ink-3"
+                      }`}
+                    >
+                      {tabCounts[item]}
+                    </span>
+                  ) : null}
                 </button>
               ))}
             </div>
@@ -335,36 +379,39 @@ export default function TasksScreen() {
               />
             )
           ) : (
-            <ul className="flex flex-col">
+            <div className="grid grid-cols-1 gap-3.5 pt-1">
               {tasks.map((task) => {
                 const activeRuns = freshRuns(task.activeRuns);
                 return (
-                  <li
+                  <div
                     key={task.id}
-                    className="group border-b border-hairline transition-colors duration-state hover:bg-surface/30"
+                    className="group relative flex flex-col justify-between rounded-card border border-edge/50 bg-surface/40 p-4 sm:p-5 transition-all duration-200 hover:border-edge-strong/70 hover:bg-surface/75 hover:shadow-card"
                   >
-                    <div className="flex flex-col gap-2 px-2 py-3.5 sm:px-3">
-                      {/* Line 1: Status indicator + Title + Priority tag */}
-                      <div className="flex items-start gap-3">
-                        <div className="pt-0.5 shrink-0">
-                          <TaskStatusIndicator status={task.status} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <TaskTitle task={task} onRename={rename} />
-                        </div>
+                    {/* Top Row: Typographic Status Badge, Priority Badge, ID, and Date */}
+                    <div className="flex items-center justify-between gap-3 pb-2.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <TaskStatusBadge status={task.status} />
                         {task.priority !== "medium" ? (
-                          <div className="shrink-0 pt-0.5">
-                            <PriorityBadge priority={task.priority} />
-                          </div>
+                          <PriorityBadge priority={task.priority} />
                         ) : null}
+                        <span className="font-mono text-data text-ink-3/70">
+                          #{task.id.slice(0, 7)}
+                        </span>
                       </div>
+                      <span className="shrink-0 font-mono text-data text-ink-3">
+                        {stamp(task.updatedAt)}
+                      </span>
+                    </div>
 
-                      {/* Line 2: Description or Blocked reason */}
+                    {/* Middle Row: Title & Description */}
+                    <div className="py-1">
+                      <TaskTitle task={task} onRename={rename} />
+
                       {task.blockedReason ? (
-                        <div className="flex items-center gap-1.5 pl-6 text-small font-medium text-iron sm:pl-7">
+                        <div className="mt-2.5 flex items-center gap-2 rounded-control border border-iron/30 bg-iron/10 px-3 py-2 text-small text-iron">
                           <svg
-                            width="13"
-                            height="13"
+                            width="14"
+                            height="14"
                             viewBox="0 0 16 16"
                             fill="none"
                             stroke="currentColor"
@@ -375,32 +422,87 @@ export default function TasksScreen() {
                             <circle cx="8" cy="8" r="6" />
                             <path d="M8 5v4M8 11.5v.5" />
                           </svg>
-                          <span>{task.blockedReason}</span>
+                          <span className="font-medium">{task.blockedReason}</span>
                         </div>
                       ) : task.description ? (
-                        <p className="line-clamp-2 pl-6 text-small text-ink-2 leading-relaxed sm:pl-7">
+                        <p className="mt-2 line-clamp-2 text-small text-ink-2 leading-relaxed">
                           {task.description}
                         </p>
                       ) : null}
+                    </div>
 
-                      {/* Line 3: Live agent chips and quiet metadata */}
-                      <div className="flex flex-wrap items-center gap-2 pl-6 pt-0.5 sm:pl-7">
-                        <TaskLiveBadge runs={activeRuns} />
-                        <AgentRunChips runs={activeRuns} />
-                        <Meta
-                          items={[
-                            task.priority === "medium" ? t(`priority.${task.priority}`) : null,
-                            task.source?.channel === "coder" ? t("agent") : t("human"),
-                            task.createdBy ? t("createdBy", { who: who(task.createdBy) }) : null,
-                            stamp(task.updatedAt),
-                          ]}
-                        />
+                    {/* Bottom Row: Active Agents, Author, and Quick Status Actions */}
+                    <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 border-t border-hairline/60 pt-3">
+                      {/* Left side: Live agents / Creator */}
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        {activeRuns.length > 0 ? (
+                          <>
+                            <TaskLiveBadge runs={activeRuns} />
+                            <AgentRunChips runs={activeRuns} />
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-2 text-data text-ink-3">
+                            <span>{task.source?.channel === "coder" ? t("agent") : t("human")}</span>
+                            {task.createdBy ? (
+                              <>
+                                <span className="text-edge/60">•</span>
+                                <span>{t("createdBy", { who: who(task.createdBy) })}</span>
+                              </>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right side: Quick Status Actions */}
+                      <div className="flex items-center gap-2">
+                        {task.status !== "done" ? (
+                          <button
+                            type="button"
+                            onClick={() => void changeStatus(task, "done")}
+                            className="inline-flex items-center gap-1.5 rounded-control border border-edge/60 bg-surface/60 px-2.5 py-1 text-data font-medium text-ink-2 transition-all hover:border-laurel/40 hover:bg-laurel/10 hover:text-laurel"
+                            title="Oznacz jako zrobione"
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M3.5 8.5l3 3 6-7" />
+                            </svg>
+                            <span>{t("status.done")}</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => void changeStatus(task, "todo")}
+                            className="inline-flex items-center gap-1.5 rounded-control border border-edge/60 bg-surface/60 px-2.5 py-1 text-data font-medium text-ink-3 transition-all hover:border-ochre/40 hover:bg-ochre/10 hover:text-ochre"
+                            title="Przywróć do zrobienia"
+                          >
+                            <span>Przywróć</span>
+                          </button>
+                        )}
+                        {task.status === "todo" ? (
+                          <button
+                            type="button"
+                            onClick={() => void changeStatus(task, "in_progress")}
+                            className="inline-flex items-center gap-1.5 rounded-control border border-edge/60 bg-surface/60 px-2.5 py-1 text-data font-medium text-ink-2 transition-all hover:border-aegean/40 hover:bg-aegean/10 hover:text-aegean"
+                            title="Rozpocznij pracę"
+                          >
+                            <span>Rozpocznij</span>
+                          </button>
+                        ) : null}
                       </div>
                     </div>
-                  </li>
+                  </div>
                 );
               })}
-            </ul>
+            </div>
           )}
 
           {nextCursor ? (
@@ -481,7 +583,7 @@ function TaskTitle({
             setEditing(false);
           }
         }}
-        className="w-full border-b border-thread bg-transparent pb-1 text-lead text-ink outline-none disabled:opacity-50"
+        className="w-full border-b border-thread bg-transparent pb-0.5 text-body font-semibold text-ink outline-none disabled:opacity-50"
       />
     );
   }
@@ -494,9 +596,7 @@ function TaskTitle({
       onKeyDown={(event) => {
         if (event.key === "Enter") open();
       }}
-      // cursor-text and nothing else: the row is not a control any more, so the
-      // only hint it needs is the one the pointer gives over editable text.
-      className="w-full cursor-text rounded-control text-left text-lead text-ink"
+      className="w-full cursor-text rounded-control text-left text-body font-semibold text-ink transition-colors group-hover:text-thread"
     >
       {task.title}
     </button>
@@ -514,17 +614,17 @@ function PriorityBadge({ priority }: { priority: TaskPriority }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-control border px-2 py-0.5 text-data font-medium ${color}`}
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-data font-medium leading-none ${color}`}
       title={t(`priority.${priority}`)}
     >
       {priority === "critical" ? (
-        <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        <svg width="9" height="9" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
           <path d="M8 1l7 14H1L8 1zm0 4v5h1.5V5H8zm0 7v1.5h1.5V12H8z" />
         </svg>
       ) : priority === "high" ? (
         <svg
-          width="10"
-          height="10"
+          width="9"
+          height="9"
           viewBox="0 0 16 16"
           fill="none"
           stroke="currentColor"
@@ -540,120 +640,26 @@ function PriorityBadge({ priority }: { priority: TaskPriority }) {
   );
 }
 
-function TaskStatusIndicator({ status }: { status: TaskStatus }) {
+function TaskStatusBadge({ status }: { status: TaskStatus }) {
   const t = useTranslations("tasks");
-  const toneMap = {
-    backlog: "bg-stone/15 text-stone border-stone/30",
-    todo: "bg-ochre/15 text-ochre border-ochre/30",
+  const toneMap: Record<TaskStatus, string> = {
+    backlog: "bg-surface-2 text-ink-3 border-edge/60",
+    todo: "bg-ochre/12 text-ochre border-ochre/30",
     in_progress: "bg-aegean/15 text-aegean border-aegean/30",
     blocked: "bg-iron/15 text-iron border-iron/30",
     done: "bg-laurel/15 text-laurel border-laurel/30",
-    archived: "bg-stone/15 text-stone border-stone/30",
-  }[status];
+    archived: "bg-surface-2 text-ink-3 border-edge/60",
+  };
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-control px-2 py-0.5 text-data font-medium leading-none border ${toneMap}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-data font-semibold uppercase tracking-wider leading-none border ${
+        toneMap[status] ?? toneMap.todo
+      }`}
       title={t(`status.${status}`)}
     >
-      <TaskStatusCircle status={status} />
-      <span>{t(`status.${status}`)}</span>
+      {t(`status.${status}`)}
     </span>
-  );
-}
-
-function TaskStatusCircle({ status }: { status: TaskStatus }) {
-  if (status === "done") {
-    return (
-      <svg
-        width="11"
-        height="11"
-        viewBox="0 0 16 16"
-        fill="currentColor"
-        className="shrink-0"
-        aria-hidden="true"
-      >
-        <circle cx="8" cy="8" r="7" className="opacity-20" />
-        <path
-          d="M4.5 8.5l2.5 2.5 5-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-  if (status === "in_progress") {
-    return (
-      <svg
-        width="11"
-        height="11"
-        viewBox="0 0 16 16"
-        className="shrink-0 animate-spin"
-        style={{ animationDuration: "3s" }}
-        aria-hidden="true"
-      >
-        <circle
-          cx="8"
-          cy="8"
-          r="6"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeDasharray="14 10"
-        />
-      </svg>
-    );
-  }
-  if (status === "blocked") {
-    return (
-      <svg
-        width="11"
-        height="11"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="shrink-0"
-        aria-hidden="true"
-      >
-        <circle cx="8" cy="8" r="6" />
-        <path d="M5 5l6 6" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (status === "backlog" || status === "archived") {
-    return (
-      <svg
-        width="11"
-        height="11"
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="shrink-0"
-        aria-hidden="true"
-      >
-        <circle cx="8" cy="8" r="6" strokeDasharray="3 3" />
-      </svg>
-    );
-  }
-  // todo: calm hollow circle
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      className="shrink-0"
-      aria-hidden="true"
-    >
-      <circle cx="8" cy="8" r="6" />
-    </svg>
   );
 }
 
@@ -661,10 +667,10 @@ function TaskLiveBadge({ runs }: { runs: TaskActiveRun[] }) {
   const t = useTranslations("tasks");
   if (!runs.length) return null;
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-control border border-thread/30 bg-thread/10 px-2 py-0.5 text-data font-medium text-thread">
-      <span className="relative flex h-[7px] w-[7px]" aria-hidden>
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-thread/30 bg-thread/10 px-2.5 py-0.5 text-data font-medium text-thread leading-none">
+      <span className="relative flex h-[6px] w-[6px]" aria-hidden>
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-40" />
-        <span className="relative inline-flex h-[7px] w-[7px] rounded-full bg-current" />
+        <span className="relative inline-flex h-[6px] w-[6px] rounded-full bg-current" />
       </span>
       <span>{t("liveNow")}</span>
     </span>
@@ -679,7 +685,7 @@ function AgentRunChips({ runs }: { runs: TaskActiveRun[] }) {
       {runs.map((run) => (
         <span
           key={run.id}
-          className="inline-flex items-center gap-1.5 rounded-control border border-edge/60 bg-surface px-2 py-0.5 text-data text-ink-2"
+          className="inline-flex items-center gap-1.5 rounded-full border border-edge/60 bg-surface px-2.5 py-0.5 text-data text-ink-2 leading-none"
           title={t("workingAgent", { client: run.agentClient })}
         >
           <AgentKindMark kind={run.agentKind} />

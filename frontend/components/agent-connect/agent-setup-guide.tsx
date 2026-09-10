@@ -103,14 +103,42 @@ export function AgentSetupGuide({
         </div>
       ) : null}
 
-      {/* Notice if token is masked / placeholder */}
+      {/* Polished token guidance card */}
       {!token ? (
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-control border border-ochre/30 bg-ochre/10 p-4">
-          <p className="measure text-small text-ochre">
-            {t("tokenNoticeExisting", { placeholder: "TWÓJ_TOKEN" })}
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-card border border-edge/50 bg-surface/60 p-4 shadow-card backdrop-blur-sm">
+          <div className="flex items-start gap-3.5 min-w-0">
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-thread/10 text-thread border border-thread/20">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="6" cy="6" r="3.5" />
+                <path d="M8.5 8.5L13.5 13.5M10.5 10.5l1.5 1.5M12 12l1 1" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <p className="text-small font-medium text-ink">
+                Instrukcja z zapisanym tokenem
+              </p>
+              <p className="pt-0.5 text-data text-ink-3">
+                W poniższym poleceniu znajduje się znacznik <code className="rounded bg-plaster-sunk px-1.5 py-0.5 font-mono text-[11px] text-thread">TWÓJ_TOKEN</code>. Wklej swój token lub wygeneruj nowy.
+              </p>
+            </div>
+          </div>
           {onMintNewToken ? (
-            <Button variant="secondary" size="md" onClick={onMintNewToken}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onMintNewToken}
+              className="shrink-0 self-start sm:self-center"
+            >
               {t("mintNew")}
             </Button>
           ) : null}

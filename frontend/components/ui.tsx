@@ -87,15 +87,18 @@ export function Input({
   note,
   id,
   icon,
+  className = "",
   ...rest
 }: {
   label?: string;
   error?: string;
   note?: string;
+  id?: string;
   icon?: ReactNode;
+  className?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <div>
+    <div className="w-full text-left">
       {label ? (
         <label htmlFor={id} className="block pb-2 text-small font-medium text-ink">
           {label}
@@ -112,9 +115,9 @@ export function Input({
           {...rest}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-          className={`h-[44px] w-full rounded-control border bg-surface/80 px-4 text-body text-ink outline-none transition-all duration-state placeholder:text-ink-3 hover:border-edge focus:border-thread focus:bg-surface focus:ring-2 focus:ring-thread/25 ${
-            icon ? "pl-10" : ""
-          } ${error ? "border-iron" : "border-edge/60"} ${rest.className ?? ""}`}
+          className={`h-[42px] w-full rounded-control border bg-surface/80 text-left text-body text-ink outline-none transition-all duration-state placeholder:text-left placeholder:text-ink-3 hover:border-edge focus:border-thread focus:bg-surface focus:ring-2 focus:ring-thread/25 ${
+            icon ? "pl-10 pr-4" : "px-4"
+          } ${error ? "border-iron" : "border-edge/60"} ${className}`}
         />
       </div>
       <FieldNote id={id} error={error} note={note} />
