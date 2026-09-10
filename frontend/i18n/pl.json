@@ -774,7 +774,7 @@
     "tokenNeededTitle": "Instrukcja wymaga Twojego tokenu",
     "tokenNeededBody": "W poleceniu poniżej stoi znacznik {placeholder}. Wstaw w to miejsce token, który masz zapisany, albo utwórz nowy.",
     "tokenReadyTitle": "Token wstawiony do instrukcji",
-    "tokenReadyBody": "Polecenie poniżej zawiera token utworzony przed chwilą. Skopiuj je teraz — tej wartości nie zobaczysz drugi raz.",
+    "tokenReadyBody": "Polecenie poniżej zawiera token utworzony przed chwilą. Skopiuj je teraz, bo tej wartości nie zobaczysz drugi raz.",
     "verifyWhere": "Ariadne powinna pojawić się na liście połączonych serwerów.",
     "hints": {
       "claude-code": "Rejestracja obejmuje cały komputer, więc katalog nie ma tu znaczenia. Katalog projektu liczy się dopiero przy pracy: po adresie repozytorium Ariadne rozpoznaje, o który projekt chodzi.",
@@ -807,7 +807,7 @@
     "backToSettings": "Ustawienia konta",
     "lastUsed": "ostatnio użyty {date}",
     "createdOn": "utworzony {date}",
-    "revokeAsk": "Unieważnić ten token?",
+    "revokeAsk": "Unieważnić „{label}”?",
     "revokeAskNote": "Agent, który go używa, straci dostęp do archiwum przy następnym połączeniu. Tego nie da się cofnąć.",
     "revokeConfirm": "Unieważnij token",
     "cancel": "Anuluj",

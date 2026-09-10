@@ -774,7 +774,7 @@
     "tokenNeededTitle": "The guide needs your token",
     "tokenNeededBody": "The command below carries the placeholder {placeholder}. Put your saved token there, or create a new one.",
     "tokenReadyTitle": "Token filled into the guide",
-    "tokenReadyBody": "The command below carries the token created a moment ago. Copy it now — you will not see this value again.",
+    "tokenReadyBody": "The command below carries the token created a moment ago. Copy it now: you will not see this value again.",
     "verifyWhere": "Ariadne should appear in the list of connected servers.",
     "hints": {
       "claude-code": "Registration covers the whole machine, so the directory does not matter here. The project directory matters once you start working: Ariadne recognises the project by its repository address.",
@@ -807,7 +807,7 @@
     "backToSettings": "Account settings",
     "lastUsed": "last used {date}",
     "createdOn": "created {date}",
-    "revokeAsk": "Revoke this token?",
+    "revokeAsk": "Revoke “{label}”?",
     "revokeAskNote": "An agent using it loses access to the archive on its next connection. This cannot be undone.",
     "revokeConfirm": "Revoke token",
     "cancel": "Cancel",
