@@ -223,7 +223,7 @@ export default function DatabaseScreen() {
                     />
                   ) : (
                     <div className="pt-4">
-                      <EmptyState title={t("nothingProposed")} note={t("nothingProposedNote")} />
+                      <EmptyState illustration="compact" title={t("nothingProposed")} note={t("nothingProposedNote")} />
                     </div>
                   )}
                 </FadeIn>

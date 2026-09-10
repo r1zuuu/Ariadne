@@ -18,7 +18,7 @@ import type { ReactNode } from "react";
 // So padding uses the scale, and every fixed height is written in brackets.
 
 type ButtonVariant = "primary" | "secondary" | "quiet" | "destructive";
-type ButtonSize = "md" | "lg";
+type ButtonSize = "sm" | "md" | "lg";
 
 // Primary is the thread: the one brand colour belongs to the strongest action on
 // the screen and to nothing decorative, which is what keeps it precious.
@@ -32,6 +32,7 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
+  sm: "h-[30px] px-3.5 text-data",
   md: "h-[36px] px-5 text-small",
   lg: "h-[44px] px-6 text-body",
 };
@@ -564,16 +565,22 @@ export function Banner({
   );
 }
 
-// The old accession-record field: a small tracked label in a fixed column
-// beside the value. Kept for onboarding, which is a record being filled in and
-// reads correctly that way. New screens use Input and Textarea.
-export function Label({ children, htmlFor }: { children: string; htmlFor?: string }) {
+// Clean semantic label for form elements and groups.
+export function Label({
+  children,
+  htmlFor,
+  className = "",
+}: {
+  children: ReactNode;
+  htmlFor?: string;
+  className?: string;
+}) {
   return (
     <label
       htmlFor={htmlFor}
-      className="block text-label uppercase tracking-[0.12em] text-ink-3"
+      className={`block text-small font-medium text-ink ${className}`}
     >
-      {children.length > 24 ? children.slice(0, 24) : children}
+      {children}
     </label>
   );
 }

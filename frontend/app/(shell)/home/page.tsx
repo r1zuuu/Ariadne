@@ -193,6 +193,7 @@ export default function HomeScreen() {
         <p className="text-body text-ink-3">{t("loading")}</p>
       ) : projects.length === 0 ? (
         <EmptyState
+          illustration="context"
           title={t("empty.title")}
           note={t("empty.note")}
           // The project form, not the wizard. This screen is only reachable by
@@ -274,7 +275,7 @@ export default function HomeScreen() {
               {latestDecision === null ? (
                 <p className="text-small text-ink-3">{t("loading")}</p>
               ) : latestDecision.length === 0 ? (
-                <EmptyState title={t("decisionsEmpty")} note={t("decisionsEmptyNote")} />
+                <EmptyState illustration="compact" title={t("decisionsEmpty")} note={t("decisionsEmptyNote")} />
               ) : (
                 <Link href="/project" className="block">
                   <Card interactive className="p-5">
@@ -306,7 +307,7 @@ export default function HomeScreen() {
               {pendingFeed === null ? (
                 <p className="text-small text-ink-3">{t("loading")}</p>
               ) : head === null ? (
-                <EmptyState title={t("waitingEmpty")} note={t("waitingEmptyNote")} />
+                <EmptyState illustration="compact" title={t("waitingEmpty")} note={t("waitingEmptyNote")} />
               ) : (
                 <Card className="p-5">
                   <div className="flex items-start justify-between gap-4">

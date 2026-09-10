@@ -74,6 +74,7 @@ export default function ProjectScreen() {
             // A dead backend used to park this screen on "loading" forever.
             // Say what happened and offer the one thing that can fix it.
             <EmptyState
+              illustration="compact"
               title={t("unreachable")}
               note={t("unreachableNote")}
               action={
@@ -83,7 +84,7 @@ export default function ProjectScreen() {
               }
             />
           ) : projects !== null && projects.length === 0 ? (
-            <EmptyState title={t("noProject")} note={t("noProjectNote")} />
+            <EmptyState illustration="context" title={t("noProject")} note={t("noProjectNote")} />
           ) : (
             <p className="text-body text-ink-3">{t("loading")}</p>
           )
@@ -145,6 +146,7 @@ export default function ProjectScreen() {
               />
               {graphError ? (
                 <EmptyState
+                  illustration="compact"
                   title={t("graphError")}
                   note={t("graphErrorNote")}
                   action={
@@ -156,7 +158,7 @@ export default function ProjectScreen() {
               ) : graph === null ? (
                 <p className="text-body text-ink-3">{t("loading")}</p>
               ) : graph.nodes.length === 0 ? (
-                <EmptyState title={t("graphEmpty")} note={t("graphEmptyNote")} />
+                <EmptyState illustration="context" title={t("graphEmpty")} note={t("graphEmptyNote")} />
               ) : (
                 <MemoryGraph nodes={graph.nodes} edges={graph.edges} />
               )}

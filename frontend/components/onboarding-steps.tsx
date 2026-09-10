@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { openExternal } from "@/lib/desktop";
 import { useRef, useState } from "react";
-import { Button, Field, Label } from "./ui";
+import { Button, Input, Select, Textarea, Label } from "./ui";
 import {
   GEMINI_KEY_CONSOLE,
   serverUrl,
@@ -215,84 +215,109 @@ export function ProjectStep({
   return (
     <div>
       <h1 className="text-title">{heading}</h1>
-      <p className="measure pt-5 text-body text-ink-2">{t("repoLead")}</p>
-      <div className="mt-7 divide-y divide-hairline border-y border-hairline">
-      <Field
-        id="name"
-        label={t("label.name")}
-        placeholder={t("hint.name")}
-        value={card.name}
-        onChange={(e) => onChange({ name: e.target.value })}
-        note={t("required")}
-        error={error ?? undefined}
-        autoFocus
-      />
-      <Field
-        id="repoRef"
-        label={t("label.repo")}
-        placeholder={t("hint.repo")}
-        value={card.repoRef}
-        onChange={(e) => onChange({ repoRef: e.target.value })}
-        // Not "optional" any more. Empty is allowed, but it is a choice with a
-        // consequence, and the note names the string that choice produces.
-        note={
-          typed
-            ? t("repoNote.set")
-            : t("repoNote.fallback", { ref: effectiveRepoRef(card) })
-        }
-      />
-      {workspaces.length > 1 ? (
-        <Field id="workspaceId" label={t("label.workspace")} note={t("workspaceNote")}>
-          <select
-            id="workspaceId"
+      <p className="measure pt-3 text-body text-ink-2">{t("repoLead")}</p>
+
+      <div className="mt-7 flex max-w-[640px] flex-col gap-6">
+        <Input
+          id="project-name"
+          label={t("label.name")}
+          placeholder={t("hint.name")}
+          value={card.name}
+          onChange={(e) => onChange({ name: e.target.value })}
+          note={t("required")}
+          error={error ?? undefined}
+          autoFocus
+        />
+
+        <Input
+          id="project-repoRef"
+          label={t("label.repo")}
+          placeholder={t("hint.repo")}
+          value={card.repoRef}
+          onChange={(e) => onChange({ repoRef: e.target.value })}
+          note={
+            typed
+              ? t("repoNote.set")
+              : t("repoNote.fallback", { ref: effectiveRepoRef(card) })
+          }
+        />
+
+        {workspaces.length > 1 ? (
+          <Select
+            id="project-workspaceId"
+            label={t("label.workspace")}
+            note={t("workspaceNote")}
             value={card.workspaceId}
-            onChange={(e) => onChange({ workspaceId: e.target.value })}
-            className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none transition-colors duration-state focus:border-thread focus:ring-2 focus:ring-thread/25"
-          >
-            {workspaces.map((workspace) => (
-              <option key={workspace.id} value={workspace.id}>
-                {workspace.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-      ) : null}
-      <Field
-        id="stack"
-        label={t("label.stack")}
-        placeholder={t("hint.stack")}
-        value={card.stack}
-        onChange={(e) => onChange({ stack: e.target.value })}
-        note={t("optional")}
-      />
-      <Field id="etap" label={t("label.etap")}>
-        {/* One per line rather than three across. The options used to be single
-            words - "produkcja" reads as "being produced" as easily as "live",
-            and "utrzymanie" says nothing at all to someone who has not met the
-            term - so each now carries the sentence that distinguishes it, and
-            three sentences side by side is not a row. */}
-        <div role="radiogroup" aria-labelledby="etap" className="flex flex-col gap-3 py-3">
-          {ETAPY.map((etap) => (
-            <label key={etap} className="flex cursor-pointer items-center gap-3 text-body">
-              <input
-                type="radio"
-                name="etap"
-                value={etap}
-                checked={card.etap === etap}
-                onChange={() => onChange({ etap })}
-                className="accent-thread"
-              />
-              {t(`etapChoice.${etap}`)}
-            </label>
-          ))}
+            options={workspaces.map((workspace) => ({
+              value: workspace.id,
+              label: workspace.name,
+            }))}
+            onChange={(val) => onChange({ workspaceId: val })}
+          />
+        ) : null}
+
+        <Input
+          id="project-stack"
+          label={t("label.stack")}
+          placeholder={t("hint.stack")}
+          value={card.stack}
+          onChange={(e) => onChange({ stack: e.target.value })}
+          note={t("optional")}
+        />
+
+        <div>
+          <Label className="pb-2.5">{t("label.etap")}</Label>
+          <div role="radiogroup" aria-label={t("label.etap")} className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {ETAPY.map((etap) => {
+              const selected = card.etap === etap;
+              const fullText = t(`etapChoice.${etap}`);
+              const [title, ...descParts] = fullText.split(" - ");
+              const desc = descParts.join(" - ");
+              return (
+                <label
+                  key={etap}
+                  className={`group relative flex cursor-pointer flex-col justify-between rounded-card border p-4 transition-all duration-state ${
+                    selected
+                      ? "border-thread/60 bg-thread/[0.07] shadow-sm shadow-thread/5"
+                      : "border-edge/50 bg-surface/40 hover:border-edge hover:bg-surface/70"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className={`text-small font-medium ${selected ? "text-ink" : "text-ink-2 group-hover:text-ink"}`}>
+                      {title}
+                    </span>
+                    <div
+                      className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                        selected ? "border-thread bg-thread" : "border-edge/80 bg-surface/80"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {selected && <div className="h-1.5 w-1.5 rounded-full bg-void" />}
+                    </div>
+                  </div>
+                  {desc && (
+                    <span className="pt-2 text-data leading-relaxed text-ink-3">
+                      {desc}
+                    </span>
+                  )}
+                  <input
+                    type="radio"
+                    name="etap"
+                    value={etap}
+                    checked={selected}
+                    onChange={() => onChange({ etap })}
+                    className="sr-only"
+                  />
+                </label>
+              );
+            })}
+          </div>
         </div>
-      </Field>
-      <Field id="ograniczenia" label={t("label.limits")} alignTop>
+
         <GuardrailsField
           value={card.ograniczenia}
           onChange={(ograniczenia) => onChange({ ograniczenia })}
         />
-      </Field>
       </div>
     </div>
   );
@@ -350,17 +375,18 @@ function GuardrailsField({
   };
 
   return (
-    <div className="py-3">
-      <textarea
-        id="ograniczenia"
+    <div>
+      <Textarea
+        id="project-ograniczenia"
+        label={t("label.limits")}
         rows={4}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={t("hint.limits")}
-        className="w-full resize-y bg-transparent text-body leading-7 text-ink outline-none placeholder:text-ink-3"
+        error={error ?? undefined}
       />
-      <div className="flex flex-wrap items-center gap-4 pt-2">
-        <Button type="button" variant="secondary" onClick={() => picker.current?.click()}>
+      <div className="flex flex-wrap items-center gap-3 pt-2.5">
+        <Button type="button" variant="secondary" size="sm" onClick={() => picker.current?.click()}>
           {t("limits.fromFile")}
         </Button>
         <p className="text-small text-ink-3">{t("limits.note")}</p>
@@ -374,7 +400,6 @@ function GuardrailsField({
         hidden
         onChange={(e) => void load(e.target.files?.[0])}
       />
-      {error ? <p className="pt-3 text-small text-iron">{error}</p> : null}
     </div>
   );
 }

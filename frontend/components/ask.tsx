@@ -245,7 +245,7 @@ export function Ask({
                     <p className="pt-5 text-body text-iron">{turn.error}</p>
                   ) : turn.sources.length === 0 && turn.done && !turn.answer ? (
                     <div className="pt-5">
-                      <EmptyState title={t("nothingRecorded")} note={t("nothingRecordedNote")} />
+                      <EmptyState illustration="compact" title={t("nothingRecorded")} note={t("nothingRecordedNote")} />
                     </div>
                   ) : (
                     <Answer turn={turn} />

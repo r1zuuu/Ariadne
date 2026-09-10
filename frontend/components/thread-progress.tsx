@@ -67,7 +67,7 @@ export function ThreadProgress({ step }: { step: number }) {
                     state={done ? "done" : current ? "current" : "upcoming"}
                   />
                   <span
-                    className={`text-label uppercase tracking-[0.12em] transition-colors duration-state ${
+                    className={`text-small font-medium tracking-normal transition-colors duration-state ${
                       reached ? "text-ink" : "text-ink-3"
                     }`}
                   >
