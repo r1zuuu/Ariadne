@@ -35,7 +35,7 @@ export function ConversationList({
   const list = (
     <>
       {conversations.length === 0 ? (
-        <EmptyState illustration="compact" title={labels.empty} note={labels.emptyNote} />
+        <EmptyState illustration="context" title={labels.empty} note={labels.emptyNote} />
       ) : (
         <ul className="border-t border-hairline">
           {conversations.map((conversation) => (

@@ -485,6 +485,8 @@ export function EmptyState({
     imgSrc = EMPTY_STATE_ILLUSTRATIONS.context;
   } else if (illustration === "pending") {
     imgSrc = EMPTY_STATE_ILLUSTRATIONS.pending;
+  } else if (illustration === "compact") {
+    imgSrc = EMPTY_STATE_ILLUSTRATIONS.context;
   }
 
   return (
@@ -499,29 +501,12 @@ export function EmptyState({
             alt=""
             width={260}
             height={173}
-            className="relative h-auto max-h-[200px] w-auto max-w-[220px] object-contain drop-shadow-[0_16px_28px_rgba(0,0,0,0.5)] select-none sm:max-w-[260px]"
+            className="relative h-auto max-h-[190px] w-auto max-w-[220px] object-contain drop-shadow-[0_16px_28px_rgba(0,0,0,0.5)] select-none sm:max-w-[260px]"
           />
         </div>
       ) : illustration && typeof illustration !== "string" ? (
         <div className="mb-5 flex justify-center text-thread">{illustration}</div>
-      ) : (
-        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full border border-edge/60 bg-surface/80 text-ink-3">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="8" cy="8" r="6" />
-            <path d="M8 5v3.5l2 1.5" />
-          </svg>
-        </div>
-      )}
+      ) : null}
 
       <h3 className="font-heading font-semibold text-lead text-ink tracking-normal sm:text-title">
         {title}
