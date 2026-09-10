@@ -7,11 +7,3 @@ export const SUPPORTED_AGENTS = [
 ] as const;
 
 export type SupportedAgent = (typeof SUPPORTED_AGENTS)[number];
-
-export interface AgentConfigTemplate {
-  id: SupportedAgent;
-  name: string;
-  badgeKey: string;
-  format: "bash" | "json" | "toml" | "text";
-  getCommand: (host: string, token: string) => string;
-}
