@@ -196,7 +196,7 @@ export function AgentSetupGuide({
                 onClick={() => setCurrentStep(idx)}
                 className={`h-2 flex-1 rounded-sm transition-all duration-300 ${
                   isActive
-                    ? "bg-thread shadow-[0_0_12px_rgba(91,140,255,0.7)]"
+                    ? "bg-thread"
                     : isDone
                       ? "bg-thread/45 hover:bg-thread/65"
                       : "bg-edge/60 hover:bg-edge"

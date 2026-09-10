@@ -492,16 +492,14 @@ export function EmptyState({
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
       {imgSrc ? (
-        <div className="relative mb-6 flex items-center justify-center">
-          {/* Subtle soft luminous background glow */}
-          <div className="absolute -inset-4 rounded-full bg-thread/5 blur-2xl" aria-hidden="true" />
+        <div className="mb-6 flex items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imgSrc}
             alt=""
             width={260}
             height={173}
-            className="relative h-auto max-h-[190px] w-auto max-w-[220px] object-contain drop-shadow-[0_16px_28px_rgba(0,0,0,0.5)] select-none sm:max-w-[260px]"
+            className="h-auto max-h-[190px] w-auto max-w-[220px] object-contain select-none sm:max-w-[260px]"
           />
         </div>
       ) : illustration && typeof illustration !== "string" ? (

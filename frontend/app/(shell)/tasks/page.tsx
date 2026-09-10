@@ -668,10 +668,7 @@ function TaskLiveBadge({ runs }: { runs: TaskActiveRun[] }) {
   if (!runs.length) return null;
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-thread/30 bg-thread/10 px-2.5 py-0.5 text-data font-medium text-thread leading-none">
-      <span className="relative flex h-[6px] w-[6px]" aria-hidden>
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-40" />
-        <span className="relative inline-flex h-[6px] w-[6px] rounded-full bg-current" />
-      </span>
+      <span className="h-[6px] w-[6px] rounded-full bg-thread" aria-hidden />
       <span>{t("liveNow")}</span>
     </span>
   );
