@@ -1,11 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { LOCALES, useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { useFailure } from "@/components/failure";
-import { CommandBlock } from "@/components/command-block";
 import {
   IconAccount,
   IconAutoApprove,
@@ -29,16 +29,12 @@ import {
   ApiError,
   changePassword,
   clearGeminiKey,
-  deleteToken,
   GEMINI_KEY_CONSOLE,
   getAccount,
-  listTokens,
-  mintToken,
   saveGeminiKey,
   saveProfile,
   setAllPermission,
   type Account,
-  type ApiToken,
 } from "@/lib/api";
 import { openExternal } from "@/lib/desktop";
 import {
@@ -109,7 +105,7 @@ export default function SettingsScreen() {
           <AccountSection account={account} onSaved={setAccount} toast={toast} />
           <GeminiSection account={account} onSaved={setAccount} toast={toast} />
           <PermissionSection account={account} onSaved={setAccount} toast={toast} />
-          <TokensSection toast={toast} />
+          <TokensNoticeSection />
           {/* Last, and outside the account entirely: everything above belongs to
               whoever is signed in, this one belongs to the computer. */}
           <SkillsSection toast={toast} />
@@ -472,120 +468,25 @@ function PermissionSection({
 
 // --- Tokens: what a coder connects with ---
 
-function TokensSection({ toast }: { toast: Toast }) {
+// --- Tokens: relocated to dedicated section ---
+
+function TokensNoticeSection() {
   const t = useTranslations("settings");
-  const failure = useFailure();
-
-  const [tokens, setTokens] = useState<ApiToken[] | null>(null);
-  const [label, setLabel] = useState("");
-  const [fresh, setFresh] = useState<string | null>(null);
-  const [working, setWorking] = useState<string | null>(null);
-
-  const load = useCallback(() => {
-    void listTokens().then(setTokens).catch(() => setTokens([]));
-  }, []);
-
-  useEffect(load, [load]);
-
-  const mint = async () => {
-    setWorking("mint");
-    try {
-      const minted = await mintToken(label.trim());
-      setFresh(minted.token);
-      setLabel("");
-      load();
-    } catch (error) {
-      toast(failure(error), "error");
-    } finally {
-      setWorking(null);
-    }
-  };
-
-  const revoke = async (id: string) => {
-    setWorking(id);
-    try {
-      await deleteToken(id);
-      toast(t("tokenRevoked"));
-      load();
-    } catch (error) {
-      toast(failure(error), "error");
-    } finally {
-      setWorking(null);
-    }
-  };
 
   return (
     <section className="mt-8 border-t border-hairline pt-7">
-      <SectionHeader
-        title={t("tokens")}
-        count={tokens?.length}
-        icon={<IconToken />}
-        note={t("tokensLead")}
-      />
-
-      {/* Shown once and never again, so it sits above the list where it cannot
-          be scrolled past. */}
-      {fresh ? (
-        <div className="pb-6">
-          <CommandBlock
-            command={fresh}
-            what={t("tokenOnce")}
-            where={t("tokenOnceWhere")}
-            copyLabel={t("copyToken")}
-          />
-        </div>
-      ) : null}
-
-      <Card className="flex flex-wrap items-end gap-5 p-6">
-        <div className="min-w-[200px] flex-1">
-          <Input
-            id="settings-token-label"
-            label={t("tokenLabel")}
-            placeholder={t("tokenPlaceholder")}
-            value={label}
-            onChange={(event) => setLabel(event.target.value)}
-          />
-        </div>
-        {/* No archive to pick. A token stands for a machine and reaches every
-            archive this account belongs to; the repository a coder is standing
-            in decides which project it opens. */}
-        <Button onClick={mint} loading={working === "mint"}>
-          {working === "mint" ? t("minting") : t("mint")}
-        </Button>
+      <SectionHeader title={t("tokens")} icon={<IconToken />} />
+      <Card className="flex flex-wrap items-center justify-between gap-5 p-6">
+        <p className="measure text-small text-ink-2">
+          {t("tokensMoved")}
+        </p>
+        <Link
+          href="/agents"
+          className="inline-flex h-[36px] items-center justify-center gap-2 rounded-control border border-edge/60 bg-surface px-5 text-small font-medium text-ink transition-colors duration-state hover:border-edge hover:bg-plaster-sunk"
+        >
+          {t("tokensMovedAction")}
+        </Link>
       </Card>
-
-      <div className="pt-5">
-        {tokens === null ? (
-          <p className="text-body text-ink-3">{t("loading")}</p>
-        ) : tokens.length === 0 ? (
-          <EmptyState title={t("tokensEmpty")} note={t("tokensEmptyNote")} />
-        ) : (
-          // divide-y, not per-row borders: a border on the last row plus the
-          // next section's own top border drew a double line into the gap.
-          <ul className="divide-y divide-hairline">
-            {tokens.map((token) => (
-              <li
-                key={token.id}
-                className="flex flex-wrap items-center justify-between gap-4 py-4"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-body text-ink">{token.label || t("noLabel")}</p>
-                  <div className="pt-1">
-                    <Meta items={[token.lastUsedAt ? t("used") : t("neverUsed")]} />
-                  </div>
-                </div>
-                <Button
-                  variant="quiet"
-                  onClick={() => revoke(token.id)}
-                  loading={working === token.id}
-                >
-                  {t("revoke")}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </section>
   );
 }
