@@ -182,291 +182,298 @@ export function AgentSetupGuide({
         </div>
       ) : null}
 
-      {/* 3 Rectangles Stepper Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        {/* 3 Rectangles Stepper */}
-        <div className="flex items-center gap-2 w-full sm:max-w-[280px]">
-          {[0, 1, 2].map((idx) => {
-            const isActive = idx === currentStep;
-            const isDone = idx < currentStep;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => setCurrentStep(idx)}
-                className={`h-2 flex-1 rounded-sm transition-all duration-300 ${
-                  isActive
-                    ? "bg-thread"
-                    : isDone
-                      ? "bg-thread/45 hover:bg-thread/65"
-                      : "bg-edge/60 hover:bg-edge"
-                }`}
-                title={`Krok ${idx + 1}: ${stepTitles[idx]}`}
-                aria-label={`Krok ${idx + 1}`}
-              />
-            );
-          })}
-        </div>
+      {/* Walkthrough Section (Stepper + 3D Stacked Cards) */}
+      <div className="!mt-4 space-y-2.5">
+        {/* 3 Rectangles Stepper Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* 3 Rectangles Stepper */}
+          <div className="flex items-center gap-2 w-full sm:max-w-[280px]">
+            {[0, 1, 2].map((idx) => {
+              const isActive = idx === currentStep;
+              const isDone = idx < currentStep;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setCurrentStep(idx)}
+                  className={`h-2 flex-1 rounded-sm transition-all duration-300 ${
+                    isActive
+                      ? "bg-thread"
+                      : isDone
+                        ? "bg-thread/45 hover:bg-thread/65"
+                        : "bg-edge/60 hover:bg-edge"
+                  }`}
+                  title={`Krok ${idx + 1}: ${stepTitles[idx]}`}
+                  aria-label={`Krok ${idx + 1}`}
+                />
+              );
+            })}
+          </div>
 
-        {/* Counter & Arrow Controls */}
-        <div className="flex items-center justify-between sm:justify-end gap-3">
-          <span className="font-mono text-data text-ink-3">
-            Krok {currentStep + 1} z 3
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              disabled={currentStep === 0}
-              onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
-              className="flex h-7 w-7 items-center justify-center rounded-control border border-edge/60 bg-surface/50 text-ink-2 hover:bg-surface hover:text-ink disabled:opacity-25 disabled:pointer-events-none transition-all"
-              aria-label="Poprzedni krok"
-              title="Poprzedni krok"
-            >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M10 13L5 8l5-5" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              disabled={currentStep === 2}
-              onClick={() => setCurrentStep((s) => Math.min(2, s + 1))}
-              className="flex h-7 w-7 items-center justify-center rounded-control border border-edge/60 bg-surface/50 text-ink-2 hover:bg-surface hover:text-ink disabled:opacity-25 disabled:pointer-events-none transition-all"
-              aria-label="Następny krok"
-              title="Następny krok"
-            >
-              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 3l5 5-5 5" />
-              </svg>
-            </button>
+          {/* Counter & Arrow Controls */}
+          <div className="flex items-center justify-between sm:justify-end gap-3">
+            <span className="font-mono text-data text-ink-3">
+              Krok {currentStep + 1} z 3
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={currentStep === 0}
+                onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
+                className="flex h-7 w-7 items-center justify-center rounded-control border border-edge/60 bg-surface/50 text-ink-2 hover:bg-surface hover:text-ink disabled:opacity-25 disabled:pointer-events-none transition-all"
+                aria-label="Poprzedni krok"
+                title="Poprzedni krok"
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 13L5 8l5-5" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                disabled={currentStep === 2}
+                onClick={() => setCurrentStep((s) => Math.min(2, s + 1))}
+                className="flex h-7 w-7 items-center justify-center rounded-control border border-edge/60 bg-surface/50 text-ink-2 hover:bg-surface hover:text-ink disabled:opacity-25 disabled:pointer-events-none transition-all"
+                aria-label="Następny krok"
+                title="Następny krok"
+              >
+                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 3l5 5-5 5" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* 3D Stacked Card Carousel Walkthrough */}
-      <div className="relative pt-10 pb-2">
-        {[0, 1, 2].map((idx) => {
-          const depth = getDepth(idx, currentStep);
-          const isActive = depth === 0;
+        {/* 3D Stacked Card Carousel Walkthrough with Fixed Unified Height */}
+        <div className="relative pt-7 pb-1">
+          <div className="relative h-[510px] sm:h-[475px] w-full">
+            {[0, 1, 2].map((idx) => {
+              const depth = getDepth(idx, currentStep);
+              const isActive = depth === 0;
 
-          return (
-            <m.div
-              key={idx}
-              initial={false}
-              style={{ transformOrigin: "top center" }}
-              animate={{
-                y: depth === 0 ? 0 : depth === 1 ? -16 : -32,
-                scale: depth === 0 ? 1 : depth === 1 ? 0.96 : 0.92,
-                opacity: depth === 0 ? 1 : depth === 1 ? 0.65 : 0.35,
-                zIndex: depth === 0 ? 30 : depth === 1 ? 20 : 10,
-              }}
-              transition={{
-                type: "spring",
-                stiffness: 280,
-                damping: 28,
-              }}
-              onClick={() => {
-                if (!isActive) setCurrentStep(idx);
-              }}
-              className={`${
-                isActive
-                  ? "relative z-30 w-full min-h-[360px] rounded-card border border-edge/60 bg-surface/95 p-5 sm:p-6 shadow-card backdrop-blur-md"
-                  : "absolute inset-x-0 top-10 bottom-2 rounded-card border border-edge/40 bg-surface/75 p-5 sm:p-6 shadow-card cursor-pointer select-none overflow-hidden hover:border-edge-strong transition-colors"
-              }`}
-            >
-              {!isActive ? (
-                // Inactive Background Card Shell (Peeking Top Header)
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-2 text-data font-semibold text-ink-3">
-                      {idx + 1}
-                    </span>
-                    <span className="text-small font-medium text-ink-3">
-                      {stepTitles[idx]}
-                    </span>
-                  </div>
-                  <span className="font-mono text-[11px] text-ink-3/70">
-                    Krok {idx + 1}
-                  </span>
-                  {/* Subtle darkening shade */}
-                  <div className="absolute inset-0 -m-6 bg-plaster/40 rounded-card pointer-events-none" />
-                </div>
-              ) : (
-                // Active Card Full Content with Horizontal Glide Transition
-                <AnimatePresence mode="wait" initial={false}>
-                  <m.div
-                    key={currentStep}
-                    initial={{ opacity: 0, x: 16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -16 }}
-                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                    className="flex flex-col justify-between h-full gap-5"
-                  >
-                    {currentStep === 0 ? (
-                      // Step 1: Open Tool
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-thread text-plaster text-data font-bold">
-                            1
-                          </span>
-                          <h3 className="text-body font-semibold text-ink">{t("step1Title")}</h3>
-                        </div>
-                        <p className="measure text-small text-ink-2 leading-relaxed">
-                          {t(`steps.${activeAgent}.step1`)}
-                        </p>
-                        <div className="rounded-control border border-edge/50 bg-plaster-sunk/70 p-4 flex items-start gap-3 mt-1">
-                          <div className="mt-0.5 text-thread">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
-                              <circle cx="8" cy="8" r="7" />
-                              <path d="M8 5v3M8 11h.01" />
-                            </svg>
-                          </div>
-                          <div className="text-small text-ink-2 leading-relaxed">
-                            {activeAgent === "claude-code"
-                              ? "Otwórz okno terminala w katalogu swojego projektu, aby Claude Code miał natychmiastowy dostęp do kodu i repozytorium."
-                              : activeAgent === "antigravity"
-                                ? "Uruchom Google Antigravity IDE i upewnij się, że projekt jest załadowany w przestrzeni roboczej."
-                                : activeAgent === "gemini-cli"
-                                  ? "Uruchom Gemini CLI w terminalu po uzupełnieniu konfiguracji w pliku settings.json."
-                                  : "Upewnij się, że narzędzie CLI jest zainstalowane i dostępne w Twoim środowisku."}
-                          </div>
-                        </div>
+              return (
+                <m.div
+                  key={idx}
+                  initial={false}
+                  style={{ transformOrigin: "top center" }}
+                  animate={{
+                    y: depth === 0 ? 0 : depth === 1 ? -12 : -24,
+                    scale: depth === 0 ? 1 : depth === 1 ? 0.98 : 0.96,
+                    opacity: depth === 0 ? 1 : depth === 1 ? 0.75 : 0.45,
+                    zIndex: depth === 0 ? 30 : depth === 1 ? 20 : 10,
+                  }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 30,
+                  }}
+                  onClick={() => {
+                    if (!isActive) setCurrentStep(idx);
+                  }}
+                  className={`absolute inset-0 rounded-card border transition-colors ${
+                    isActive
+                      ? "z-30 border-edge/70 bg-surface/95 p-5 sm:p-6 shadow-card backdrop-blur-md"
+                      : "border-edge/40 bg-surface/85 p-2 sm:p-2.5 shadow-card cursor-pointer select-none overflow-hidden hover:border-edge-strong"
+                  }`}
+                >
+                  {!isActive ? (
+                    // Inactive Background Card Shell (Peeking Top Header)
+                    <div className="relative flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-surface-2 text-[11px] font-semibold text-ink-3">
+                          {idx + 1}
+                        </span>
+                        <span className="text-[12px] font-medium text-ink-3 truncate max-w-[200px] sm:max-w-none">
+                          {stepTitles[idx]}
+                        </span>
                       </div>
-                    ) : currentStep === 1 ? (
-                      // Step 2: Configure Agent
-                      <div className="space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-thread text-plaster text-data font-bold">
-                              2
-                            </span>
-                            <h3 className="text-body font-semibold text-ink">{t("step2Title")}</h3>
-                          </div>
+                      <span className="font-mono text-[10.5px] text-ink-3/70">
+                        Krok {idx + 1}
+                      </span>
+                      {/* Subtle darkening shade */}
+                      <div className="absolute inset-0 -m-3 bg-plaster/50 rounded-card pointer-events-none" />
+                    </div>
+                  ) : (
+                    // Active Card Full Content with Horizontal Glide Transition
+                    <AnimatePresence mode="wait" initial={false}>
+                      <m.div
+                        key={currentStep}
+                        initial={{ opacity: 0, x: 16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -16 }}
+                        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                        className="flex flex-col justify-between h-full"
+                      >
+                        <div className="flex-1 overflow-y-auto pr-1">
+                          {currentStep === 0 ? (
+                            // Step 1: Open Tool
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2.5">
+                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-thread text-plaster text-data font-bold">
+                                  1
+                                </span>
+                                <h3 className="text-body font-semibold text-ink">{t("step1Title")}</h3>
+                              </div>
+                              <p className="measure text-small text-ink-2 leading-relaxed">
+                                {t(`steps.${activeAgent}.step1`)}
+                              </p>
+                              <div className="rounded-control border border-edge/50 bg-plaster-sunk/70 p-4 flex items-start gap-3 mt-1">
+                                <div className="mt-0.5 text-thread">
+                                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+                                    <circle cx="8" cy="8" r="7" />
+                                    <path d="M8 5v3M8 11h.01" />
+                                  </svg>
+                                </div>
+                                <div className="text-small text-ink-2 leading-relaxed">
+                                  {activeAgent === "claude-code"
+                                    ? "Otwórz okno terminala w katalogu swojego projektu, aby Claude Code miał natychmiastowy dostęp do kodu i repozytorium."
+                                    : activeAgent === "antigravity"
+                                      ? "Uruchom Google Antigravity IDE i upewnij się, że projekt jest załadowany w przestrzeni roboczej."
+                                      : activeAgent === "gemini-cli"
+                                        ? "Uruchom Gemini CLI w terminalu po uzupełnieniu konfiguracji w pliku settings.json."
+                                        : "Upewnij się, że narzędzie CLI jest zainstalowane i dostępne w Twoim środowisku."}
+                                </div>
+                              </div>
+                            </div>
+                          ) : currentStep === 1 ? (
+                            // Step 2: Configure Agent
+                            <div className="space-y-3.5">
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-thread text-plaster text-data font-bold">
+                                    2
+                                  </span>
+                                  <h3 className="text-body font-semibold text-ink">{t("step2Title")}</h3>
+                                </div>
 
-                          {/* Mode Switcher: Prompt vs Manual (NO EMOJI) */}
-                          <div className="flex items-center rounded-control border border-edge/60 bg-plaster-sunk/80 p-0.5 text-data">
-                            <button
-                              type="button"
-                              onClick={() => setMode("prompt")}
-                              className={`rounded-[5px] px-3 py-1 font-medium transition-all ${
-                                mode === "prompt"
-                                  ? "bg-thread text-plaster shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
-                                  : "text-ink-2 hover:text-ink"
-                              }`}
-                            >
-                              {t("modePrompt")}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setMode("manual")}
-                              className={`rounded-[5px] px-3 py-1 font-medium transition-all ${
-                                mode === "manual"
-                                  ? "bg-thread text-plaster shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
-                                  : "text-ink-2 hover:text-ink"
-                              }`}
-                            >
-                              {t("modeManual")}
-                            </button>
-                          </div>
-                        </div>
+                                {/* Mode Switcher: Prompt vs Manual (NO EMOJI) */}
+                                <div className="flex items-center rounded-control border border-edge/60 bg-plaster-sunk/80 p-0.5 text-data">
+                                  <button
+                                    type="button"
+                                    onClick={() => setMode("prompt")}
+                                    className={`rounded-[5px] px-3 py-1 font-medium transition-all ${
+                                      mode === "prompt"
+                                        ? "bg-thread text-plaster shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                                        : "text-ink-2 hover:text-ink"
+                                    }`}
+                                  >
+                                    {t("modePrompt")}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setMode("manual")}
+                                    className={`rounded-[5px] px-3 py-1 font-medium transition-all ${
+                                      mode === "manual"
+                                        ? "bg-thread text-plaster shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                                        : "text-ink-2 hover:text-ink"
+                                    }`}
+                                  >
+                                    {t("modeManual")}
+                                  </button>
+                                </div>
+                              </div>
 
-                        <div>
-                          {mode === "prompt" ? (
-                            <CommandBlock
-                              command={promptText}
-                              what={t("step2PromptWhat")}
-                              where={t("step2PromptWhere")}
-                              copyLabel={t("copyPrompt")}
-                              warn={token ? tOnboarding("tokenOnce") : undefined}
-                            />
+                              <div>
+                                {mode === "prompt" ? (
+                                  <CommandBlock
+                                    command={promptText}
+                                    what={t("step2PromptWhat")}
+                                    where={t("step2PromptWhere")}
+                                    copyLabel={t("copyPrompt")}
+                                    warn={token ? tOnboarding("tokenOnce") : undefined}
+                                  />
+                                ) : (
+                                  <CommandBlock
+                                    command={snippet}
+                                    what={t(`steps.${activeAgent}.step2What`)}
+                                    where={t(`steps.${activeAgent}.step2Where`)}
+                                    warn={token ? tOnboarding("tokenOnce") : undefined}
+                                  />
+                                )}
+                              </div>
+                            </div>
                           ) : (
-                            <CommandBlock
-                              command={snippet}
-                              what={t(`steps.${activeAgent}.step2What`)}
-                              where={t(`steps.${activeAgent}.step2Where`)}
-                              warn={token ? tOnboarding("tokenOnce") : undefined}
-                            />
+                            // Step 3: Verify Connection
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2.5">
+                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-thread text-plaster text-data font-bold">
+                                  3
+                                </span>
+                                <h3 className="text-body font-semibold text-ink">{t("step3Title")}</h3>
+                              </div>
+                              <p className="measure text-small text-ink-2 leading-relaxed">
+                                {t(`steps.${activeAgent}.step3`, { cmd: verificationCmd })}
+                              </p>
+                              <div className="rounded-control border border-edge/60 bg-canvas p-3.5 flex items-center justify-between gap-3">
+                                <code className="font-mono text-data text-canvas-ink selection:bg-thread/30">
+                                  {verificationCmd}
+                                </code>
+                                <button
+                                  type="button"
+                                  onClick={() => void copyVerificationCmd()}
+                                  className="inline-flex items-center gap-1.5 rounded-control border border-edge/60 bg-surface px-2.5 py-1 text-data text-ink-2 hover:text-ink transition-colors"
+                                >
+                                  {copiedCmd ? "Skopiowano" : "Kopiuj"}
+                                </button>
+                              </div>
+                              <div className="rounded-control border border-laurel/30 bg-laurel/10 p-3.5 flex items-center gap-3">
+                                <div className="text-laurel">
+                                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3.5 8.5l3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                </div>
+                                <p className="text-small text-laurel font-medium">
+                                  Po pomyślnym sprawdzeniu narzędzia pamięci Ariadne będą aktywne w każdej sesji.
+                                </p>
+                              </div>
+                            </div>
                           )}
                         </div>
-                      </div>
-                    ) : (
-                      // Step 3: Verify Connection
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2.5">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-thread text-plaster text-data font-bold">
-                            3
-                          </span>
-                          <h3 className="text-body font-semibold text-ink">{t("step3Title")}</h3>
-                        </div>
-                        <p className="measure text-small text-ink-2 leading-relaxed">
-                          {t(`steps.${activeAgent}.step3`, { cmd: verificationCmd })}
-                        </p>
-                        <div className="rounded-control border border-edge/60 bg-canvas p-3.5 flex items-center justify-between gap-3">
-                          <code className="font-mono text-data text-canvas-ink selection:bg-thread/30">
-                            {verificationCmd}
-                          </code>
-                          <button
-                            type="button"
-                            onClick={() => void copyVerificationCmd()}
-                            className="inline-flex items-center gap-1.5 rounded-control border border-edge/60 bg-surface px-2.5 py-1 text-data text-ink-2 hover:text-ink transition-colors"
-                          >
-                            {copiedCmd ? "Skopiowano" : "Kopiuj"}
-                          </button>
-                        </div>
-                        <div className="rounded-control border border-laurel/30 bg-laurel/10 p-3.5 flex items-center gap-3">
-                          <div className="text-laurel">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M3.5 8.5l3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </div>
-                          <p className="text-small text-laurel font-medium">
-                            Po pomyślnym sprawdzeniu narzędzia pamięci Ariadne będą aktywne w każdej sesji.
-                          </p>
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Step Card Bottom Navigation */}
-                    <div className="flex items-center justify-between pt-4 border-t border-hairline/60">
-                      {currentStep > 0 ? (
-                        <Button
-                          variant="quiet"
-                          onClick={() => setCurrentStep((s) => s - 1)}
-                          className="gap-2"
-                        >
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M10 13L5 8l5-5" />
-                          </svg>
-                          <span>Wstecz</span>
-                        </Button>
-                      ) : (
-                        <div />
-                      )}
+                        {/* Step Card Bottom Navigation */}
+                        <div className="shrink-0 flex items-center justify-between pt-3.5 border-t border-hairline/60 mt-3">
+                          {currentStep > 0 ? (
+                            <Button
+                              variant="quiet"
+                              onClick={() => setCurrentStep((s) => s - 1)}
+                              className="gap-2"
+                            >
+                              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M10 13L5 8l5-5" />
+                              </svg>
+                              <span>Wstecz</span>
+                            </Button>
+                          ) : (
+                            <div />
+                          )}
 
-                      {currentStep < 2 ? (
-                        <Button
-                          onClick={() => setCurrentStep((s) => s + 1)}
-                          className="gap-2"
-                        >
-                          <span>{currentStep === 0 ? "Dalej: Konfiguracja" : "Dalej: Weryfikacja"}</span>
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M6 3l5 5-5 5" />
-                          </svg>
-                        </Button>
-                      ) : (
-                        <div className="flex items-center gap-2 text-data text-laurel font-medium">
-                          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2">
-                            <path d="M3.5 8.5l3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                          <span>Gotowe</span>
+                          {currentStep < 2 ? (
+                            <Button
+                              onClick={() => setCurrentStep((s) => s + 1)}
+                              className="gap-2"
+                            >
+                              <span>{currentStep === 0 ? "Dalej: Konfiguracja" : "Dalej: Weryfikacja"}</span>
+                              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M6 3l5 5-5 5" />
+                              </svg>
+                            </Button>
+                          ) : (
+                            <div className="flex items-center gap-2 text-data text-laurel font-medium">
+                              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                <path d="M3.5 8.5l3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              <span>Gotowe</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </m.div>
-                </AnimatePresence>
-              )}
-            </m.div>
-          );
-        })}
+                      </m.div>
+                    </AnimatePresence>
+                  )}
+                </m.div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Troubleshooting Section */}

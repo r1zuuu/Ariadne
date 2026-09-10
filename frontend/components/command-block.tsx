@@ -62,10 +62,10 @@ export function CommandBlock({
       <p className="measure text-small text-ink-2">{what}</p>
 
       <pre
-        className="mt-5 overflow-x-auto rounded-card bg-canvas px-6 py-5 font-data text-canvas-ink"
+        className="mt-3.5 overflow-x-auto rounded-card bg-canvas px-5 py-4 font-data text-canvas-ink"
         style={{
-          fontSize: 14,
-          lineHeight: "24px",
+          fontSize: 13.5,
+          lineHeight: "22px",
           whiteSpace: "pre-wrap",
           overflowWrap: "anywhere",
           // No ligature should fire inside a shell command; every character has to
@@ -75,14 +75,14 @@ export function CommandBlock({
           // Wrapped remainder sits in from the left, so a wrap is visible without
           // adding a character that would change what gets pasted.
           textIndent: "-2ch",
-          paddingLeft: "calc(var(--spacing-6) + 2ch)",
+          paddingLeft: "calc(var(--spacing-5) + 2ch)",
         }}
       >
         {command}
       </pre>
 
-      <div className="flex items-center gap-6 pt-5">
-        <Button variant="secondary" onClick={copy} disabled={state === "unavailable"}>
+      <div className="flex items-center gap-4 pt-3.5">
+        <Button variant="secondary" size="sm" onClick={copy} disabled={state === "unavailable"}>
           {state === "copied" ? t("copied") : (copyLabel ?? t("copy"))}
         </Button>
         {state === "unavailable" ? (
@@ -90,8 +90,8 @@ export function CommandBlock({
         ) : null}
       </div>
 
-      <p className="measure pt-6 text-small text-ink-2">{where}</p>
-      {warn ? <p className="measure pt-3 text-small text-ochre">{warn}</p> : null}
+      <p className="measure pt-3.5 text-small text-ink-2">{where}</p>
+      {warn ? <p className="measure pt-2 text-small text-ochre">{warn}</p> : null}
     </div>
   );
 }
