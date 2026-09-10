@@ -7,7 +7,16 @@ import { useApp } from "@/components/app-provider";
 import { useFailure } from "@/components/failure";
 import { Collapse } from "@/components/motion";
 import { useToast } from "@/components/toast";
-import { Button, Card, EmptyState, Input, Meta, PageHeader, Textarea } from "@/components/ui";
+import {
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  Meta,
+  PageHeader,
+  Select,
+  Textarea,
+} from "@/components/ui";
 import {
   createTask,
   listTasks,
@@ -103,10 +112,6 @@ export default function TasksScreen() {
     };
   }, [load, projectId]);
 
-  // The only thing a person changes here by hand. Everything else about a task -
-  // status, priority, what is blocking it, which entries it leans on - is
-  // written by whichever coder is doing the work, and a form for a human to
-  // duplicate that was six fields nobody filled in.
   const rename = async (task: Task, title: string) => {
     try {
       await updateTask(task.id, { title, revision: task.revision });
@@ -121,8 +126,6 @@ export default function TasksScreen() {
     if (!projectId) return;
     setCreateBusy(true);
     try {
-      // The row it makes arrives with the next load; there is nothing to open
-      // any more, so nothing here has to hold on to it.
       await createTask(projectId, {
         title: createDraft.title,
         description: createDraft.description,
@@ -146,10 +149,28 @@ export default function TasksScreen() {
         lead={t("lead")}
         actions={
           <Button
-            variant={createOpen ? "quiet" : "secondary"}
+            variant={createOpen ? "quiet" : "primary"}
             onClick={() => setCreateOpen((open) => !open)}
           >
-            {createOpen ? t("createClose") : t("createOpen")}
+            {createOpen ? (
+              t("createClose")
+            ) : (
+              <>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M8 3v10M3 8h10" />
+                </svg>
+                <span>{t("create")}</span>
+              </>
+            )}
           </Button>
         }
       />
@@ -159,6 +180,7 @@ export default function TasksScreen() {
           <EmptyState
             title={t("unreachable")}
             note={t("unreachableNote")}
+            illustration="compact"
             action={
               <Button variant="secondary" onClick={() => void refreshProjects()}>
                 {t("retry")}
@@ -166,20 +188,22 @@ export default function TasksScreen() {
             }
           />
         ) : projects !== null && projects.length === 0 ? (
-          <EmptyState title={t("noProject")} note={t("noProjectNote")} />
+          <EmptyState title={t("noProject")} note={t("noProjectNote")} illustration="context" />
         ) : (
           <p className="text-body text-ink-3">{t("loading")}</p>
         )
       ) : (
         <>
           <Collapse open={createOpen}>
-            <Card as="section" className="mb-6 p-6">
+            <Card as="section" className="mb-6 border-edge/50 bg-surface/80 p-6 backdrop-blur-sm">
               <div className="grid gap-5">
                 <Input
                   id="task-title"
                   label={t("field.title")}
                   value={createDraft.title}
                   maxLength={160}
+                  placeholder="np. Zaimplementuj obsługę powiadomień webhooks"
+                  autoFocus={createOpen}
                   onChange={(event) =>
                     setCreateDraft((draft) => ({ ...draft, title: event.target.value }))
                   }
@@ -189,6 +213,7 @@ export default function TasksScreen() {
                   label={t("field.description")}
                   rows={3}
                   value={createDraft.description}
+                  placeholder="Krótki opis celu i zakresu zadania..."
                   onChange={(event) =>
                     setCreateDraft((draft) => ({ ...draft, description: event.target.value }))
                   }
@@ -205,7 +230,7 @@ export default function TasksScreen() {
                     label: t(`priority.${priority}`),
                   }))}
                 />
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap items-center gap-3 pt-2">
                   <Button
                     loading={createBusy}
                     disabled={!createDraft.title.trim()}
@@ -221,8 +246,41 @@ export default function TasksScreen() {
             </Card>
           </Collapse>
 
-          <div className="flex flex-wrap items-end gap-4 border-b border-hairline pb-5">
-            <div className="flex flex-wrap gap-2" role="tablist" aria-label={t("filters")}>
+          {/* Structured Modern Toolbar */}
+          <div className="flex flex-col gap-3.5 border-b border-hairline pb-5 sm:flex-row sm:items-center sm:justify-between">
+            {/* Search Input with embedded icon */}
+            <div className="w-full sm:max-w-[280px]">
+              <Input
+                id="task-search"
+                placeholder={t("search") + "..."}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                icon={
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="7" cy="7" r="5" />
+                    <path d="m11 11 3.5 3.5" />
+                  </svg>
+                }
+                className="!h-[38px] text-small"
+              />
+            </div>
+
+            {/* Segmented Filter Tabs */}
+            <div
+              className="inline-flex flex-wrap rounded-control border border-edge/60 bg-plaster-sunk p-1 gap-1"
+              role="tablist"
+              aria-label={t("filters")}
+            >
               {TABS.map((item) => (
                 <button
                   key={item}
@@ -230,23 +288,15 @@ export default function TasksScreen() {
                   role="tab"
                   aria-selected={tab === item}
                   onClick={() => setTab(item)}
-                  className={`rounded-control px-4 py-[8px] text-small transition-colors duration-state ${
+                  className={`rounded-[5px] px-3 py-1 text-small font-medium transition-all duration-state ${
                     tab === item
-                      ? "bg-surface text-ink shadow-card"
-                      : "text-ink-2 hover:bg-surface/70 hover:text-ink"
+                      ? "bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,0.35)]"
+                      : "text-ink-2 hover:bg-surface/50 hover:text-ink"
                   }`}
                 >
                   {t(`tab.${item}`)}
                 </button>
               ))}
-            </div>
-            <div className="min-w-[220px] flex-1">
-              <Input
-                id="task-search"
-                label={t("search")}
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-              />
             </div>
           </div>
 
@@ -255,15 +305,11 @@ export default function TasksScreen() {
           {tasks === null ? (
             <p className="pt-6 text-body text-ink-3">{t("loading")}</p>
           ) : tasks.length === 0 ? (
-            // Two different nothings. An archive with no tasks in it needs to be
-            // told what would put one there; a search that matched none of seven
-            // needs to be told that the seven are still there and how to see
-            // them. Saying "nobody has left any work here yet" to someone who
-            // just typed a word is simply false.
             filtered ? (
               <EmptyState
                 title={t("noMatch")}
                 note={t("noMatchNote")}
+                illustration="compact"
                 action={
                   <Button
                     variant="secondary"
@@ -277,37 +323,78 @@ export default function TasksScreen() {
                 }
               />
             ) : (
-              <EmptyState title={t("empty")} note={t("emptyNote")} />
+              <EmptyState
+                title={t("empty")}
+                note={t("emptyNote")}
+                illustration="tasks"
+                action={
+                  <Button onClick={() => setCreateOpen(true)}>
+                    {t("create")}
+                  </Button>
+                }
+              />
             )
           ) : (
             <ul className="flex flex-col">
               {tasks.map((task) => {
                 const activeRuns = freshRuns(task.activeRuns);
                 return (
-                  <li key={task.id} className="border-b border-hairline">
-                    <div className="flex flex-col gap-3 px-1 py-5 sm:px-3">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <TaskStatusLabel status={task.status} />
+                  <li
+                    key={task.id}
+                    className="group border-b border-hairline transition-colors duration-state hover:bg-surface/30"
+                  >
+                    <div className="flex flex-col gap-2 px-2 py-3.5 sm:px-3">
+                      {/* Line 1: Status indicator + Title + Priority tag */}
+                      <div className="flex items-start gap-3">
+                        <div className="pt-0.5 shrink-0">
+                          <TaskStatusIndicator status={task.status} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <TaskTitle task={task} onRename={rename} />
+                        </div>
+                        {task.priority !== "medium" ? (
+                          <div className="shrink-0 pt-0.5">
+                            <PriorityBadge priority={task.priority} />
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* Line 2: Description or Blocked reason */}
+                      {task.blockedReason ? (
+                        <div className="flex items-center gap-1.5 pl-6 text-small font-medium text-iron sm:pl-7">
+                          <svg
+                            width="13"
+                            height="13"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            className="shrink-0"
+                            aria-hidden="true"
+                          >
+                            <circle cx="8" cy="8" r="6" />
+                            <path d="M8 5v4M8 11.5v.5" />
+                          </svg>
+                          <span>{task.blockedReason}</span>
+                        </div>
+                      ) : task.description ? (
+                        <p className="line-clamp-2 pl-6 text-small text-ink-2 leading-relaxed sm:pl-7">
+                          {task.description}
+                        </p>
+                      ) : null}
+
+                      {/* Line 3: Live agent chips and quiet metadata */}
+                      <div className="flex flex-wrap items-center gap-2 pl-6 pt-0.5 sm:pl-7">
                         <TaskLiveBadge runs={activeRuns} />
                         <AgentRunChips runs={activeRuns} />
                         <Meta
                           items={[
-                            t(`priority.${task.priority}`),
+                            task.priority === "medium" ? t(`priority.${task.priority}`) : null,
                             task.source?.channel === "coder" ? t("agent") : t("human"),
                             task.createdBy ? t("createdBy", { who: who(task.createdBy) }) : null,
                             stamp(task.updatedAt),
                           ]}
                         />
-                      </div>
-                      <div className="min-w-0">
-                        <TaskTitle task={task} onRename={rename} />
-                        {task.blockedReason ? (
-                          <p className="pt-1 text-small text-iron">{task.blockedReason}</p>
-                        ) : task.description ? (
-                          <p className="line-clamp-2 pt-1 text-small text-ink-2">
-                            {task.description}
-                          </p>
-                        ) : null}
                       </div>
                     </div>
                   </li>
@@ -416,37 +503,157 @@ function TaskTitle({
   );
 }
 
-function Select({
-  id,
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}) {
+function PriorityBadge({ priority }: { priority: TaskPriority }) {
+  const t = useTranslations("tasks");
+  const color = {
+    low: "text-stone border-stone/30 bg-stone/10",
+    medium: "text-ink-3 border-edge/50 bg-surface/50",
+    high: "text-ochre border-ochre/30 bg-ochre/10",
+    critical: "text-iron border-iron/35 bg-iron/10",
+  }[priority];
+
   return (
-    <div>
-      <label htmlFor={id} className="block pb-2 text-small font-medium text-ink">
-        {label}
-      </label>
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-[44px] w-full rounded-control border border-edge/60 bg-surface px-5 text-body text-ink outline-none focus:border-thread focus:ring-2 focus:ring-thread/25"
+    <span
+      className={`inline-flex items-center gap-1 rounded-control border px-2 py-0.5 text-data font-medium ${color}`}
+      title={t(`priority.${priority}`)}
+    >
+      {priority === "critical" ? (
+        <svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+          <path d="M8 1l7 14H1L8 1zm0 4v5h1.5V5H8zm0 7v1.5h1.5V12H8z" />
+        </svg>
+      ) : priority === "high" ? (
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          <path d="M8 13V3M4 7l4-4 4 4" />
+        </svg>
+      ) : null}
+      <span>{t(`priority.${priority}`)}</span>
+    </span>
+  );
+}
+
+function TaskStatusIndicator({ status }: { status: TaskStatus }) {
+  const t = useTranslations("tasks");
+  const toneMap = {
+    backlog: "bg-stone/15 text-stone border-stone/30",
+    todo: "bg-ochre/15 text-ochre border-ochre/30",
+    in_progress: "bg-aegean/15 text-aegean border-aegean/30",
+    blocked: "bg-iron/15 text-iron border-iron/30",
+    done: "bg-laurel/15 text-laurel border-laurel/30",
+    archived: "bg-stone/15 text-stone border-stone/30",
+  }[status];
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-control px-2 py-0.5 text-data font-medium leading-none border ${toneMap}`}
+      title={t(`status.${status}`)}
+    >
+      <TaskStatusCircle status={status} />
+      <span>{t(`status.${status}`)}</span>
+    </span>
+  );
+}
+
+function TaskStatusCircle({ status }: { status: TaskStatus }) {
+  if (status === "done") {
+    return (
+      <svg
+        width="11"
+        height="11"
+        viewBox="0 0 16 16"
+        fill="currentColor"
+        className="shrink-0"
+        aria-hidden="true"
       >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </div>
+        <circle cx="8" cy="8" r="7" className="opacity-20" />
+        <path
+          d="M4.5 8.5l2.5 2.5 5-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+  if (status === "in_progress") {
+    return (
+      <svg
+        width="11"
+        height="11"
+        viewBox="0 0 16 16"
+        className="shrink-0 animate-spin"
+        style={{ animationDuration: "3s" }}
+        aria-hidden="true"
+      >
+        <circle
+          cx="8"
+          cy="8"
+          r="6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeDasharray="14 10"
+        />
+      </svg>
+    );
+  }
+  if (status === "blocked") {
+    return (
+      <svg
+        width="11"
+        height="11"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="shrink-0"
+        aria-hidden="true"
+      >
+        <circle cx="8" cy="8" r="6" />
+        <path d="M5 5l6 6" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (status === "backlog" || status === "archived") {
+    return (
+      <svg
+        width="11"
+        height="11"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="shrink-0"
+        aria-hidden="true"
+      >
+        <circle cx="8" cy="8" r="6" strokeDasharray="3 3" />
+      </svg>
+    );
+  }
+  // todo: calm hollow circle
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="6" />
+    </svg>
   );
 }
 
@@ -454,12 +661,12 @@ function TaskLiveBadge({ runs }: { runs: TaskActiveRun[] }) {
   const t = useTranslations("tasks");
   if (!runs.length) return null;
   return (
-    <span className="inline-flex items-center gap-[7px] rounded-label bg-thread/10 px-[7px] py-[2px] text-label uppercase tracking-[0.12em] text-thread">
+    <span className="inline-flex items-center gap-1.5 rounded-control border border-thread/30 bg-thread/10 px-2 py-0.5 text-data font-medium text-thread">
       <span className="relative flex h-[7px] w-[7px]" aria-hidden>
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-40" />
         <span className="relative inline-flex h-[7px] w-[7px] rounded-full bg-current" />
       </span>
-      {t("liveNow")}
+      <span>{t("liveNow")}</span>
     </span>
   );
 }
@@ -468,11 +675,11 @@ function AgentRunChips({ runs }: { runs: TaskActiveRun[] }) {
   const t = useTranslations("tasks");
   if (!runs.length) return null;
   return (
-    <span className="flex flex-wrap items-center gap-2">
+    <span className="flex flex-wrap items-center gap-1.5">
       {runs.map((run) => (
         <span
           key={run.id}
-          className="inline-flex items-center gap-[6px] rounded-label border border-edge/70 bg-surface px-[7px] py-[2px] text-data text-ink-2"
+          className="inline-flex items-center gap-1.5 rounded-control border border-edge/60 bg-surface px-2 py-0.5 text-data text-ink-2"
           title={t("workingAgent", { client: run.agentClient })}
         >
           <AgentKindMark kind={run.agentKind} />
@@ -483,14 +690,6 @@ function AgentRunChips({ runs }: { runs: TaskActiveRun[] }) {
   );
 }
 
-// Each tool's own mark, in public/ at three times its drawn size (see
-// scripts/optimise-image.mjs). Redrawn in the house line weight they were two
-// abstract glyphs nobody could name; a logo's whole job is to be recognised, so
-// this is the one place in the app that shows somebody else's brand.
-//
-// It is also the only colour here the palette does not own. That is the price of
-// recognising a tool at a glance, and it is paid on a mark that identifies rather
-// than decorates.
 const AGENT_MARKS: Partial<Record<TaskActiveRun["agentKind"], string>> = {
   claude: "/agent-claude.webp",
   codex: "/agent-codex.webp",
@@ -499,18 +698,13 @@ const AGENT_MARKS: Partial<Record<TaskActiveRun["agentKind"], string>> = {
 function AgentKindMark({ kind }: { kind: TaskActiveRun["agentKind"] }) {
   const mark = AGENT_MARKS[kind];
   if (mark) {
-    // Empty alt and hidden from the tree: the chip around this already names the
-    // client in words, so announcing the mark would read the same thing twice.
-    // Plain img and not next/image - this export has no optimiser behind it.
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={mark} alt="" aria-hidden width={14} height={14} className="shrink-0" />;
   }
-  // An agent nobody has a mark for. Kept as a drawing so the row still carries
-  // something in the shape position rather than jumping a few pixels narrower.
   return (
     <svg
-      width={11}
-      height={11}
+      width="11"
+      height="11"
       viewBox="0 0 12 12"
       aria-hidden
       className="shrink-0 text-aegean"
@@ -519,34 +713,4 @@ function AgentKindMark({ kind }: { kind: TaskActiveRun["agentKind"] }) {
       <path d="M6 3.6v4.8M3.6 6h4.8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
     </svg>
   );
-}
-
-function TaskStatusLabel({ status }: { status: TaskStatus }) {
-  const t = useTranslations("tasks");
-  const tone = {
-    backlog: "bg-stone/12 text-stone",
-    todo: "bg-ochre/12 text-ochre",
-    in_progress: "bg-aegean/12 text-aegean",
-    blocked: "bg-iron/10 text-iron",
-    done: "bg-laurel/10 text-laurel",
-    archived: "bg-stone/12 text-stone",
-  }[status];
-
-  return (
-    <span
-      className={`inline-flex items-center gap-[7px] rounded-label px-[7px] py-[2px] text-label uppercase tracking-[0.12em] ${tone}`}
-    >
-      <TaskStatusMark status={status} />
-      {t(`status.${status}`)}
-    </span>
-  );
-}
-
-function TaskStatusMark({ status }: { status: TaskStatus }) {
-  const shared = { width: 7, height: 7, viewBox: "0 0 8 8", "aria-hidden": true as const };
-  if (status === "done") return <svg {...shared}><rect x="1" y="1" width="6" height="6" fill="currentColor" /></svg>;
-  if (status === "blocked") return <svg {...shared}><path d="M1.2 1.2 6.8 6.8M6.8 1.2 1.2 6.8" stroke="currentColor" strokeWidth="1.4" /></svg>;
-  if (status === "in_progress") return <svg {...shared}><path d="M4 1.1a2.9 2.9 0 1 1 0 5.8Z" fill="currentColor" /><circle cx="4" cy="4" r="2.9" fill="none" stroke="currentColor" strokeWidth="1.4" /></svg>;
-  if (status === "archived" || status === "backlog") return <svg {...shared}><path d="M1 4h6" stroke="currentColor" strokeWidth="1.6" /></svg>;
-  return <svg {...shared}><circle cx="4" cy="4" r="2.9" fill="none" stroke="currentColor" strokeWidth="1.4" /></svg>;
 }

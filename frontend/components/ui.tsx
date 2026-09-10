@@ -24,10 +24,11 @@ type ButtonSize = "md" | "lg";
 // the screen and to nothing decorative, which is what keeps it precious.
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary:
-    "bg-thread text-plaster border border-thread hover:bg-thread-deep hover:border-thread-deep active:bg-thread-press",
-  secondary: "border border-edge/60 bg-surface text-ink hover:bg-plaster-sunk hover:border-edge",
-  quiet: "border border-transparent text-ink-2 hover:bg-plaster-sunk hover:text-ink",
-  destructive: "border border-iron/40 bg-surface text-iron hover:bg-iron/10 hover:border-iron",
+    "bg-thread text-plaster border border-thread/80 shadow-[0_1px_3px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-thread-deep hover:border-thread-deep active:bg-thread-press",
+  secondary:
+    "border border-edge/60 bg-surface/80 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:bg-surface hover:border-edge active:bg-plaster-sunk",
+  quiet: "border border-transparent text-ink-2 hover:bg-surface/70 hover:text-ink",
+  destructive: "border border-iron/40 bg-surface/80 text-iron hover:bg-iron/10 hover:border-iron",
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
@@ -52,7 +53,7 @@ export function Button({
       {...rest}
       disabled={rest.disabled || loading}
       aria-busy={loading || undefined}
-      className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-control font-medium leading-none transition-[background-color,border-color,color,scale] duration-state ease-out-quint active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 ${BUTTON_SIZES[size]} ${BUTTON_VARIANTS[variant]} ${rest.className ?? ""}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-control font-medium leading-none transition-[background-color,border-color,color,scale,box-shadow] duration-state ease-out-quint active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 ${BUTTON_SIZES[size]} ${BUTTON_VARIANTS[variant]} ${rest.className ?? ""}`}
     >
       {children}
     </button>
@@ -84,26 +85,99 @@ export function Input({
   error,
   note,
   id,
+  icon,
   ...rest
 }: {
-  label: string;
+  label?: string;
   error?: string;
   note?: string;
+  icon?: ReactNode;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div>
-      <label htmlFor={id} className="block pb-2 text-small font-medium text-ink">
-        {label}
-      </label>
-      <input
-        id={id}
-        {...rest}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`h-[44px] w-full rounded-control border bg-surface px-5 text-body text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/25 ${
-          error ? "border-iron" : "border-edge/60"
-        } ${rest.className ?? ""}`}
-      />
+      {label ? (
+        <label htmlFor={id} className="block pb-2 text-small font-medium text-ink">
+          {label}
+        </label>
+      ) : null}
+      <div className="relative flex items-center">
+        {icon ? (
+          <span className="pointer-events-none absolute left-3.5 flex items-center text-ink-3">
+            {icon}
+          </span>
+        ) : null}
+        <input
+          id={id}
+          {...rest}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
+          className={`h-[44px] w-full rounded-control border bg-surface/80 px-4 text-body text-ink outline-none transition-all duration-state placeholder:text-ink-3 hover:border-edge focus:border-thread focus:bg-surface focus:ring-2 focus:ring-thread/25 ${
+            icon ? "pl-10" : ""
+          } ${error ? "border-iron" : "border-edge/60"} ${rest.className ?? ""}`}
+        />
+      </div>
+      <FieldNote id={id} error={error} note={note} />
+    </div>
+  );
+}
+
+export function Select({
+  id,
+  label,
+  value,
+  options,
+  error,
+  note,
+  onChange,
+  className = "",
+}: {
+  id: string;
+  label?: string;
+  value: string;
+  options: { value: string; label: string }[];
+  error?: string;
+  note?: string;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  return (
+    <div>
+      {label ? (
+        <label htmlFor={id} className="block pb-2 text-small font-medium text-ink">
+          {label}
+        </label>
+      ) : null}
+      <div className="relative flex items-center">
+        <select
+          id={id}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={`h-[44px] w-full appearance-none rounded-control border bg-surface/80 px-4 pr-10 text-body text-ink outline-none transition-all duration-state hover:border-edge focus:border-thread focus:bg-surface focus:ring-2 focus:ring-thread/25 ${
+            error ? "border-iron" : "border-edge/60"
+          } ${className}`}
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value} className="bg-surface text-ink">
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <div className="pointer-events-none absolute right-3.5 flex items-center text-ink-3">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m4 6 4 4 4-4" />
+          </svg>
+        </div>
+      </div>
       <FieldNote id={id} error={error} note={note} />
     </div>
   );
@@ -116,21 +190,24 @@ export function Textarea({
   id,
   ...rest
 }: {
-  label: string;
+  label?: string;
   error?: string;
   note?: string;
+  id?: string;
 } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <div>
-      <label htmlFor={id} className="block pb-2 text-small font-medium text-ink">
-        {label}
-      </label>
+      {label ? (
+        <label htmlFor={id} className="block pb-2 text-small font-medium text-ink">
+          {label}
+        </label>
+      ) : null}
       <textarea
         id={id}
         {...rest}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
-        className={`w-full resize-y rounded-control border bg-surface px-5 py-4 text-body leading-7 text-ink outline-none transition-colors duration-state placeholder:text-ink-3 focus:border-thread focus:ring-2 focus:ring-thread/25 ${
+        className={`w-full resize-y rounded-control border bg-surface/80 px-4 py-3 text-body leading-7 text-ink outline-none transition-all duration-state placeholder:text-ink-3 hover:border-edge focus:border-thread focus:bg-surface focus:ring-2 focus:ring-thread/25 ${
           error ? "border-iron" : "border-edge/60"
         } ${rest.className ?? ""}`}
       />
@@ -158,13 +235,6 @@ function FieldNote({ id, error, note }: { id?: string; error?: string; note?: st
 }
 
 // The name of a card, one step above the labels inside it.
-//
-// It exists because a card that names itself was reaching for the same class as
-// the fields under it - text-small, medium, ink - so "Hasło" and "Obecne hasło"
-// were typographically identical and the card read as a list of three equal
-// labels. 15px carries seven different weight-and-colour combinations on the
-// settings screen already; a card title needed a step of its own rather than an
-// eighth variant of that one.
 export function CardTitle({ children, id }: { children: ReactNode; id?: string }) {
   return (
     <p id={id} className="text-body font-medium text-ink">
@@ -189,8 +259,8 @@ export function Card({
   return (
     <Tag
       {...rest}
-      className={`rounded-card border border-hairline bg-surface shadow-card ${
-        interactive ? "transition-colors duration-state hover:bg-surface-2" : ""
+      className={`rounded-card border border-edge/40 bg-surface/70 shadow-card backdrop-blur-sm ${
+        interactive ? "transition-colors duration-state hover:bg-surface/90 hover:border-edge" : ""
       } ${className}`}
     >
       {children}
@@ -298,74 +368,71 @@ export function Meta({ items }: { items: ReactNode[] }) {
 }
 
 const STATUS_TONES = {
-  proposed: "bg-ochre/12 text-ochre",
-  confirmed: "bg-laurel/10 text-laurel",
-  contradicted: "bg-iron/10 text-iron",
-  archived: "bg-stone/12 text-stone",
+  proposed: "bg-ochre/12 text-ochre border border-ochre/25",
+  confirmed: "bg-laurel/12 text-laurel border border-laurel/25",
+  contradicted: "bg-iron/12 text-iron border border-iron/25",
+  archived: "bg-stone/12 text-stone border border-stone/25",
+  todo: "bg-ochre/12 text-ochre border border-ochre/25",
+  in_progress: "bg-aegean/12 text-aegean border border-aegean/25",
+  blocked: "bg-iron/12 text-iron border border-iron/25",
+  done: "bg-laurel/12 text-laurel border border-laurel/25",
 } as const;
 
-// One shape per status, so the four survive greyscale and every colour
-// blindness: an open circle is still being decided, a filled square is settled,
-// a cross is overruled, a dash is put away. Exported for the thread of
-// entries, which hangs the same four shapes on the project's timeline.
+// Calm, semantic status mark: clean dots and shapes that read naturally
+// on dark surfaces without decorative noise.
 export function StatusMark({ tone }: { tone: keyof typeof STATUS_TONES }) {
-  // Wider than tall, and sitting on a baseline, because these are marks made on
-  // a line of text rather than icons in a box. 13 by 9 at 11px drawn.
   const shared = {
-    width: 11,
+    width: 8,
     height: 8,
-    viewBox: "0 0 13 9",
+    viewBox: "0 0 8 8",
     fill: "none" as const,
     stroke: "currentColor",
-    strokeWidth: 1.4,
+    strokeWidth: 1.5,
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
     "aria-hidden": true as const,
+    className: "shrink-0",
   };
   switch (tone) {
-    // Caret. The proofreader's insertion point: something belongs here and has
-    // not been settled yet, which is what proposed means.
     case "proposed":
+    case "todo":
       return (
         <svg {...shared}>
-          <path d="M1.4 7.2 6.5 2.1l5.1 5.1" />
+          <circle cx="4" cy="4" r="2.8" strokeWidth="1.4" />
         </svg>
       );
-    // Stet, "let it stand": the mark that cancels a deletion and keeps the text.
-    // A rule with the dots under it, which is how it is written on paper and the
-    // closest thing editing has to a word for confirmed.
+    case "in_progress":
+      return (
+        <svg {...shared}>
+          <circle cx="4" cy="4" r="2.8" strokeWidth="1.2" strokeDasharray="4 2" />
+          <circle cx="4" cy="4" r="1.2" fill="currentColor" />
+        </svg>
+      );
     case "confirmed":
+    case "done":
       return (
         <svg {...shared}>
-          <path d="M1.2 3.4h10.6" />
-          <path d="M2.6 6.8h.01M6.5 6.8h.01M10.4 6.8h.01" strokeWidth="1.8" />
+          <circle cx="4" cy="4" r="3" fill="currentColor" />
         </svg>
       );
-    // Dele. The deletion stroke through a line: this was struck out, and
-    // something else stands in its place.
     case "contradicted":
+    case "blocked":
       return (
         <svg {...shared}>
-          <path d="M1.2 5.1h10.6" />
-          <path d="M9.2 1.6 3.8 8.4" />
+          <circle cx="4" cy="4" r="2.8" strokeWidth="1.2" />
+          <path d="M2.2 2.2 5.8 5.8" strokeWidth="1.4" />
         </svg>
       );
-    // Filed away. The line is still there, closed on both ends: nothing is
-    // struck and nothing is pending, it is simply put where it is kept.
     case "archived":
       return (
         <svg {...shared}>
-          <path d="M2.4 4.5h8.2" />
-          <path d="M1.4 2.6v3.8M11.6 2.6v3.8" strokeWidth="1.2" />
+          <path d="M1.5 4h5" strokeWidth="1.6" />
         </svg>
       );
   }
 }
 
-// The one place a tinted background survives, because a status is the thing the
-// reader has to act on and it earns the extra weight the metadata line gives up.
-// A small rectangle at 3px, not a pill; marker shape plus the word, so neither
-// colour nor shape ever carries it alone.
+// A calm, semantic badge in sentence case. No uppercase shouting, no aggressive letter-spacing.
 export function Status({
   tone,
   children,
@@ -375,48 +442,85 @@ export function Status({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-[7px] rounded-label px-[7px] py-[2px] text-label uppercase tracking-[0.12em] ${STATUS_TONES[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-control px-2 py-0.5 text-data font-medium leading-tight ${STATUS_TONES[tone]}`}
     >
       <StatusMark tone={tone} />
-      {children}
+      <span>{children}</span>
     </span>
   );
 }
 
-// Says what the emptiness means and what to do about it. An empty state that
-// only says "nothing here" leaves the reader wondering whether it is broken.
-// No dashed box: a frame around nothing reads as a wireframe. A loose end of
-// the thread marks the spot instead - the sequence has not started yet.
+export type EmptyStateIllustration = "tasks" | "notifications" | "context" | "compact";
+
+const EMPTY_STATE_ILLUSTRATIONS: Record<Exclude<EmptyStateIllustration, "compact">, string> = {
+  tasks: "/resources/empty-states/no-tasks.png",
+  notifications: "/resources/empty-states/no-notifications.png",
+  context: "/resources/empty-states/no-context.png",
+};
+
+// Says what the emptiness means and what to do about it.
+// Integrates high-res friendly fox illustrations with dark graphite glow and clear typography.
 export function EmptyState({
   title,
   note,
   action,
+  illustration,
 }: {
   title: string;
   note: string;
   action?: ReactNode;
+  illustration?: EmptyStateIllustration | ReactNode;
 }) {
+  let imgSrc: string | null = null;
+  if (illustration === "tasks") {
+    imgSrc = EMPTY_STATE_ILLUSTRATIONS.tasks;
+  } else if (illustration === "notifications") {
+    imgSrc = EMPTY_STATE_ILLUSTRATIONS.notifications;
+  } else if (illustration === "context") {
+    imgSrc = EMPTY_STATE_ILLUSTRATIONS.context;
+  }
+
   return (
-    <div className="px-7 py-8 text-center">
-      <svg
-        width="56"
-        height="12"
-        viewBox="0 0 56 12"
-        aria-hidden="true"
-        className="mx-auto text-thread-lift/70"
-      >
-        <path
-          d="M2 8c8-6 14 4 22-2s16-4 24 0"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-        <circle cx="52" cy="7" r="2.2" fill="currentColor" />
-      </svg>
-      <p className="pt-4 text-body font-medium text-ink">{title}</p>
-      <p className="mx-auto measure pt-2 text-small text-ink-2">{note}</p>
-      {action ? <div className="flex justify-center pt-5">{action}</div> : null}
+    <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
+      {imgSrc ? (
+        <div className="relative mb-6 flex items-center justify-center">
+          {/* Subtle soft luminous background glow */}
+          <div className="absolute -inset-4 rounded-full bg-thread/5 blur-2xl" aria-hidden="true" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imgSrc}
+            alt=""
+            width={260}
+            height={173}
+            className="relative h-auto max-h-[200px] w-auto max-w-[220px] object-contain drop-shadow-[0_16px_28px_rgba(0,0,0,0.5)] select-none sm:max-w-[260px]"
+          />
+        </div>
+      ) : illustration && typeof illustration !== "string" ? (
+        <div className="mb-5 flex justify-center text-thread">{illustration}</div>
+      ) : (
+        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full border border-edge/60 bg-surface/80 text-ink-3">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="8" cy="8" r="6" />
+            <path d="M8 5v3.5l2 1.5" />
+          </svg>
+        </div>
+      )}
+
+      <h3 className="font-heading font-semibold text-lead text-ink tracking-normal sm:text-title">
+        {title}
+      </h3>
+      <p className="mx-auto measure pt-2.5 text-small text-ink-2 leading-relaxed">{note}</p>
+      {action ? <div className="flex justify-center pt-6">{action}</div> : null}
     </div>
   );
 }
