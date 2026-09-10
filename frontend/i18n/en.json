@@ -250,7 +250,8 @@
     "showNav": "Show menu",
     "newProject": "New project",
     "teams": "Teams",
-    "tasks": "Tasks"
+    "tasks": "Tasks",
+    "agents": "Connect agent"
   },
   "assistant": {
     "placeholder": "What would you like to ask?",
@@ -566,6 +567,8 @@
     "used": "in use",
     "neverUsed": "never used",
     "tokenRevoked": "Token revoked.",
+    "tokensMoved": "Agent connection setup (Claude Code, Antigravity, Gemini CLI, Codex) and access tokens have moved to a dedicated section.",
+    "tokensMovedAction": "Go to Connect agent",
     "create": "Create",
     "join": "Join",
     "joined": "You are in the workspace.",
@@ -680,5 +683,88 @@
     "newTeamNote": "A separate archive for projects you run with somebody else.",
     "createTeam": "Create the team",
     "teamCreated": "Team created"
+  },
+  "agentConnect": {
+    "title": "Connect your agent",
+    "label": "YOUR AGENT",
+    "options": {
+      "claude-code": "Claude Code",
+      "antigravity": "Antigravity",
+      "gemini-cli": "Gemini CLI",
+      "codex": "Codex",
+      "other": "Other (MCP)"
+    },
+    "subtitles": {
+      "claude-code": "Anthropic Terminal",
+      "antigravity": "Google DeepMind IDE / CLI",
+      "gemini-cli": "Google Gemini Terminal",
+      "codex": "OpenAI Codex Terminal",
+      "other": "Any MCP Client"
+    },
+    "step1Title": "Step 1: Open your tool",
+    "step2Title": "Step 2: Paste the configuration or command",
+    "step3Title": "Step 3: Verify the connection",
+    "steps": {
+      "claude-code": {
+        "step1": "Open a terminal on your computer (in any directory).",
+        "step2What": "This command registers Ariadne as an MCP server for Claude Code across your machine:",
+        "step2Where": "Paste the command into the terminal and press Enter.",
+        "step3": "Run {cmd} to verify that the Ariadne server shows Connected status."
+      },
+      "antigravity": {
+        "step1": "In the top right of the chat panel, click the (...) menu and select MCP Servers -> Manage MCP Servers (or open ~/.gemini/config/mcp_config.json).",
+        "step2What": "Paste the following snippet into the \"mcpServers\" section in the configuration file:",
+        "step2Where": "Save the configuration file (Ctrl+S / Cmd+S).",
+        "step3": "In the Antigravity chat, type /mcp or check the tools list — you should see Ariadne's memory tools."
+      },
+      "gemini-cli": {
+        "step1": "Open ~/.gemini/settings.json in a text editor.",
+        "step2What": "Add the following snippet to the \"mcpServers\" section:",
+        "step2Where": "Save ~/.gemini/settings.json.",
+        "step3": "Run gemini in your terminal and type /mcp to check active tools."
+      },
+      "codex": {
+        "step1": "Open a terminal on your computer.",
+        "step2What": "Run the following command to register Ariadne in Codex CLI:",
+        "step2Where": "Paste it into the terminal and press Enter (or add a [mcp_servers.ariadne] section in ~/.codex/config.toml).",
+        "step3": "Run {cmd} to verify connected servers."
+      },
+      "other": {
+        "step1": "Open the MCP configuration in your editor or agent (e.g. Cursor, Windsurf, Claude Desktop).",
+        "step2What": "Enter the following HTTP connection parameters:",
+        "step2Where": "Save the settings in your tool.",
+        "step3": "Ask your assistant a question about the project — it will query Ariadne for context."
+      }
+    },
+    "tokenNoticeExisting": "This instruction uses the {placeholder} placeholder. Paste your saved token here or click the button beside to generate a new one.",
+    "mintNew": "Generate new token",
+    "troubleshootingTitle": "Tips & Common Questions",
+    "tips": {
+      "onceOnly": "You set this up once per computer, not once per project. It covers all of your projects.",
+      "alreadyExists": "The message \"already exists in user config\" in Claude Code means the tool is already connected and ready.",
+      "repoRef": "Remember that your agent locates projects by git repository address (origin url). Run it inside the project directory."
+    }
+  },
+  "agentsPage": {
+    "title": "Connect agent",
+    "lead": "Manage access tokens and find setup instructions for your coding tool.",
+    "tokensTitle": "Access tokens",
+    "tokensLead": "One token per machine covers all your archives. For security, a token is only shown when created.",
+    "mint": "Generate token",
+    "minting": "Generating...",
+    "tokenLabel": "Label (e.g. laptop, work machine)",
+    "tokenPlaceholder": "my laptop",
+    "tokenOnce": "Copy this token now — it will not be shown again",
+    "tokenOnceWhere": "We automatically filled it into the guide below. Save it if you wish to reuse it in other tools.",
+    "copyToken": "Copy token",
+    "tokensEmpty": "You have no tokens yet.",
+    "tokensEmptyNote": "Generate your first token to connect an agent to your project memory.",
+    "revoke": "Revoke",
+    "tokenRevoked": "Token revoked.",
+    "noLabel": "No label",
+    "used": "in use",
+    "neverUsed": "never used",
+    "guideHeader": "Connection guide",
+    "backToSettings": "Account settings"
   }
 }
