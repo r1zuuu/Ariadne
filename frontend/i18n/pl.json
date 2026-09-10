@@ -324,7 +324,7 @@
   },
   "tasks": {
     "title": "Zadania",
-    "lead": "Praca, która ma przetrwać sesję i zostać widoczna dla ludzi oraz agentów.",
+    "lead": "Zarządzaj zadaniami ludzi i agentów.",
     "loading": "Wczytuję...",
     "createOpen": "Nowe zadanie",
     "createClose": "Zamknij",
@@ -399,7 +399,19 @@
     "toastRenamed": "Tytuł zmieniony",
     "noMatch": "Nic nie pasuje do tego filtra",
     "noMatchNote": "Zadania są na miejscu, tylko żadne nie odpowiada temu, czego szukasz.",
-    "clearFilters": "Wyczyść filtry"
+    "clearFilters": "Wyczyść filtry",
+    "markDone": "Oznacz jako zrobione",
+    "reopen": "Przywróć do zrobienia",
+    "start": "Rozpocznij pracę",
+    "details": "Szczegóły",
+    "identifier": "Identyfikator",
+    "createdOn": "utworzono {date}",
+    "updatedOn": "zmieniono {date}",
+    "noDescription": "To zadanie nie ma opisu.",
+    "clearSearch": "Wyczyść wyszukiwanie",
+    "titlePlaceholder": "np. Zaimplementuj obsługę webhooków",
+    "descriptionPlaceholder": "Krótki opis celu i zakresu zadania",
+    "blockedLabel": "Powód blokady"
   },
   "project": {
     "title": "Projekt",
@@ -686,7 +698,7 @@
   },
   "agentConnect": {
     "title": "Podłącz agenta",
-    "label": "TWÓJ AGENT",
+    "label": "Twoje narzędzie",
     "options": {
       "claude-code": "Claude Code",
       "antigravity": "Antigravity",
@@ -748,14 +760,34 @@
       "onceOnly": "Konfigurację wykonujesz raz na komputer, nie raz na projekt. Obejmuje wszystkie Twoje projekty.",
       "alreadyExists": "Komunikat \"already exists in user config\" w Claude Code oznacza, że narzędzie jest już połączone i gotowe do pracy.",
       "repoRef": "Pamiętaj, że agent odnajduje projekt po adresie repozytorium git (origin url). Uruchamiaj go w katalogu projektu."
+    },
+    "progressLabel": "Kroki instrukcji",
+    "back": "Wstecz",
+    "next": "Dalej: {step}",
+    "stepShort": {
+      "1": "Otwórz narzędzie",
+      "2": "Konfiguracja",
+      "3": "Weryfikacja"
+    },
+    "tokenNeededTitle": "Instrukcja wymaga Twojego tokenu",
+    "tokenNeededBody": "W poleceniu poniżej stoi znacznik {placeholder}. Wstaw w to miejsce token, który masz zapisany, albo utwórz nowy.",
+    "tokenReadyTitle": "Token wstawiony do instrukcji",
+    "tokenReadyBody": "Polecenie poniżej zawiera token utworzony przed chwilą. Skopiuj je teraz — tej wartości nie zobaczysz drugi raz.",
+    "verifyWhere": "Ariadne powinna pojawić się na liście połączonych serwerów.",
+    "hints": {
+      "claude-code": "Rejestracja obejmuje cały komputer, więc katalog nie ma tu znaczenia. Katalog projektu liczy się dopiero przy pracy: po adresie repozytorium Ariadne rozpoznaje, o który projekt chodzi.",
+      "antigravity": "Upewnij się, że projekt jest otwarty w przestrzeni roboczej Antigravity.",
+      "gemini-cli": "Plik settings.json jest wspólny dla wszystkich Twoich projektów.",
+      "codex": "Rejestracja obejmuje cały komputer, więc katalog nie ma tu znaczenia. Katalog projektu liczy się dopiero przy pracy: po adresie repozytorium Ariadne rozpoznaje, o który projekt chodzi.",
+      "other": "Twój klient musi obsługiwać serwery MCP po HTTP."
     }
   },
   "agentsPage": {
     "title": "Połącz agenta",
-    "lead": "Zarządzaj tokenami dostępu i sprawdź instrukcje łączenia dla swojego narzędzia kodującego.",
+    "lead": "Podłącz narzędzie kodujące do pamięci tego projektu.",
     "loading": "Wczytuję...",
     "tokensTitle": "Tokeny dostępu",
-    "tokensLead": "Jeden token wystarcza na cały komputer i sięga wszystkich Twoich archiwów. Ze względów bezpieczeństwa token widzisz tylko w momencie utworzenia.",
+    "tokensLead": "Jeden token obejmuje cały komputer i wszystkie Twoje archiwa. Pełną wartość widzisz tylko raz, w chwili utworzenia.",
     "mint": "Utwórz token",
     "minting": "Tworzę...",
     "tokenLabel": "Do czego (np. laptop, komputer w pracy)",
@@ -764,13 +796,19 @@
     "tokenOnceWhere": "Automatycznie wkleiliśmy go do poniższej instrukcji. Zapisz go, jeśli chcesz użyć go w kolejnym narzędziu.",
     "copyToken": "Skopiuj token",
     "tokensEmpty": "Nie masz jeszcze żadnego tokenu.",
-    "tokensEmptyNote": "Utwórz pierwszy token, aby połączyć agenta z pamięcią projektu.",
-    "revoke": "Odwołaj",
+    "tokensEmptyNote": "Bez tokenu agent nie ma czym się przedstawić. Utwórz pierwszy powyżej.",
+    "revoke": "Unieważnij",
     "tokenRevoked": "Token został odwołany.",
     "noLabel": "Bez etykiety",
-    "used": "używany",
     "neverUsed": "nigdy nie użyty",
-    "guideHeader": "Instrukcja połączenia",
-    "backToSettings": "Ustawienia konta"
+    "guideHeader": "Konfiguracja połączenia",
+    "backToSettings": "Ustawienia konta",
+    "lastUsed": "ostatnio użyty {date}",
+    "createdOn": "utworzony {date}",
+    "revokeAsk": "Unieważnić ten token?",
+    "revokeAskNote": "Agent, który go używa, straci dostęp do archiwum przy następnym połączeniu. Tego nie da się cofnąć.",
+    "revokeConfirm": "Unieważnij token",
+    "cancel": "Anuluj",
+    "unknownRepo": "Pytał o repozytorium {repo}, którego nie ma w żadnym Twoim archiwum."
   }
 }

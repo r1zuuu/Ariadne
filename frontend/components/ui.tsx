@@ -106,7 +106,7 @@ export function Input({
       ) : null}
       <div className="relative flex items-center">
         {icon ? (
-          <span className="pointer-events-none absolute left-3.5 flex items-center text-ink-3">
+          <span className="pointer-events-none absolute left-4 flex items-center text-ink-3">
             {icon}
           </span>
         ) : null}
@@ -115,8 +115,15 @@ export function Input({
           {...rest}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${id}-error` : note ? `${id}-note` : undefined}
+          // The padding that clears the icon is in brackets on purpose. `pl-10`
+          // is not 40px in this app: globals.css remaps Tailwind's spacing keys
+          // onto the design scale, where step 10 is 112px - the entry plate. So
+          // every field with an icon carried 112px of left padding and its
+          // placeholder sat in the middle of the box looking deliberately
+          // centred, which is what the search field on the task screen was
+          // reported as. 12px of gutter, a 15px mark, 8px of air.
           className={`h-[42px] w-full rounded-control border bg-surface/80 text-left text-body text-ink outline-none transition-all duration-state placeholder:text-left placeholder:text-ink-3 hover:border-edge focus:border-thread focus:bg-surface focus:ring-2 focus:ring-thread/25 ${
-            icon ? "pl-10 pr-4" : "px-4"
+            icon ? "pl-[35px] pr-4" : "px-4"
           } ${error ? "border-iron" : "border-edge/60"} ${className}`}
         />
       </div>
@@ -273,15 +280,37 @@ export function Card({
 }
 
 // Heading of a page: one per screen, sets what this place is and what it is for.
+//
+// Two sizes, and the split is what the reader does on the screen rather than a
+// preference. `display` is a screen you arrive at and read - the overview, the
+// project, an archive. `work` is a screen you use: a list you scan, a guide you
+// follow. At the display step the title alone is 64px over a two-line lead, so
+// on a task screen the tools start below the fold and the button beside it
+// aligns with the lead instead of with the name of the page. Same face, two
+// steps down, action on the title's own line.
 export function PageHeader({
   title,
   lead,
   actions,
+  size = "display",
 }: {
   title: string;
   lead?: string;
   actions?: ReactNode;
+  size?: "display" | "work";
 }) {
+  if (size === "work") {
+    return (
+      <div className="pb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="min-w-0 text-title text-ink">{title}</h1>
+          {actions ? <div className="flex shrink-0 gap-3">{actions}</div> : null}
+        </div>
+        {lead ? <p className="measure pt-2 text-small text-ink-2">{lead}</p> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-wrap items-end justify-between gap-5 pb-7 pt-6">
       <div className="min-w-0">

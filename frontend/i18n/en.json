@@ -324,7 +324,7 @@
   },
   "tasks": {
     "title": "Tasks",
-    "lead": "Work that should survive the session and stay visible to humans and agents.",
+    "lead": "Manage the work of people and agents.",
     "loading": "Loading...",
     "createOpen": "New task",
     "createClose": "Close",
@@ -399,7 +399,19 @@
     "toastRenamed": "Title changed",
     "noMatch": "Nothing matches this filter",
     "noMatchNote": "The tasks are still there; none of them answers what you are looking for.",
-    "clearFilters": "Clear the filters"
+    "clearFilters": "Clear the filters",
+    "markDone": "Mark as done",
+    "reopen": "Move back to to-do",
+    "start": "Start work",
+    "details": "Details",
+    "identifier": "Identifier",
+    "createdOn": "created {date}",
+    "updatedOn": "updated {date}",
+    "noDescription": "This task has no description.",
+    "clearSearch": "Clear search",
+    "titlePlaceholder": "e.g. Implement webhook delivery",
+    "descriptionPlaceholder": "A short note on the goal and the scope",
+    "blockedLabel": "Reason for the block"
   },
   "project": {
     "title": "Project",
@@ -686,7 +698,7 @@
   },
   "agentConnect": {
     "title": "Connect your agent",
-    "label": "YOUR AGENT",
+    "label": "Your tool",
     "options": {
       "claude-code": "Claude Code",
       "antigravity": "Antigravity",
@@ -748,14 +760,34 @@
       "onceOnly": "You set this up once per computer, not once per project. It covers all of your projects.",
       "alreadyExists": "The message \"already exists in user config\" in Claude Code means the tool is already connected and ready.",
       "repoRef": "Remember that your agent locates projects by git repository address (origin url). Run it inside the project directory."
+    },
+    "progressLabel": "Guide steps",
+    "back": "Back",
+    "next": "Next: {step}",
+    "stepShort": {
+      "1": "Open your tool",
+      "2": "Configuration",
+      "3": "Verification"
+    },
+    "tokenNeededTitle": "The guide needs your token",
+    "tokenNeededBody": "The command below carries the placeholder {placeholder}. Put your saved token there, or create a new one.",
+    "tokenReadyTitle": "Token filled into the guide",
+    "tokenReadyBody": "The command below carries the token created a moment ago. Copy it now — you will not see this value again.",
+    "verifyWhere": "Ariadne should appear in the list of connected servers.",
+    "hints": {
+      "claude-code": "Registration covers the whole machine, so the directory does not matter here. The project directory matters once you start working: Ariadne recognises the project by its repository address.",
+      "antigravity": "Make sure the project is open in the Antigravity workspace.",
+      "gemini-cli": "settings.json is shared by all of your projects.",
+      "codex": "Registration covers the whole machine, so the directory does not matter here. The project directory matters once you start working: Ariadne recognises the project by its repository address.",
+      "other": "Your client has to support MCP servers over HTTP."
     }
   },
   "agentsPage": {
     "title": "Connect agent",
-    "lead": "Manage access tokens and find setup instructions for your coding tool.",
+    "lead": "Connect your coding tool to this project's memory.",
     "loading": "Loading...",
     "tokensTitle": "Access tokens",
-    "tokensLead": "One token per machine covers all your archives. For security, a token is only shown when created.",
+    "tokensLead": "One token covers a whole machine and every archive you can reach. You see its full value once, when it is created.",
     "mint": "Generate token",
     "minting": "Generating...",
     "tokenLabel": "Label (e.g. laptop, work machine)",
@@ -764,13 +796,19 @@
     "tokenOnceWhere": "We automatically filled it into the guide below. Save it if you wish to reuse it in other tools.",
     "copyToken": "Copy token",
     "tokensEmpty": "You have no tokens yet.",
-    "tokensEmptyNote": "Generate your first token to connect an agent to your project memory.",
+    "tokensEmptyNote": "Without a token an agent has nothing to identify itself with. Create the first one above.",
     "revoke": "Revoke",
     "tokenRevoked": "Token revoked.",
     "noLabel": "No label",
-    "used": "in use",
     "neverUsed": "never used",
-    "guideHeader": "Connection guide",
-    "backToSettings": "Account settings"
+    "guideHeader": "Connection setup",
+    "backToSettings": "Account settings",
+    "lastUsed": "last used {date}",
+    "createdOn": "created {date}",
+    "revokeAsk": "Revoke this token?",
+    "revokeAskNote": "An agent using it loses access to the archive on its next connection. This cannot be undone.",
+    "revokeConfirm": "Revoke token",
+    "cancel": "Cancel",
+    "unknownRepo": "It asked for the repository {repo}, which is in none of your archives."
   }
 }

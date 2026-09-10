@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale } from "@/app/locale-provider";
 import { useApp } from "@/components/app-provider";
 import { useFailure } from "@/components/failure";
-import { Collapse } from "@/components/motion";
+import { Collapse, FadeIn } from "@/components/motion";
 import { useToast } from "@/components/toast";
 import {
   Button,
@@ -15,6 +15,7 @@ import {
   Meta,
   PageHeader,
   Select,
+  Status,
   Textarea,
 } from "@/components/ui";
 import {
@@ -33,6 +34,9 @@ const TABS: Tab[] = ["all", "todo", "in_progress", "blocked", "done"];
 const PRIORITIES: TaskPriority[] = ["low", "medium", "high", "critical"];
 
 const EMPTY_CREATE = { title: "", description: "", priority: "medium" as TaskPriority };
+
+/** One page of the list. Counters are only true while the whole list fits in one. */
+const PAGE_SIZE = 50;
 
 function who(email: string | null | undefined): string {
   return email ? email.split("@")[0] : "";
@@ -74,9 +78,15 @@ export default function TasksScreen() {
   const filters = useMemo(() => {
     const trimmed = query.trim();
     return {
-      ...(tab === "all" ? { active: true } : { status: tab as TaskStatus }),
+      // "All" used to send active:true, which the server reads as everything
+      // except done and archived. So the list under the tab named "all" was
+      // missing exactly one status, and the "done" counter - derived from that
+      // same page - could only ever be zero. Sending no status filter gives
+      // everything but archived, which is what the word means; the server
+      // already sorts done to the bottom, so nothing crowds the top of the list.
+      ...(tab === "all" ? {} : { status: tab as TaskStatus }),
       ...(trimmed ? { query: trimmed } : {}),
-      limit: 50,
+      limit: PAGE_SIZE,
     };
   }, [query, tab]);
 
@@ -89,13 +99,21 @@ export default function TasksScreen() {
         setTasks((prev) => (cursor && prev ? [...prev, ...page.tasks] : page.tasks));
         setNextCursor(page.nextCursor);
         if (tab === "all" && !query.trim() && !cursor) {
-          setTabCounts({
-            all: page.tasks.length,
-            todo: page.tasks.filter((t) => t.status === "todo").length,
-            in_progress: page.tasks.filter((t) => t.status === "in_progress").length,
-            blocked: page.tasks.filter((t) => t.status === "blocked").length,
-            done: page.tasks.filter((t) => t.status === "done").length,
-          });
+          // Only when the unfiltered list arrived whole. Past one page these are
+          // counts of what happens to be loaded, and a counter that means
+          // something different depending on how far you scrolled is worse than
+          // no counter.
+          setTabCounts(
+            page.nextCursor
+              ? {}
+              : {
+                  all: page.tasks.length,
+                  todo: page.tasks.filter((row) => row.status === "todo").length,
+                  in_progress: page.tasks.filter((row) => row.status === "in_progress").length,
+                  blocked: page.tasks.filter((row) => row.status === "blocked").length,
+                  done: page.tasks.filter((row) => row.status === "done").length,
+                },
+          );
         }
       } catch (caught) {
         setError(failure(caught));
@@ -164,8 +182,9 @@ export default function TasksScreen() {
   };
 
   return (
-    <div className="mx-auto max-w-[860px]">
+    <div className="work-canvas">
       <PageHeader
+        size="work"
         title={t("title")}
         lead={t("lead")}
         actions={
@@ -216,14 +235,16 @@ export default function TasksScreen() {
       ) : (
         <>
           <Collapse open={createOpen}>
-            <Card as="section" className="mb-6 border-edge/50 bg-surface/80 p-6 backdrop-blur-sm">
-              <div className="grid gap-5">
+            <Card as="section" className="mb-6 p-6">
+              {/* The form is a column, not the full canvas: a 1240px-wide title
+                  field would be a database row rather than a question. */}
+              <div className="grid max-w-[620px] gap-5">
                 <Input
                   id="task-title"
                   label={t("field.title")}
                   value={createDraft.title}
                   maxLength={160}
-                  placeholder="np. Zaimplementuj obsługę powiadomień webhooks"
+                  placeholder={t("titlePlaceholder")}
                   autoFocus={createOpen}
                   onChange={(event) =>
                     setCreateDraft((draft) => ({ ...draft, title: event.target.value }))
@@ -234,7 +255,7 @@ export default function TasksScreen() {
                   label={t("field.description")}
                   rows={3}
                   value={createDraft.description}
-                  placeholder="Krótki opis celu i zakresu zadania..."
+                  placeholder={t("descriptionPlaceholder")}
                   onChange={(event) =>
                     setCreateDraft((draft) => ({ ...draft, description: event.target.value }))
                   }
@@ -267,13 +288,51 @@ export default function TasksScreen() {
             </Card>
           </Collapse>
 
-          {/* Structured Modern Toolbar */}
-          <div className="flex flex-col gap-3.5 border-b border-hairline pb-5 sm:flex-row sm:items-center sm:justify-between">
-            {/* Search Input with embedded icon and clear button */}
-            <div className="relative w-full sm:max-w-[300px]">
+          {/* One row of tools, and no rule under it. The rule used to be here -
+              border-b on this strip - 3px above the first card's own top border,
+              which is where the double edge over the list came from. The gap
+              below does the separating. */}
+          <div className="flex flex-col gap-4 pb-5 lg:flex-row lg:items-center lg:justify-between">
+            {/* No wrapping. Five filters that reflow to a second line leave one of
+                them stranded there and make the strip taller than the field
+                beside it; a group that scrolls inside itself keeps the row one
+                row at every width, and the page never scrolls sideways. */}
+            <div
+              className="-mx-1 flex gap-1 overflow-x-auto rounded-control border border-edge/50 bg-plaster-sunk p-1 lg:mx-0 lg:w-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              role="tablist"
+              aria-label={t("filters")}
+            >
+              {TABS.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === item}
+                  onClick={() => setTab(item)}
+                  className={`inline-flex h-[32px] shrink-0 items-center gap-2 rounded-[4px] px-3 text-small font-medium transition-colors duration-state ${
+                    tab === item
+                      ? "bg-surface text-ink shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                      : "text-ink-2 hover:bg-surface/50 hover:text-ink"
+                  }`}
+                >
+                  <span>{t(`tab.${item}`)}</span>
+                  {typeof tabCounts[item] === "number" ? (
+                    <span
+                      className={`tabular text-data leading-none ${
+                        tab === item ? "text-thread-lift" : "text-ink-3"
+                      }`}
+                    >
+                      {tabCounts[item]}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative w-full lg:w-[300px]">
               <Input
                 id="task-search"
-                placeholder={t("search") + "..."}
+                placeholder={t("search")}
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 icon={
@@ -298,56 +357,29 @@ export default function TasksScreen() {
                 <button
                   type="button"
                   onClick={() => setQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-ink-3 hover:text-ink transition-colors"
-                  aria-label="Wyczyść wyszukiwanie"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-control p-1 text-ink-3 transition-colors duration-state hover:text-ink"
+                  aria-label={t("clearSearch")}
                 >
-                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                  >
                     <path d="M4 4l8 8M12 4l-8 8" />
                   </svg>
                 </button>
               ) : null}
             </div>
-
-            {/* Segmented Filter Tabs with Counts */}
-            <div
-              className="inline-flex flex-wrap rounded-control border border-edge/60 bg-plaster-sunk p-1 gap-1"
-              role="tablist"
-              aria-label={t("filters")}
-            >
-              {TABS.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === item}
-                  onClick={() => setTab(item)}
-                  className={`inline-flex items-center gap-1.5 rounded-[5px] px-3 py-1 text-small font-medium transition-all duration-state ${
-                    tab === item
-                      ? "bg-surface text-ink shadow-[0_1px_3px_rgba(0,0,0,0.35)]"
-                      : "text-ink-2 hover:bg-surface/50 hover:text-ink"
-                  }`}
-                >
-                  <span>{t(`tab.${item}`)}</span>
-                  {typeof tabCounts[item] === "number" ? (
-                    <span
-                      className={`rounded-full px-1.5 py-0.2 text-[11px] font-mono leading-none ${
-                        tab === item
-                          ? "bg-thread/20 text-thread-deep font-semibold"
-                          : "bg-surface-2 text-ink-3"
-                      }`}
-                    >
-                      {tabCounts[item]}
-                    </span>
-                  ) : null}
-                </button>
-              ))}
-            </div>
           </div>
 
-          {error ? <p className="pt-5 text-small text-iron">{error}</p> : null}
+          {error ? <p className="pb-4 text-small text-iron">{error}</p> : null}
 
           {tasks === null ? (
-            <p className="pt-6 text-body text-ink-3">{t("loading")}</p>
+            <p className="text-body text-ink-3">{t("loading")}</p>
           ) : tasks.length === 0 ? (
             filtered ? (
               <EmptyState
@@ -371,138 +403,37 @@ export default function TasksScreen() {
                 title={t("empty")}
                 note={t("emptyNote")}
                 illustration="tasks"
-                action={
-                  <Button onClick={() => setCreateOpen(true)}>
-                    {t("create")}
-                  </Button>
-                }
+                action={<Button onClick={() => setCreateOpen(true)}>{t("create")}</Button>}
               />
             )
           ) : (
-            <div className="grid grid-cols-1 gap-3.5 pt-1">
-              {tasks.map((task) => {
-                const activeRuns = freshRuns(task.activeRuns);
-                return (
-                  <div
+            // One entrance for the whole list, keyed on the tab so changing the
+            // filter says so and a keystroke in the search field does not.
+            //
+            // Not a per-row cascade. Fifteen rows means fifteen animations that
+            // each start at opacity zero, and anything that stops the frame loop
+            // - an occluded window is enough - leaves most of the list invisible
+            // with the data sitting right there in the DOM. The signal wanted
+            // here is "this list is now a different list", and one fade says it.
+            <FadeIn key={tab}>
+              {/* A column of flex items, not a grid. A grid item carries
+                  min-width:auto, so the single implicit track was sized to the
+                  widest row's min-content - 1723px against a 1240px canvas - and
+                  every row hung out past the page into a horizontal scrollbar.
+                  A column flex container stretches its items to its own width
+                  instead, which is what a list wants. */}
+              <ul className="flex flex-col gap-2">
+                {tasks.map((task) => (
+                  <TaskRow
                     key={task.id}
-                    className="group relative flex flex-col justify-between rounded-card border border-edge/50 bg-surface/40 p-4 sm:p-5 transition-all duration-200 hover:border-edge-strong/70 hover:bg-surface/75 hover:shadow-card"
-                  >
-                    {/* Top Row: Typographic Status Badge, Priority Badge, ID, and Date */}
-                    <div className="flex items-center justify-between gap-3 pb-2.5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <TaskStatusBadge status={task.status} />
-                        {task.priority !== "medium" ? (
-                          <PriorityBadge priority={task.priority} />
-                        ) : null}
-                        <span className="font-mono text-data text-ink-3/70">
-                          #{task.id.slice(0, 7)}
-                        </span>
-                      </div>
-                      <span className="shrink-0 font-mono text-data text-ink-3">
-                        {stamp(task.updatedAt)}
-                      </span>
-                    </div>
-
-                    {/* Middle Row: Title & Description */}
-                    <div className="py-1">
-                      <TaskTitle task={task} onRename={rename} />
-
-                      {task.blockedReason ? (
-                        <div className="mt-2.5 flex items-center gap-2 rounded-control border border-iron/30 bg-iron/10 px-3 py-2 text-small text-iron">
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 16 16"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            className="shrink-0"
-                            aria-hidden="true"
-                          >
-                            <circle cx="8" cy="8" r="6" />
-                            <path d="M8 5v4M8 11.5v.5" />
-                          </svg>
-                          <span className="font-medium">{task.blockedReason}</span>
-                        </div>
-                      ) : task.description ? (
-                        <p className="mt-2 line-clamp-2 text-small text-ink-2 leading-relaxed">
-                          {task.description}
-                        </p>
-                      ) : null}
-                    </div>
-
-                    {/* Bottom Row: Active Agents, Author, and Quick Status Actions */}
-                    <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 border-t border-hairline/60 pt-3">
-                      {/* Left side: Live agents / Creator */}
-                      <div className="flex flex-wrap items-center gap-2.5">
-                        {activeRuns.length > 0 ? (
-                          <>
-                            <TaskLiveBadge runs={activeRuns} />
-                            <AgentRunChips runs={activeRuns} />
-                          </>
-                        ) : (
-                          <div className="flex items-center gap-2 text-data text-ink-3">
-                            <span>{task.source?.channel === "coder" ? t("agent") : t("human")}</span>
-                            {task.createdBy ? (
-                              <>
-                                <span className="text-edge/60">•</span>
-                                <span>{t("createdBy", { who: who(task.createdBy) })}</span>
-                              </>
-                            ) : null}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Right side: Quick Status Actions */}
-                      <div className="flex items-center gap-2">
-                        {task.status !== "done" ? (
-                          <button
-                            type="button"
-                            onClick={() => void changeStatus(task, "done")}
-                            className="inline-flex items-center gap-1.5 rounded-control border border-edge/60 bg-surface/60 px-2.5 py-1 text-data font-medium text-ink-2 transition-all hover:border-laurel/40 hover:bg-laurel/10 hover:text-laurel"
-                            title="Oznacz jako zrobione"
-                          >
-                            <svg
-                              width="12"
-                              height="12"
-                              viewBox="0 0 16 16"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              aria-hidden="true"
-                            >
-                              <path d="M3.5 8.5l3 3 6-7" />
-                            </svg>
-                            <span>{t("status.done")}</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => void changeStatus(task, "todo")}
-                            className="inline-flex items-center gap-1.5 rounded-control border border-edge/60 bg-surface/60 px-2.5 py-1 text-data font-medium text-ink-3 transition-all hover:border-ochre/40 hover:bg-ochre/10 hover:text-ochre"
-                            title="Przywróć do zrobienia"
-                          >
-                            <span>Przywróć</span>
-                          </button>
-                        )}
-                        {task.status === "todo" ? (
-                          <button
-                            type="button"
-                            onClick={() => void changeStatus(task, "in_progress")}
-                            className="inline-flex items-center gap-1.5 rounded-control border border-edge/60 bg-surface/60 px-2.5 py-1 text-data font-medium text-ink-2 transition-all hover:border-aegean/40 hover:bg-aegean/10 hover:text-aegean"
-                            title="Rozpocznij pracę"
-                          >
-                            <span>Rozpocznij</span>
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    task={task}
+                    stamp={stamp}
+                    onRename={rename}
+                    onStatus={changeStatus}
+                  />
+                ))}
+              </ul>
+            </FadeIn>
           )}
 
           {nextCursor ? (
@@ -518,6 +449,170 @@ export default function TasksScreen() {
   );
 }
 
+// One task, as a line in a list rather than a page about itself.
+//
+// It used to be a 225px card with information in all four corners: a shouting
+// status pill and a raw id top left, a date top right, a two-line title, a
+// two-line description, a rule, then the author bottom left and a button bottom
+// right. Nothing was next to the thing it described and a dozen of them could
+// not be scanned.
+//
+// Now the row is a title with everything about it underneath in one metadata
+// line, and the things you can do to it on the far edge. The rest - the full
+// description, the identifier, the dates - is behind a native disclosure, which
+// is where the identifier belongs: it matters when you are quoting a task to an
+// agent and never while you are looking for one.
+function TaskRow({
+  task,
+  stamp,
+  onRename,
+  onStatus,
+}: {
+  task: Task;
+  stamp: (iso: string) => string;
+  onRename: (task: Task, title: string) => Promise<void>;
+  onStatus: (task: Task, status: TaskStatus) => Promise<void>;
+}) {
+  const t = useTranslations("tasks");
+  const runs = freshRuns(task.activeRuns);
+  const author = task.createdBy ? t("createdBy", { who: who(task.createdBy) }) : null;
+
+  // A click that lands on the title or on an action is about that control, not
+  // about opening the row, and a <summary> toggles on anything that reaches it.
+  const swallow = (event: React.MouseEvent) => event.stopPropagation();
+
+  return (
+    <li>
+      <details className="group rounded-card border border-edge/40 bg-surface/40 transition-colors duration-state hover:border-edge hover:bg-surface/70">
+        <summary className="flex cursor-pointer list-none items-start gap-5 px-5 py-4 marker:hidden">
+          {/* Three columns on a wide screen, one on a narrow one. Prose left,
+              state in a column of its own so fifteen rows can be scanned down
+              the status rather than read across, actions on the edge. Stretching
+              the title alone to 1240px and leaving the buttons a screen away
+              would use the width without giving anything back. */}
+          <div className="min-w-0 flex-1 lg:flex lg:items-start lg:gap-6">
+            <div className="min-w-0 flex-1">
+              <TaskTitle task={task} onRename={onRename} onClickCapture={swallow} />
+
+              {task.status === "blocked" && task.blockedReason ? (
+                <p className="truncate pt-1.5 text-small text-iron">
+                  {t("blockedLabel")}: {task.blockedReason}
+                </p>
+              ) : task.description ? (
+                // One line. The second line of a preview never finished a
+                // sentence either, and it cost every row 25px.
+                <p className="truncate pt-1.5 text-small text-ink-2">{task.description}</p>
+              ) : null}
+            </div>
+
+            {/* flex-nowrap at lg is load-bearing: a wrapping flex column wraps
+                into extra columns rather than extra rows, so the metadata grew
+                sideways past its 250px and pushed the whole page into a
+                horizontal scrollbar. */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2.5 lg:w-[280px] lg:shrink-0 lg:flex-col lg:flex-nowrap lg:items-start lg:gap-2 lg:pt-0">
+              <span className="flex items-center gap-3">
+                <Status
+                  tone={
+                    task.status === "backlog" || task.status === "archived"
+                      ? "archived"
+                      : task.status
+                  }
+                >
+                  {t(`status.${task.status}`)}
+                </Status>
+                {/* Only the two that change what you do next. "Średni" on every
+                    second row is a column of the word "medium". */}
+                {task.priority === "high" || task.priority === "critical" ? (
+                  <span
+                    className={`text-data font-medium ${
+                      task.priority === "critical" ? "text-iron" : "text-ochre"
+                    }`}
+                  >
+                    {t(`priority.${task.priority}`)}
+                  </span>
+                ) : null}
+              </span>
+              {runs.length > 0 ? (
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <LiveMark />
+                  <Meta
+                    items={runs.map((run) => run.agentClient || t(`agentKind.${run.agentKind}`))}
+                  />
+                </span>
+              ) : (
+                // The channel word only where it says something. A task filed
+                // through the app form was filed by a person, so "człowiek ·
+                // utworzył stanisław" spends a third of the line restating the
+                // next two words - and pushed the date onto a second line
+                // beginning with a middle dot.
+                <Meta
+                  items={
+                    task.source?.channel === "coder"
+                      ? [t("agent"), author, t("updatedOn", { date: stamp(task.updatedAt) })]
+                      : [author ?? t("human"), t("updatedOn", { date: stamp(task.updatedAt) })]
+                  }
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2" onClickCapture={swallow}>
+            {task.status === "todo" || task.status === "backlog" ? (
+              <Button
+                size="sm"
+                variant="quiet"
+                onClick={() => void onStatus(task, "in_progress")}
+              >
+                {t("start")}
+              </Button>
+            ) : null}
+            {task.status === "done" ? (
+              <Button size="sm" variant="quiet" onClick={() => void onStatus(task, "todo")}>
+                {t("reopen")}
+              </Button>
+            ) : (
+              <Button size="sm" variant="secondary" onClick={() => void onStatus(task, "done")}>
+                {t("markDone")}
+              </Button>
+            )}
+            <span
+              aria-hidden="true"
+              className="grid h-[30px] w-[24px] place-items-center text-ink-3 transition-transform duration-state group-open:rotate-180"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.4" />
+              </svg>
+            </span>
+          </div>
+        </summary>
+
+        <div className="border-t border-hairline px-5 py-4">
+          <p className="measure-wide whitespace-pre-wrap text-small text-ink-2">
+            {task.description || t("noDescription")}
+          </p>
+          {task.blockedReason ? (
+            <p className="measure-wide pt-3 text-small text-iron">
+              {t("blockedLabel")}: {task.blockedReason}
+            </p>
+          ) : null}
+          <div className="pt-4">
+            <Meta
+              items={[
+                <span key="id" className="font-data">
+                  {t("identifier")} {task.id}
+                </span>,
+                t("createdOn", { date: stamp(task.createdAt) }),
+                t("updatedOn", { date: stamp(task.updatedAt) }),
+                task.source?.client,
+              ]}
+            />
+          </div>
+        </div>
+      </details>
+    </li>
+  );
+}
+
 // The title, and the one thing on this screen a person edits.
 //
 // Two clicks rather than a pencil, because the pencil would be on every row of a
@@ -530,9 +625,11 @@ export default function TasksScreen() {
 function TaskTitle({
   task,
   onRename,
+  onClickCapture,
 }: {
   task: Task;
   onRename: (task: Task, title: string) => Promise<void>;
+  onClickCapture?: (event: React.MouseEvent) => void;
 }) {
   const t = useTranslations("tasks");
   const [editing, setEditing] = useState(false);
@@ -569,6 +666,7 @@ function TaskTitle({
         value={draft}
         disabled={saving}
         aria-label={t("renameLabel")}
+        onClickCapture={onClickCapture}
         onFocus={(event) => event.currentTarget.select()}
         onChange={(event) => setDraft(event.target.value)}
         // Clicking away is a decision to keep what was typed, the same as Enter.
@@ -583,7 +681,7 @@ function TaskTitle({
             setEditing(false);
           }
         }}
-        className="w-full border-b border-thread bg-transparent pb-0.5 text-body font-semibold text-ink outline-none disabled:opacity-50"
+        className="w-full border-b border-thread bg-transparent pb-0.5 text-body font-medium text-ink outline-none disabled:opacity-50"
       />
     );
   }
@@ -592,128 +690,29 @@ function TaskTitle({
     <button
       type="button"
       title={t("renameHint")}
+      onClickCapture={onClickCapture}
       onDoubleClick={open}
       onKeyDown={(event) => {
         if (event.key === "Enter") open();
       }}
-      className="w-full cursor-text rounded-control text-left text-body font-semibold text-ink transition-colors group-hover:text-thread"
+      // break-words, not a truncation: a long Polish title breaks where it has
+      // to and takes a second line, rather than being cut in the middle of the
+      // one word that says which task this is.
+      className="line-clamp-2 w-full cursor-text break-words text-left text-body font-medium text-ink transition-colors duration-state group-hover:text-thread"
     >
       {task.title}
     </button>
   );
 }
 
-function PriorityBadge({ priority }: { priority: TaskPriority }) {
+// An agent has this task open right now. The dot is the one thing on the screen
+// that reports a live state, so it says so in a word beside it.
+function LiveMark() {
   const t = useTranslations("tasks");
-  const color = {
-    low: "text-stone border-stone/30 bg-stone/10",
-    medium: "text-ink-3 border-edge/50 bg-surface/50",
-    high: "text-ochre border-ochre/30 bg-ochre/10",
-    critical: "text-iron border-iron/35 bg-iron/10",
-  }[priority];
-
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-data font-medium leading-none ${color}`}
-      title={t(`priority.${priority}`)}
-    >
-      {priority === "critical" ? (
-        <svg width="9" height="9" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-          <path d="M8 1l7 14H1L8 1zm0 4v5h1.5V5H8zm0 7v1.5h1.5V12H8z" />
-        </svg>
-      ) : priority === "high" ? (
-        <svg
-          width="9"
-          height="9"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          aria-hidden="true"
-        >
-          <path d="M8 13V3M4 7l4-4 4 4" />
-        </svg>
-      ) : null}
-      <span>{t(`priority.${priority}`)}</span>
-    </span>
-  );
-}
-
-function TaskStatusBadge({ status }: { status: TaskStatus }) {
-  const t = useTranslations("tasks");
-  const toneMap: Record<TaskStatus, string> = {
-    backlog: "bg-surface-2 text-ink-3 border-edge/60",
-    todo: "bg-ochre/12 text-ochre border-ochre/30",
-    in_progress: "bg-aegean/15 text-aegean border-aegean/30",
-    blocked: "bg-iron/15 text-iron border-iron/30",
-    done: "bg-laurel/15 text-laurel border-laurel/30",
-    archived: "bg-surface-2 text-ink-3 border-edge/60",
-  };
-
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-data font-semibold uppercase tracking-wider leading-none border ${
-        toneMap[status] ?? toneMap.todo
-      }`}
-      title={t(`status.${status}`)}
-    >
-      {t(`status.${status}`)}
-    </span>
-  );
-}
-
-function TaskLiveBadge({ runs }: { runs: TaskActiveRun[] }) {
-  const t = useTranslations("tasks");
-  if (!runs.length) return null;
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-thread/30 bg-thread/10 px-2.5 py-0.5 text-data font-medium text-thread leading-none">
-      <span className="h-[6px] w-[6px] rounded-full bg-thread" aria-hidden />
+    <span className="inline-flex items-center gap-2 text-data font-medium text-thread">
+      <span className="h-[6px] w-[6px] rounded-pill bg-thread" aria-hidden="true" />
       <span>{t("liveNow")}</span>
     </span>
-  );
-}
-
-function AgentRunChips({ runs }: { runs: TaskActiveRun[] }) {
-  const t = useTranslations("tasks");
-  if (!runs.length) return null;
-  return (
-    <span className="flex flex-wrap items-center gap-1.5">
-      {runs.map((run) => (
-        <span
-          key={run.id}
-          className="inline-flex items-center gap-1.5 rounded-full border border-edge/60 bg-surface px-2.5 py-0.5 text-data text-ink-2 leading-none"
-          title={t("workingAgent", { client: run.agentClient })}
-        >
-          <AgentKindMark kind={run.agentKind} />
-          <span>{run.agentClient || t(`agentKind.${run.agentKind}`)}</span>
-        </span>
-      ))}
-    </span>
-  );
-}
-
-const AGENT_MARKS: Partial<Record<TaskActiveRun["agentKind"], string>> = {
-  claude: "/agent-claude.webp",
-  codex: "/agent-codex.webp",
-};
-
-function AgentKindMark({ kind }: { kind: TaskActiveRun["agentKind"] }) {
-  const mark = AGENT_MARKS[kind];
-  if (mark) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={mark} alt="" aria-hidden width={14} height={14} className="shrink-0" />;
-  }
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 12 12"
-      aria-hidden
-      className="shrink-0 text-aegean"
-    >
-      <circle cx="6" cy="6" r="4" fill="none" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M6 3.6v4.8M3.6 6h4.8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
-    </svg>
   );
 }

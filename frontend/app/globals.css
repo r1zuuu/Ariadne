@@ -203,6 +203,24 @@
   min-height: calc(100dvh - 38px - 2 * var(--spacing-7) - var(--spacing-10));
 }
 
+/* The working width of a screen you use rather than one you read.
+ *
+ * Every screen was on `max-w-[860px]` centred in whatever the shell left over.
+ * On a 1920px window that puts a task list in an 860px column starting 648px
+ * from the left edge, with a field of empty graphite between it and the
+ * navigation - a column that reads as a presentation page rather than as a tool
+ * with a list in it. The two work screens take this instead: wide enough for a
+ * row to carry its metadata on the far edge and for a configuration guide to sit
+ * beside its token panel, capped so the heading, the toolbar and the list still
+ * share one axis on a 27-inch monitor.
+ *
+ * It is a width, not a licence to stretch: prose inside it still takes a
+ * `measure`, and a form still stops where a form should. */
+@utility work-canvas {
+  max-width: 1240px;
+  margin-inline: auto;
+}
+
 /* Reading measure, and the reason it is not written in `ch`.
  *
  * `1ch` is the width of the digit zero, and in Geist that glyph is 1.38 times
