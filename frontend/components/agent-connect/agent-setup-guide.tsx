@@ -2,8 +2,9 @@
 
 import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { useLocale } from "@/app/locale-provider";
 import { CommandBlock } from "@/components/command-block";
-import { Button, Field } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { AGENT_CONFIGS } from "./agent-configs";
 import { SUPPORTED_AGENTS, type SupportedAgent } from "./types";
 
@@ -28,8 +29,10 @@ export function AgentSetupGuide({
 }) {
   const t = useTranslations("agentConnect");
   const tOnboarding = useTranslations("onboarding.agent");
+  const { locale } = useLocale();
 
   const [selectedAgent, setSelectedAgent] = useState<SupportedAgent>(agent);
+  const [mode, setMode] = useState<"prompt" | "manual">("prompt");
 
   const activeAgent = onAgentChange ? agent : selectedAgent;
   const setAgent = (next: SupportedAgent) => {
@@ -43,6 +46,7 @@ export function AgentSetupGuide({
   const config = AGENT_CONFIGS[activeAgent];
   const effectiveToken = token?.trim() || "TWÓJ_TOKEN";
   const snippet = config.getSnippet(host, effectiveToken);
+  const promptText = config.getPrompt(host, effectiveToken, locale);
 
   return (
     <div className="space-y-7">
@@ -130,19 +134,58 @@ export function AgentSetupGuide({
 
         {/* Step 2 */}
         <div className="rounded-card border border-edge/40 bg-surface/70 p-5 shadow-card backdrop-blur-sm">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-thread/15 text-data font-semibold text-thread">
-              2
-            </span>
-            <h3 className="text-small font-semibold text-ink">{t("step2Title")}</h3>
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-1">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-thread/15 text-data font-semibold text-thread">
+                2
+              </span>
+              <h3 className="text-small font-semibold text-ink">{t("step2Title")}</h3>
+            </div>
+
+            {/* Mode Switcher: Prompt vs Manual */}
+            <div className="flex items-center rounded-control border border-edge/50 bg-plaster-sunk/60 p-0.5 text-data">
+              <button
+                type="button"
+                onClick={() => setMode("prompt")}
+                className={`rounded-[5px] px-3 py-1 font-medium transition-all ${
+                  mode === "prompt"
+                    ? "bg-thread text-plaster shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                    : "text-ink-2 hover:text-ink"
+                }`}
+              >
+                {t("modePrompt")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("manual")}
+                className={`rounded-[5px] px-3 py-1 font-medium transition-all ${
+                  mode === "manual"
+                    ? "bg-thread text-plaster shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                    : "text-ink-2 hover:text-ink"
+                }`}
+              >
+                {t("modeManual")}
+              </button>
+            </div>
           </div>
+
           <div className="pt-3">
-            <CommandBlock
-              command={snippet}
-              what={t(`steps.${activeAgent}.step2What`)}
-              where={t(`steps.${activeAgent}.step2Where`)}
-              warn={token ? tOnboarding("tokenOnce") : undefined}
-            />
+            {mode === "prompt" ? (
+              <CommandBlock
+                command={promptText}
+                what={t("step2PromptWhat")}
+                where={t("step2PromptWhere")}
+                copyLabel={t("copyPrompt")}
+                warn={token ? tOnboarding("tokenOnce") : undefined}
+              />
+            ) : (
+              <CommandBlock
+                command={snippet}
+                what={t(`steps.${activeAgent}.step2What`)}
+                where={t(`steps.${activeAgent}.step2Where`)}
+                warn={token ? tOnboarding("tokenOnce") : undefined}
+              />
+            )}
           </div>
         </div>
 

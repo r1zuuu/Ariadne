@@ -451,12 +451,13 @@ export function Status({
   );
 }
 
-export type EmptyStateIllustration = "tasks" | "notifications" | "context" | "compact";
+export type EmptyStateIllustration = "tasks" | "notifications" | "context" | "pending" | "compact";
 
 const EMPTY_STATE_ILLUSTRATIONS: Record<Exclude<EmptyStateIllustration, "compact">, string> = {
   tasks: "/resources/empty-states/no-tasks.png",
   notifications: "/resources/empty-states/no-notifications.png",
   context: "/resources/empty-states/no-context.png",
+  pending: "/resources/empty-states/no-pending-decisions.png",
 };
 
 // Says what the emptiness means and what to do about it.
@@ -479,6 +480,8 @@ export function EmptyState({
     imgSrc = EMPTY_STATE_ILLUSTRATIONS.notifications;
   } else if (illustration === "context") {
     imgSrc = EMPTY_STATE_ILLUSTRATIONS.context;
+  } else if (illustration === "pending") {
+    imgSrc = EMPTY_STATE_ILLUSTRATIONS.pending;
   }
 
   return (

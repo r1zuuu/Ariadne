@@ -702,8 +702,13 @@
       "other": "Dowolny klient MCP"
     },
     "step1Title": "Krok 1: Otwórz narzędzie",
-    "step2Title": "Krok 2: Wklej konfigurację lub polecenie",
+    "step2Title": "Krok 2: Skonfiguruj połączenie",
     "step3Title": "Krok 3: Sprawdź połączenie",
+    "modePrompt": "✨ Prompt dla agenta (Zalecane)",
+    "modeManual": "Ręczna konfiguracja / JSON",
+    "copyPrompt": "Skopiuj prompt",
+    "step2PromptWhat": "Skopiuj poniższy prompt i wklej go w oknie rozmowy ze swoim agentem:",
+    "step2PromptWhere": "Agent sam odnajdzie plik konfiguracyjny, dopisze dane dostępowe i potwierdzi działanie.",
     "steps": {
       "claude-code": {
         "step1": "Otwórz terminal na swoim komputerze (w dowolnym katalogu).",

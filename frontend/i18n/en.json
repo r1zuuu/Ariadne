@@ -702,8 +702,13 @@
       "other": "Any MCP Client"
     },
     "step1Title": "Step 1: Open your tool",
-    "step2Title": "Step 2: Paste the configuration or command",
+    "step2Title": "Step 2: Configure the connection",
     "step3Title": "Step 3: Verify the connection",
+    "modePrompt": "✨ Agent Prompt (Recommended)",
+    "modeManual": "Manual config / JSON",
+    "copyPrompt": "Copy prompt",
+    "step2PromptWhat": "Copy the prompt below and paste it directly into your agent's chat:",
+    "step2PromptWhere": "The agent will locate the config file, insert the credentials, and verify the connection.",
     "steps": {
       "claude-code": {
         "step1": "Open a terminal on your computer (in any directory).",

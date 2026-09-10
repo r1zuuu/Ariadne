@@ -66,7 +66,7 @@ export default function PendingScreen() {
         {feed === null ? (
           <p className="text-body text-ink-3">{t("loading")}</p>
         ) : empty ? (
-          <EmptyState illustration="notifications" title={t("empty")} note={t("emptyNote")} />
+          <EmptyState illustration="pending" title={t("empty")} note={t("emptyNote")} />
         ) : (
           <div className="flex flex-col gap-8">
             {groups.map((group) => (
