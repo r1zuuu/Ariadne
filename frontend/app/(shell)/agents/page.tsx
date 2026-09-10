@@ -101,7 +101,7 @@ export default function AgentsScreen() {
         ) : null}
 
         {/* Form to mint new token */}
-        <Card className="flex flex-wrap items-end gap-5 p-6">
+        <Card className="flex flex-wrap items-end gap-5 border-edge/50 bg-surface/80 p-6 backdrop-blur-sm shadow-card">
           <div className="min-w-[200px] flex-1">
             <Input
               id="agents-token-label"
@@ -127,7 +127,7 @@ export default function AgentsScreen() {
           {tokens === null ? (
             <p className="text-body text-ink-3">{t("loading") ?? "..."}</p>
           ) : tokens.length === 0 ? (
-            <EmptyState title={t("tokensEmpty")} note={t("tokensEmptyNote")} />
+            <EmptyState title={t("tokensEmpty")} note={t("tokensEmptyNote")} illustration="compact" />
           ) : (
             <ul className="divide-y divide-hairline">
               {tokens.map((item) => (
@@ -135,12 +135,17 @@ export default function AgentsScreen() {
                   key={item.id}
                   className="flex flex-wrap items-center justify-between gap-4 py-4"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-body text-ink font-medium">
-                      {item.label || t("noLabel")}
-                    </p>
-                    <div className="pt-1">
-                      <Meta items={[item.lastUsedAt ? t("used") : t("neverUsed")]} />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-plaster-sunk text-ink-3">
+                      <IconToken />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-body text-ink font-medium">
+                        {item.label || t("noLabel")}
+                      </p>
+                      <div className="pt-0.5">
+                        <Meta items={[item.lastUsedAt ? t("used") : t("neverUsed")]} />
+                      </div>
                     </div>
                   </div>
                   <Button

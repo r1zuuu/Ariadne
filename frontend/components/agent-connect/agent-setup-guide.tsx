@@ -47,40 +47,38 @@ export function AgentSetupGuide({
   return (
     <div className="space-y-7">
       {/* Agent Selector */}
-      <div className="border-y border-hairline py-3">
-        <Field id="agent-selector" label={t("label")}>
-          <div
-            role="radiogroup"
-            aria-labelledby="agent-selector"
-            className="flex flex-wrap gap-4 py-2"
-          >
-            {SUPPORTED_AGENTS.map((opt) => (
-              <label
+      <div className="border-y border-hairline py-4">
+        <p className="pb-2.5 text-small font-medium text-ink">{t("label")}</p>
+        <div
+          role="radiogroup"
+          aria-label={t("label")}
+          className="flex flex-wrap gap-2"
+        >
+          {SUPPORTED_AGENTS.map((opt) => {
+            const isSelected = activeAgent === opt;
+            return (
+              <button
                 key={opt}
-                className={`flex cursor-pointer items-center gap-2.5 rounded-control border px-3.5 py-2 text-small font-medium transition-colors duration-state ${
-                  activeAgent === opt
-                    ? "border-thread bg-thread-soft text-thread"
-                    : "border-edge/60 bg-surface text-ink-2 hover:bg-plaster-sunk hover:text-ink"
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
+                onClick={() => setAgent(opt)}
+                className={`rounded-control border px-3.5 py-2 text-small font-medium transition-all duration-state ${
+                  isSelected
+                    ? "border-thread/80 bg-thread-soft text-thread-lift shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
+                    : "border-edge/50 bg-surface/70 text-ink-2 hover:border-edge hover:bg-surface hover:text-ink"
                 }`}
               >
-                <input
-                  type="radio"
-                  name="agent-choice"
-                  value={opt}
-                  checked={activeAgent === opt}
-                  onChange={() => setAgent(opt)}
-                  className="sr-only"
-                />
-                <span>{t(`options.${opt}`)}</span>
-              </label>
-            ))}
-          </div>
-        </Field>
+                {t(`options.${opt}`)}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Scope / Repo match notice */}
       {showRepoNotice ? (
-        <div className="rounded-control border border-edge/60 bg-plaster-sunk p-5">
+        <div className="rounded-control border border-edge/50 bg-plaster-sunk/80 p-5">
           <p className="measure text-small text-ink">{t("tips.onceOnly")}</p>
           {joinedWorkspace ? (
             <>
@@ -115,19 +113,29 @@ export function AgentSetupGuide({
         </div>
       ) : null}
 
-      {/* Step by Step Guide */}
-      <div className="space-y-6">
+      {/* Step by Step Guide with numbered badges */}
+      <div className="space-y-5">
         {/* Step 1 */}
-        <div className="rounded-control border border-hairline bg-surface p-5 shadow-card">
-          <h3 className="text-small font-semibold text-ink">{t("step1Title")}</h3>
-          <p className="measure pt-2 text-small text-ink-2">
+        <div className="rounded-card border border-edge/40 bg-surface/70 p-5 shadow-card backdrop-blur-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-thread/15 text-data font-semibold text-thread">
+              1
+            </span>
+            <h3 className="text-small font-semibold text-ink">{t("step1Title")}</h3>
+          </div>
+          <p className="measure pt-2.5 text-small text-ink-2 leading-relaxed">
             {t(`steps.${activeAgent}.step1`)}
           </p>
         </div>
 
         {/* Step 2 */}
-        <div className="rounded-control border border-hairline bg-surface p-5 shadow-card">
-          <h3 className="text-small font-semibold text-ink">{t("step2Title")}</h3>
+        <div className="rounded-card border border-edge/40 bg-surface/70 p-5 shadow-card backdrop-blur-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-thread/15 text-data font-semibold text-thread">
+              2
+            </span>
+            <h3 className="text-small font-semibold text-ink">{t("step2Title")}</h3>
+          </div>
           <div className="pt-3">
             <CommandBlock
               command={snippet}
@@ -139,9 +147,14 @@ export function AgentSetupGuide({
         </div>
 
         {/* Step 3 */}
-        <div className="rounded-control border border-hairline bg-surface p-5 shadow-card">
-          <h3 className="text-small font-semibold text-ink">{t("step3Title")}</h3>
-          <p className="measure pt-2 text-small text-ink-2">
+        <div className="rounded-card border border-edge/40 bg-surface/70 p-5 shadow-card backdrop-blur-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-thread/15 text-data font-semibold text-thread">
+              3
+            </span>
+            <h3 className="text-small font-semibold text-ink">{t("step3Title")}</h3>
+          </div>
+          <p className="measure pt-2.5 text-small text-ink-2 leading-relaxed">
             {t(`steps.${activeAgent}.step3`, {
               cmd:
                 activeAgent === "claude-code"
