@@ -748,6 +748,7 @@
   "agentsPage": {
     "title": "Połącz agenta",
     "lead": "Zarządzaj tokenami dostępu i sprawdź instrukcje łączenia dla swojego narzędzia kodującego.",
+    "loading": "Wczytuję...",
     "tokensTitle": "Tokeny dostępu",
     "tokensLead": "Jeden token wystarcza na cały komputer i sięga wszystkich Twoich archiwów. Ze względów bezpieczeństwa token widzisz tylko w momencie utworzenia.",
     "mint": "Utwórz token",

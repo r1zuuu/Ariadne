@@ -748,6 +748,7 @@
   "agentsPage": {
     "title": "Connect agent",
     "lead": "Manage access tokens and find setup instructions for your coding tool.",
+    "loading": "Loading...",
     "tokensTitle": "Access tokens",
     "tokensLead": "One token per machine covers all your archives. For security, a token is only shown when created.",
     "mint": "Generate token",

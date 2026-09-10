@@ -18,6 +18,7 @@ import {
   IconSignOut,
   IconTasks,
   IconTeams,
+  IconToken,
 } from "@/components/icons";
 import { clearToken, type Project } from "@/lib/api";
 
@@ -35,6 +36,7 @@ export type Section =
   | "database"
   | "pending"
   | "teams"
+  | "agents"
   | "settings";
 
 // `label` is not always the section name: "database" is what the screen has
@@ -90,6 +92,13 @@ const ACCOUNT_LINKS: NavLink[] = [
     href: "/teams",
     needsProject: false,
     icon: <IconTeams />,
+  },
+  {
+    section: "agents",
+    label: "agents",
+    href: "/agents",
+    needsProject: false,
+    icon: <IconToken />,
   },
   {
     section: "settings",
