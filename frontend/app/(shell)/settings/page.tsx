@@ -91,6 +91,7 @@ export default function SettingsScreen() {
           <EmptyState
             title={t("accountError")}
             note={t("accountErrorNote")}
+            illustration="compact"
             action={
               <Button variant="secondary" onClick={loadAccount}>
                 {t("retry")}
@@ -564,6 +565,7 @@ function SkillsSection({ toast }: { toast: Toast }) {
         <EmptyState
           title={t("skillsError")}
           note={t("skillsErrorNote")}
+          illustration="compact"
           action={
             <Button variant="secondary" onClick={load}>
               {t("retry")}
