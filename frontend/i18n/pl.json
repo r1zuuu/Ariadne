@@ -401,8 +401,8 @@
     "noMatchNote": "Zadania są na miejscu, tylko żadne nie odpowiada temu, czego szukasz.",
     "clearFilters": "Wyczyść filtry",
     "markDone": "Oznacz jako zrobione",
-    "reopen": "Przywróć do zrobienia",
-    "start": "Rozpocznij pracę",
+    "reopen": "Przywróć",
+    "start": "Rozpocznij",
     "details": "Szczegóły",
     "identifier": "Identyfikator",
     "createdOn": "utworzono {date}",
@@ -411,7 +411,9 @@
     "clearSearch": "Wyczyść wyszukiwanie",
     "titlePlaceholder": "np. Zaimplementuj obsługę webhooków",
     "descriptionPlaceholder": "Krótki opis celu i zakresu zadania",
-    "blockedLabel": "Powód blokady"
+    "blockedLabel": "Powód blokady",
+    "startHint": "Rozpocznij pracę nad tym zadaniem",
+    "reopenHint": "Przywróć do zrobienia"
   },
   "project": {
     "title": "Projekt",

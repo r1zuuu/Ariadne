@@ -401,8 +401,8 @@
     "noMatchNote": "The tasks are still there; none of them answers what you are looking for.",
     "clearFilters": "Clear the filters",
     "markDone": "Mark as done",
-    "reopen": "Move back to to-do",
-    "start": "Start work",
+    "reopen": "Reopen",
+    "start": "Start",
     "details": "Details",
     "identifier": "Identifier",
     "createdOn": "created {date}",
@@ -411,7 +411,9 @@
     "clearSearch": "Clear search",
     "titlePlaceholder": "e.g. Implement webhook delivery",
     "descriptionPlaceholder": "A short note on the goal and the scope",
-    "blockedLabel": "Reason for the block"
+    "blockedLabel": "Reason for the block",
+    "startHint": "Start work on this task",
+    "reopenHint": "Move back to to-do"
   },
   "project": {
     "title": "Project",

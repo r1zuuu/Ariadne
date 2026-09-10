@@ -484,14 +484,18 @@ function TaskRow({
   return (
     <li>
       <details className="group rounded-card border border-edge/40 bg-surface/40 transition-colors duration-state hover:border-edge hover:bg-surface/70">
-        <summary className="flex cursor-pointer list-none items-start gap-5 px-5 py-4 marker:hidden">
-          {/* Three columns on a wide screen, one on a narrow one. Prose left,
-              state in a column of its own so fifteen rows can be scanned down
-              the status rather than read across, actions on the edge. Stretching
-              the title alone to 1240px and leaving the buttons a screen away
-              would use the width without giving anything back. */}
-          <div className="min-w-0 flex-1 lg:flex lg:items-start lg:gap-6">
-            <div className="min-w-0 flex-1">
+        {/* Three tracks on a wide screen, one on a narrow one. Prose left, state
+            in a column of its own so fifteen rows can be scanned down the status
+            instead of read across, actions on the edge.
+            
+            The two right-hand tracks are fixed widths, and that is the point:
+            with an auto-sized action column a row carrying two buttons was 330px
+            wide and a row carrying one was 190px, so the status of every second
+            row started 140px further left and the column zig-zagged down the
+            page. Below the breakpoint the three stack, and the metadata sits
+            under the title where its left edge cannot move at all. */}
+        <summary className="flex cursor-pointer list-none flex-col gap-3 px-5 py-4 marker:hidden xl:grid xl:grid-cols-[minmax(0,1fr)_240px_290px] xl:items-start xl:gap-6">
+            <div className="min-w-0">
               <TaskTitle task={task} onRename={onRename} onClickCapture={swallow} />
 
               {task.status === "blocked" && task.blockedReason ? (
@@ -505,11 +509,11 @@ function TaskRow({
               ) : null}
             </div>
 
-            {/* flex-nowrap at lg is load-bearing: a wrapping flex column wraps
-                into extra columns rather than extra rows, so the metadata grew
-                sideways past its 250px and pushed the whole page into a
+            {/* flex-nowrap in the column is load-bearing: a wrapping flex column
+                wraps into extra columns rather than extra rows, so the metadata
+                grew sideways past its track and pushed the page into a
                 horizontal scrollbar. */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2.5 lg:w-[280px] lg:shrink-0 lg:flex-col lg:flex-nowrap lg:items-start lg:gap-2 lg:pt-0">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 xl:flex-col xl:flex-nowrap xl:items-start xl:gap-2">
               <span className="flex items-center gap-3">
                 <Status
                   tone={
@@ -543,31 +547,46 @@ function TaskRow({
                 // The channel word only where it says something. A task filed
                 // through the app form was filed by a person, so "człowiek ·
                 // utworzył stanisław" spends a third of the line restating the
-                // next two words - and pushed the date onto a second line
-                // beginning with a middle dot.
+                // next two words.
                 <Meta
                   items={
                     task.source?.channel === "coder"
-                      ? [t("agent"), author, t("updatedOn", { date: stamp(task.updatedAt) })]
-                      : [author ?? t("human"), t("updatedOn", { date: stamp(task.updatedAt) })]
+                      ? [t("agent"), author]
+                      : [author ?? t("human")]
                   }
                 />
               )}
+              {/* Its own line rather than a third item in the metadata string.
+                  Strung on the end it was the item that wrapped, and a wrapped
+                  Meta starts the new line with the separator dot that belonged
+                  to the line above. On its own it also gives the list a date
+                  column to scan. */}
+              <span className="text-data text-ink-3">
+                {t("updatedOn", { date: stamp(task.updatedAt) })}
+              </span>
             </div>
-          </div>
 
-          <div className="flex shrink-0 items-center gap-2" onClickCapture={swallow}>
+          <div
+            className="flex items-center gap-2 xl:justify-end"
+            onClickCapture={swallow}
+          >
             {task.status === "todo" || task.status === "backlog" ? (
               <Button
                 size="sm"
                 variant="quiet"
+                title={t("startHint")}
                 onClick={() => void onStatus(task, "in_progress")}
               >
                 {t("start")}
               </Button>
             ) : null}
             {task.status === "done" ? (
-              <Button size="sm" variant="quiet" onClick={() => void onStatus(task, "todo")}>
+              <Button
+                size="sm"
+                variant="quiet"
+                title={t("reopenHint")}
+                onClick={() => void onStatus(task, "todo")}
+              >
                 {t("reopen")}
               </Button>
             ) : (
