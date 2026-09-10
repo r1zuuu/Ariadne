@@ -413,10 +413,19 @@ const STATUS_TONES = {
 
 // Calm, semantic status mark: clean dots and shapes that read naturally
 // on dark surfaces without decorative noise.
-export function StatusMark({ tone }: { tone: keyof typeof STATUS_TONES }) {
+export function StatusMark({
+  tone,
+  size = 8,
+}: {
+  tone: keyof typeof STATUS_TONES;
+  /** 8px beside a word in a badge; larger where the mark carries the status on
+   *  its own at the head of a list row. The shapes are drawn on an 8-unit grid
+   *  and scale with the viewBox, so there is one set of them. */
+  size?: number;
+}) {
   const shared = {
-    width: 8,
-    height: 8,
+    width: size,
+    height: size,
     viewBox: "0 0 8 8",
     fill: "none" as const,
     stroke: "currentColor",

@@ -15,7 +15,7 @@ import {
   Meta,
   PageHeader,
   Select,
-  Status,
+  StatusMark,
   Textarea,
 } from "@/components/ui";
 import {
@@ -451,13 +451,18 @@ export default function TasksScreen() {
             // with the data sitting right there in the DOM. The signal wanted
             // here is "this list is now a different list", and one fade says it.
             <FadeIn key={tab}>
-              {/* A column of flex items, not a grid. A grid item carries
+              {/* One frame around the list, hairlines between the rows - not
+                  fifteen bordered cards stacked with a gap. A card per row draws
+                  the same box fifteen times and the eye reads the boxes before
+                  it reads any of the titles.
+
+                  A column of flex items, not a grid. A grid item carries
                   min-width:auto, so the single implicit track was sized to the
                   widest row's min-content - 1723px against a 1240px canvas - and
                   every row hung out past the page into a horizontal scrollbar.
                   A column flex container stretches its items to its own width
                   instead, which is what a list wants. */}
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col divide-y divide-hairline overflow-hidden rounded-card border border-hairline">
                 {tasks.map((task) => (
                   <TaskRow
                     key={task.id}
@@ -525,67 +530,74 @@ function TaskRow({
 
   return (
     <li>
-      <details className="group rounded-card border border-edge/40 bg-surface/40 transition-colors duration-state hover:border-edge hover:bg-surface/70">
-        {/* Three tracks on a wide screen, one on a narrow one. Prose left, state
-            in a column of its own so fifteen rows can be scanned down the status
-            instead of read across, actions on the edge.
-            
-            The two right-hand tracks are fixed widths, and that is the point:
-            with an auto-sized action column a row carrying two buttons was 330px
-            wide and a row carrying one was 190px, so the status of every second
-            row started 140px further left and the column zig-zagged down the
-            page. Below the breakpoint the three stack, and the metadata sits
-            under the title where its left edge cannot move at all. */}
-        <summary className="flex cursor-pointer list-none flex-col gap-3 px-5 py-4 marker:hidden xl:grid xl:grid-cols-[minmax(0,1fr)_240px_290px] xl:items-start xl:gap-6">
-          <div className="min-w-0">
-            <TaskTitle
-              task={task}
-              onRename={onRename}
-              onClickCapture={swallow}
-            />
+      <details className="group transition-colors duration-state hover:bg-surface/40 open:bg-surface/40">
+        {/* The mark, the title, the rest.
 
-            {task.status === "blocked" && task.blockedReason ? (
-              <p className="truncate pt-1.5 text-small text-iron">
-                {t("blockedLabel")}: {task.blockedReason}
-              </p>
-            ) : task.description ? (
-              // One line. The second line of a preview never finished a
-              // sentence either, and it cost every row 25px.
-              <p className="truncate pt-1.5 text-small text-ink-2">
-                {task.description}
-              </p>
-            ) : null}
+            Status used to be a filled pill in its own colour on every row, with
+            the priority beside it in a second colour, so a screen of fifteen
+            tasks read as fifteen coloured tags and the titles came third. It is
+            one 14px mark at the head of the row now - the same four shapes the
+            rest of the app uses for a state - and the word for it sits in the
+            grey metadata line where every other fact about the task already is.
+            The colour budget for a row is that one mark.
+
+            Three tracks on a wide screen, one on a narrow one, and the two
+            right-hand tracks are fixed widths: with an auto-sized action column
+            a row carrying two buttons was 330px and a row carrying one was
+            190px, so the status of every second row started 140px further along
+            and the column zig-zagged down the page. */}
+        <summary className="flex cursor-pointer list-none flex-col gap-3 px-5 py-3.5 marker:hidden xl:grid xl:grid-cols-[minmax(0,1fr)_230px_290px] xl:items-start xl:gap-6">
+          <div className="flex min-w-0 items-start gap-3">
+            <span
+              className={`flex h-[26px] shrink-0 items-center ${STATUS_MARK_TONE[task.status]}`}
+              title={t(`status.${task.status}`)}
+            >
+              <StatusMark tone={markTone(task.status)} size={14} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <TaskTitle
+                task={task}
+                onRename={onRename}
+                onClickCapture={swallow}
+              />
+
+              {task.status === "blocked" && task.blockedReason ? (
+                <p
+                  className="truncate pt-1 text-small text-ink-3"
+                  title={task.blockedReason ?? undefined}
+                >
+                  {t("blockedLabel")}: {task.blockedReason}
+                </p>
+              ) : task.description ? (
+                // One line. The second line of a preview never finished a
+                // sentence either, and it cost every row 25px.
+                <p className="truncate pt-1 text-small text-ink-3">
+                  {task.description}
+                </p>
+              ) : null}
+            </div>
           </div>
 
-          {/* flex-nowrap in the column is load-bearing: a wrapping flex column
-                wraps into extra columns rather than extra rows, so the metadata
-                grew sideways past its track and pushed the page into a
-                horizontal scrollbar. */}
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 xl:flex-col xl:flex-nowrap xl:items-start xl:gap-2">
-            <span className="flex items-center gap-3">
-              <Status
-                tone={
-                  task.status === "backlog" || task.status === "archived"
-                    ? "archived"
-                    : task.status
-                }
-              >
-                {t(`status.${task.status}`)}
-              </Status>
-              {/* Only the two that change what you do next. "Średni" on every
-                    second row is a column of the word "medium". */}
-              {task.priority === "high" || task.priority === "critical" ? (
-                <span
-                  className={`text-data font-medium ${
-                    task.priority === "critical" ? "text-iron" : "text-ochre"
-                  }`}
-                >
-                  {t(`priority.${task.priority}`)}
-                </span>
-              ) : null}
-            </span>
+          {/* Everything a person reads about the task after its name, in one
+              voice. flex-nowrap in the column is load-bearing: a wrapping flex
+              column wraps into extra columns rather than extra rows, so the
+              metadata grew sideways past its track and pushed the page into a
+              horizontal scrollbar. */}
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 pl-[26px] xl:flex-col xl:flex-nowrap xl:items-start xl:gap-1 xl:pl-0">
+            <Meta
+              items={[
+                t(`status.${task.status}`),
+                task.priority === "critical" ? (
+                  <span key="priority" className="text-iron">
+                    {t(`priority.${task.priority}`)}
+                  </span>
+                ) : task.priority === "high" ? (
+                  t(`priority.${task.priority}`)
+                ) : null,
+              ]}
+            />
             {runs.length > 0 ? (
-              <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <LiveMark />
                 <Meta
                   items={runs.map(
@@ -595,8 +607,8 @@ function TaskRow({
               </span>
             ) : (
               // The channel word only where it says something. A task filed
-              // through the app form was filed by a person, so "człowiek ·
-              // utworzył stanisław" spends a third of the line restating the
+              // through the app form was filed by a person, so "czlowiek ·
+              // utworzyl stanislaw" spends a third of the line restating the
               // next two words.
               <Meta
                 items={
@@ -606,17 +618,17 @@ function TaskRow({
                 }
               />
             )}
-            {/* Its own line rather than a third item in the metadata string.
-                  Strung on the end it was the item that wrapped, and a wrapped
-                  Meta starts the new line with the separator dot that belonged
-                  to the line above. On its own it also gives the list a date
-                  column to scan. */}
+            {/* Its own line rather than another item in the metadata string.
+                Strung on the end it was the item that wrapped, and a wrapped
+                Meta starts the new line with the separator dot that belonged to
+                the line above. On its own it also gives the list a date column
+                to scan. */}
             <span className="text-data text-ink-3">
               {t("updatedOn", { date: stamp(task.updatedAt) })}
             </span>
           </div>
 
-          <div className="flex items-center gap-2 xl:justify-end">
+          <div className="flex items-center gap-2 pl-[26px] xl:justify-end xl:pl-0">
             {/* The chevron is deliberately outside this wrapper: it is the one
                 control in the row whose job is to open the row. */}
             <div className="flex items-center gap-2" onClick={swallow}>
@@ -670,15 +682,10 @@ function TaskRow({
           </div>
         </summary>
 
-        <div className="border-t border-hairline px-5 py-4">
+        <div className="border-t border-hairline bg-plaster-sunk/40 py-4 pl-[38px] pr-5">
           <p className="measure-wide whitespace-pre-wrap text-small text-ink-2">
             {task.description || t("noDescription")}
           </p>
-          {task.blockedReason ? (
-            <p className="measure-wide pt-3 text-small text-iron">
-              {t("blockedLabel")}: {task.blockedReason}
-            </p>
-          ) : null}
           <div className="pt-4">
             <Meta
               items={[
@@ -788,6 +795,22 @@ function TaskTitle({
       {task.title}
     </button>
   );
+}
+
+// The one place colour is spent on a task row: the hue is the project's own
+// status colour, carried by a 14px shape instead of a filled tag.
+const STATUS_MARK_TONE: Record<TaskStatus, string> = {
+  backlog: "text-stone",
+  todo: "text-ochre",
+  in_progress: "text-aegean",
+  blocked: "text-iron",
+  done: "text-laurel",
+  archived: "text-stone",
+};
+
+/** StatusMark draws four shapes; backlog borrows the archived dash. */
+function markTone(status: TaskStatus) {
+  return status === "backlog" ? ("archived" as const) : status;
 }
 
 // An agent has this task open right now. The dot is the one thing on the screen
