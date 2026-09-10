@@ -3,7 +3,6 @@
 import { useTranslations } from "next-intl";
 import { openExternal } from "@/lib/desktop";
 import { useRef, useState } from "react";
-import { CommandBlock } from "./command-block";
 import { Button, Field, Label } from "./ui";
 import {
   GEMINI_KEY_CONSOLE,
@@ -16,8 +15,10 @@ import {
 // The three step bodies. The orchestrator in app/onboarding/page.tsx owns the
 // state, the network and the navigation; these only render and report changes.
 
-const AGENTS = ["claude-code", "codex", "other"] as const;
-export type Agent = (typeof AGENTS)[number];
+import { SUPPORTED_AGENTS, type SupportedAgent, AgentSetupGuide } from "./agent-connect";
+
+export const AGENTS = SUPPORTED_AGENTS;
+export type Agent = SupportedAgent;
 
 export const PROFILE_QUESTIONS = ["q1", "q2", "q3", "q4"] as const;
 export type Answers = Record<(typeof PROFILE_QUESTIONS)[number], string>;
@@ -467,8 +468,7 @@ export function JoinStep({
   );
 }
 
-// Step 3. Claude Code gets a command; the others get the same token with an
-// honest sentence saying there is no ready-made command for them.
+// Step 4. Step-by-step connection guide for Claude Code, Antigravity, Gemini CLI, Codex, and others.
 export function AgentStep({
   agent,
   token,
@@ -497,55 +497,6 @@ export function AgentStep({
   return (
     <div>
       <h1 className="text-title">{t("title")}</h1>
-      <div className="mt-7 border-y border-hairline">
-        <Field id="agent" label={t("label")}>
-          <div role="radiogroup" aria-labelledby="agent" className="flex flex-wrap gap-6 py-3">
-            {AGENTS.map((option) => (
-              <label key={option} className="flex cursor-pointer items-center gap-3 text-body">
-                <input
-                  type="radio"
-                  name="agent"
-                  value={option}
-                  checked={agent === option}
-                  onChange={() => onAgent(option)}
-                  className="accent-thread"
-                />
-                {t(`option.${option}`)}
-              </label>
-            ))}
-          </div>
-        </Field>
-      </div>
-
-      {/* Two things that only become wrong later, said before the command
-          rather than after it fails.
-
-          The first is that --scope user registers this once for the whole
-          machine. Standing inside a per-project wizard, the command reads as
-          something to repeat for every project, and the second attempt answers
-          "already exists in user config" - which looks like a refusal to have
-          more than one project, and is in fact the opposite.
-
-          The second is the address: a coder reports the directory it was
-          started in, and if that is not this project's, the archive it finds is
-          a different one or none at all. */}
-      <div className="mt-7 rounded-control border border-edge/60 bg-plaster-sunk p-5">
-        <p className="measure text-small text-ink">{t("onceOnly")}</p>
-        {joinedWorkspace ? (
-          <>
-            <p className="measure pt-3 text-small text-ink">
-              {t("joinedArchive", { name: joinedWorkspace })}
-            </p>
-            <p className="measure pt-3 text-small text-ink-2">{t("joinedWhereToRun")}</p>
-          </>
-        ) : (
-          <>
-            <p className="measure pt-3 text-small text-ink">{t("whereToRun")}</p>
-            <p className="pt-3 font-mono text-data text-ink-2">{repoRef}</p>
-            <p className="measure pt-3 text-small text-ink-2">{t("mustMatch")}</p>
-          </>
-        )}
-      </div>
 
       <div className="pt-6">
         {failed || !token ? (
@@ -557,23 +508,17 @@ export function AgentStep({
               </Button>
             </div>
           </div>
-        ) : agent === "claude-code" ? (
-          <CommandBlock
-            command={`claude mcp add --scope user --transport http ariadne ${host}/mcp --header "Authorization: Bearer ${token}"`}
-            what={t("what")}
-            where={t("where")}
-            warn={t("tokenOnce")}
-          />
         ) : (
-          <div>
-            <p className="measure text-small text-ink-2">{t("other.note", { url: `${host}/mcp` })}</p>
-            <CommandBlock
-              command={token}
-              what={t("tokenWhat")}
-              where={t("tokenWhere")}
-              warn={t("tokenOnce")}
-            />
-          </div>
+          <AgentSetupGuide
+            agent={agent}
+            token={token}
+            host={host}
+            repoRef={repoRef}
+            joinedWorkspace={joinedWorkspace}
+            onAgentChange={onAgent}
+            onMintNewToken={onRegenerate}
+            showRepoNotice={true}
+          />
         )}
       </div>
     </div>
