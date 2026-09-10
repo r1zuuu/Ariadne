@@ -33,7 +33,11 @@ type Tab = "all" | "todo" | "in_progress" | "blocked" | "done";
 const TABS: Tab[] = ["all", "todo", "in_progress", "blocked", "done"];
 const PRIORITIES: TaskPriority[] = ["low", "medium", "high", "critical"];
 
-const EMPTY_CREATE = { title: "", description: "", priority: "medium" as TaskPriority };
+const EMPTY_CREATE = {
+  title: "",
+  description: "",
+  priority: "medium" as TaskPriority,
+};
 
 /** One page of the list. Counters are only true while the whole list fits in one. */
 const PAGE_SIZE = 50;
@@ -68,7 +72,10 @@ export default function TasksScreen() {
 
   const stamp = useCallback(
     (iso: string) =>
-      new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(new Date(iso)),
+      new Intl.DateTimeFormat(locale, {
+        day: "numeric",
+        month: "short",
+      }).format(new Date(iso)),
     [locale],
   );
 
@@ -96,7 +103,9 @@ export default function TasksScreen() {
       setError(null);
       try {
         const page = await listTasks(projectId, { ...filters, cursor });
-        setTasks((prev) => (cursor && prev ? [...prev, ...page.tasks] : page.tasks));
+        setTasks((prev) =>
+          cursor && prev ? [...prev, ...page.tasks] : page.tasks,
+        );
         setNextCursor(page.nextCursor);
         if (tab === "all" && !query.trim() && !cursor) {
           // Only when the unfiltered list arrived whole. Past one page these are
@@ -108,10 +117,15 @@ export default function TasksScreen() {
               ? {}
               : {
                   all: page.tasks.length,
-                  todo: page.tasks.filter((row) => row.status === "todo").length,
-                  in_progress: page.tasks.filter((row) => row.status === "in_progress").length,
-                  blocked: page.tasks.filter((row) => row.status === "blocked").length,
-                  done: page.tasks.filter((row) => row.status === "done").length,
+                  todo: page.tasks.filter((row) => row.status === "todo")
+                    .length,
+                  in_progress: page.tasks.filter(
+                    (row) => row.status === "in_progress",
+                  ).length,
+                  blocked: page.tasks.filter((row) => row.status === "blocked")
+                    .length,
+                  done: page.tasks.filter((row) => row.status === "done")
+                    .length,
                 },
           );
         }
@@ -222,23 +236,31 @@ export default function TasksScreen() {
             note={t("unreachableNote")}
             illustration="compact"
             action={
-              <Button variant="secondary" onClick={() => void refreshProjects()}>
+              <Button
+                variant="secondary"
+                onClick={() => void refreshProjects()}
+              >
                 {t("retry")}
               </Button>
             }
           />
         ) : projects !== null && projects.length === 0 ? (
-          <EmptyState title={t("noProject")} note={t("noProjectNote")} illustration="context" />
+          <EmptyState
+            title={t("noProject")}
+            note={t("noProjectNote")}
+            illustration="context"
+          />
         ) : (
           <p className="text-body text-ink-3">{t("loading")}</p>
         )
       ) : (
         <>
           <Collapse open={createOpen}>
-            <Card as="section" className="mb-6 p-6">
-              {/* The form is a column, not the full canvas: a 1240px-wide title
-                  field would be a database row rather than a question. */}
-              <div className="grid max-w-[620px] gap-5">
+            {/* The form is a column, not the full canvas: a 1240px-wide title
+                field would be a database row rather than a question, and a card
+                three quarters empty to the right of it is worse. */}
+            <Card as="section" className="mb-6 max-w-[680px] p-6">
+              <div className="grid gap-5">
                 <Input
                   id="task-title"
                   label={t("field.title")}
@@ -247,7 +269,10 @@ export default function TasksScreen() {
                   placeholder={t("titlePlaceholder")}
                   autoFocus={createOpen}
                   onChange={(event) =>
-                    setCreateDraft((draft) => ({ ...draft, title: event.target.value }))
+                    setCreateDraft((draft) => ({
+                      ...draft,
+                      title: event.target.value,
+                    }))
                   }
                 />
                 <Textarea
@@ -257,7 +282,10 @@ export default function TasksScreen() {
                   value={createDraft.description}
                   placeholder={t("descriptionPlaceholder")}
                   onChange={(event) =>
-                    setCreateDraft((draft) => ({ ...draft, description: event.target.value }))
+                    setCreateDraft((draft) => ({
+                      ...draft,
+                      description: event.target.value,
+                    }))
                   }
                 />
                 <Select
@@ -265,7 +293,10 @@ export default function TasksScreen() {
                   label={t("field.priority")}
                   value={createDraft.priority}
                   onChange={(value) =>
-                    setCreateDraft((draft) => ({ ...draft, priority: value as TaskPriority }))
+                    setCreateDraft((draft) => ({
+                      ...draft,
+                      priority: value as TaskPriority,
+                    }))
                   }
                   options={PRIORITIES.map((priority) => ({
                     value: priority,
@@ -292,13 +323,13 @@ export default function TasksScreen() {
               border-b on this strip - 3px above the first card's own top border,
               which is where the double edge over the list came from. The gap
               below does the separating. */}
-          <div className="flex flex-col gap-4 pb-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-4 pb-5 xl:flex-row xl:items-center xl:justify-between">
             {/* No wrapping. Five filters that reflow to a second line leave one of
                 them stranded there and make the strip taller than the field
                 beside it; a group that scrolls inside itself keeps the row one
                 row at every width, and the page never scrolls sideways. */}
             <div
-              className="-mx-1 flex gap-1 overflow-x-auto rounded-control border border-edge/50 bg-plaster-sunk p-1 lg:mx-0 lg:w-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className="flex gap-1 overflow-x-auto rounded-control border border-edge/50 bg-plaster-sunk p-1 xl:w-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               role="tablist"
               aria-label={t("filters")}
             >
@@ -329,7 +360,7 @@ export default function TasksScreen() {
               ))}
             </div>
 
-            <div className="relative w-full lg:w-[300px]">
+            <div className="relative w-full xl:w-[300px]">
               <Input
                 id="task-search"
                 placeholder={t("search")}
@@ -403,7 +434,11 @@ export default function TasksScreen() {
                 title={t("empty")}
                 note={t("emptyNote")}
                 illustration="tasks"
-                action={<Button onClick={() => setCreateOpen(true)}>{t("create")}</Button>}
+                action={
+                  <Button onClick={() => setCreateOpen(true)}>
+                    {t("create")}
+                  </Button>
+                }
               />
             )
           ) : (
@@ -475,10 +510,17 @@ function TaskRow({
 }) {
   const t = useTranslations("tasks");
   const runs = freshRuns(task.activeRuns);
-  const author = task.createdBy ? t("createdBy", { who: who(task.createdBy) }) : null;
+  const author = task.createdBy
+    ? t("createdBy", { who: who(task.createdBy) })
+    : null;
 
   // A click that lands on the title or on an action is about that control, not
   // about opening the row, and a <summary> toggles on anything that reaches it.
+  //
+  // Bubble phase, not capture. onClickCapture on the wrapper stopped the event
+  // on its way down, before it ever reached the button inside - so "mark as
+  // done" silently did nothing. Stopping it on the way back up lets the button
+  // fire first and only then keeps it away from the summary.
   const swallow = (event: React.MouseEvent) => event.stopPropagation();
 
   return (
@@ -495,111 +537,134 @@ function TaskRow({
             page. Below the breakpoint the three stack, and the metadata sits
             under the title where its left edge cannot move at all. */}
         <summary className="flex cursor-pointer list-none flex-col gap-3 px-5 py-4 marker:hidden xl:grid xl:grid-cols-[minmax(0,1fr)_240px_290px] xl:items-start xl:gap-6">
-            <div className="min-w-0">
-              <TaskTitle task={task} onRename={onRename} onClickCapture={swallow} />
+          <div className="min-w-0">
+            <TaskTitle
+              task={task}
+              onRename={onRename}
+              onClickCapture={swallow}
+            />
 
-              {task.status === "blocked" && task.blockedReason ? (
-                <p className="truncate pt-1.5 text-small text-iron">
-                  {t("blockedLabel")}: {task.blockedReason}
-                </p>
-              ) : task.description ? (
-                // One line. The second line of a preview never finished a
-                // sentence either, and it cost every row 25px.
-                <p className="truncate pt-1.5 text-small text-ink-2">{task.description}</p>
-              ) : null}
-            </div>
+            {task.status === "blocked" && task.blockedReason ? (
+              <p className="truncate pt-1.5 text-small text-iron">
+                {t("blockedLabel")}: {task.blockedReason}
+              </p>
+            ) : task.description ? (
+              // One line. The second line of a preview never finished a
+              // sentence either, and it cost every row 25px.
+              <p className="truncate pt-1.5 text-small text-ink-2">
+                {task.description}
+              </p>
+            ) : null}
+          </div>
 
-            {/* flex-nowrap in the column is load-bearing: a wrapping flex column
+          {/* flex-nowrap in the column is load-bearing: a wrapping flex column
                 wraps into extra columns rather than extra rows, so the metadata
                 grew sideways past its track and pushed the page into a
                 horizontal scrollbar. */}
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 xl:flex-col xl:flex-nowrap xl:items-start xl:gap-2">
-              <span className="flex items-center gap-3">
-                <Status
-                  tone={
-                    task.status === "backlog" || task.status === "archived"
-                      ? "archived"
-                      : task.status
-                  }
-                >
-                  {t(`status.${task.status}`)}
-                </Status>
-                {/* Only the two that change what you do next. "Średni" on every
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 xl:flex-col xl:flex-nowrap xl:items-start xl:gap-2">
+            <span className="flex items-center gap-3">
+              <Status
+                tone={
+                  task.status === "backlog" || task.status === "archived"
+                    ? "archived"
+                    : task.status
+                }
+              >
+                {t(`status.${task.status}`)}
+              </Status>
+              {/* Only the two that change what you do next. "Średni" on every
                     second row is a column of the word "medium". */}
-                {task.priority === "high" || task.priority === "critical" ? (
-                  <span
-                    className={`text-data font-medium ${
-                      task.priority === "critical" ? "text-iron" : "text-ochre"
-                    }`}
-                  >
-                    {t(`priority.${task.priority}`)}
-                  </span>
-                ) : null}
-              </span>
-              {runs.length > 0 ? (
-                <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                  <LiveMark />
-                  <Meta
-                    items={runs.map((run) => run.agentClient || t(`agentKind.${run.agentKind}`))}
-                  />
+              {task.priority === "high" || task.priority === "critical" ? (
+                <span
+                  className={`text-data font-medium ${
+                    task.priority === "critical" ? "text-iron" : "text-ochre"
+                  }`}
+                >
+                  {t(`priority.${task.priority}`)}
                 </span>
-              ) : (
-                // The channel word only where it says something. A task filed
-                // through the app form was filed by a person, so "człowiek ·
-                // utworzył stanisław" spends a third of the line restating the
-                // next two words.
+              ) : null}
+            </span>
+            {runs.length > 0 ? (
+              <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <LiveMark />
                 <Meta
-                  items={
-                    task.source?.channel === "coder"
-                      ? [t("agent"), author]
-                      : [author ?? t("human")]
-                  }
+                  items={runs.map(
+                    (run) => run.agentClient || t(`agentKind.${run.agentKind}`),
+                  )}
                 />
-              )}
-              {/* Its own line rather than a third item in the metadata string.
+              </span>
+            ) : (
+              // The channel word only where it says something. A task filed
+              // through the app form was filed by a person, so "człowiek ·
+              // utworzył stanisław" spends a third of the line restating the
+              // next two words.
+              <Meta
+                items={
+                  task.source?.channel === "coder"
+                    ? [t("agent"), author]
+                    : [author ?? t("human")]
+                }
+              />
+            )}
+            {/* Its own line rather than a third item in the metadata string.
                   Strung on the end it was the item that wrapped, and a wrapped
                   Meta starts the new line with the separator dot that belonged
                   to the line above. On its own it also gives the list a date
                   column to scan. */}
-              <span className="text-data text-ink-3">
-                {t("updatedOn", { date: stamp(task.updatedAt) })}
-              </span>
-            </div>
+            <span className="text-data text-ink-3">
+              {t("updatedOn", { date: stamp(task.updatedAt) })}
+            </span>
+          </div>
 
-          <div
-            className="flex items-center gap-2 xl:justify-end"
-            onClickCapture={swallow}
-          >
-            {task.status === "todo" || task.status === "backlog" ? (
-              <Button
-                size="sm"
-                variant="quiet"
-                title={t("startHint")}
-                onClick={() => void onStatus(task, "in_progress")}
-              >
-                {t("start")}
-              </Button>
-            ) : null}
-            {task.status === "done" ? (
-              <Button
-                size="sm"
-                variant="quiet"
-                title={t("reopenHint")}
-                onClick={() => void onStatus(task, "todo")}
-              >
-                {t("reopen")}
-              </Button>
-            ) : (
-              <Button size="sm" variant="secondary" onClick={() => void onStatus(task, "done")}>
-                {t("markDone")}
-              </Button>
-            )}
+          <div className="flex items-center gap-2 xl:justify-end">
+            {/* The chevron is deliberately outside this wrapper: it is the one
+                control in the row whose job is to open the row. */}
+            <div className="flex items-center gap-2" onClick={swallow}>
+              {task.status === "todo" || task.status === "backlog" ? (
+                <Button
+                  size="sm"
+                  variant="quiet"
+                  title={t("startHint")}
+                  onClick={() => void onStatus(task, "in_progress")}
+                >
+                  {t("start")}
+                </Button>
+              ) : null}
+              {task.status === "done" ? (
+                <Button
+                  size="sm"
+                  variant="quiet"
+                  title={t("reopenHint")}
+                  onClick={() => void onStatus(task, "todo")}
+                >
+                  {t("reopen")}
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void onStatus(task, "done")}
+                >
+                  {t("markDone")}
+                </Button>
+              )}
+            </div>
             <span
               aria-hidden="true"
               className="grid h-[30px] w-[24px] place-items-center text-ink-3 transition-transform duration-state group-open:rotate-180"
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.4" />
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M2.5 4.5 6 8l3.5-3.5"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                />
               </svg>
             </span>
           </div>
@@ -648,6 +713,7 @@ function TaskTitle({
 }: {
   task: Task;
   onRename: (task: Task, title: string) => Promise<void>;
+  /** Keeps a click on the title from reaching the row's disclosure. */
   onClickCapture?: (event: React.MouseEvent) => void;
 }) {
   const t = useTranslations("tasks");
@@ -685,7 +751,7 @@ function TaskTitle({
         value={draft}
         disabled={saving}
         aria-label={t("renameLabel")}
-        onClickCapture={onClickCapture}
+        onClick={onClickCapture}
         onFocus={(event) => event.currentTarget.select()}
         onChange={(event) => setDraft(event.target.value)}
         // Clicking away is a decision to keep what was typed, the same as Enter.
@@ -709,7 +775,7 @@ function TaskTitle({
     <button
       type="button"
       title={t("renameHint")}
-      onClickCapture={onClickCapture}
+      onClick={onClickCapture}
       onDoubleClick={open}
       onKeyDown={(event) => {
         if (event.key === "Enter") open();
@@ -730,7 +796,10 @@ function LiveMark() {
   const t = useTranslations("tasks");
   return (
     <span className="inline-flex items-center gap-2 text-data font-medium text-thread">
-      <span className="h-[6px] w-[6px] rounded-pill bg-thread" aria-hidden="true" />
+      <span
+        className="h-[6px] w-[6px] rounded-pill bg-thread"
+        aria-hidden="true"
+      />
       <span>{t("liveNow")}</span>
     </span>
   );

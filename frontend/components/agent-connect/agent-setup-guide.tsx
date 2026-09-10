@@ -106,7 +106,12 @@ export function AgentSetupGuide({
     return () => observer.disconnect();
   }, [step, activeAgent, mode, token]);
 
-  const go = (next: number) => setStep(Math.min(LAST, Math.max(0, next)));
+  const clamp = (value: number) => Math.min(LAST, Math.max(0, value));
+  /** Jump straight to a step: the progress marks. */
+  const go = (next: number) => setStep(clamp(next));
+  /** Move by one. Functional, so two clicks inside one render still land two
+   *  steps on rather than twice on the same one. */
+  const stepBy = (delta: number) => setStep((current) => clamp(current + delta));
 
   return (
     <div className="space-y-6">
@@ -302,8 +307,8 @@ export function AgentSetupGuide({
                         aria-label={t("progressLabel")}
                         className="flex items-center gap-2"
                         onKeyDown={(event) => {
-                          if (event.key === "ArrowRight") go(step + 1);
-                          if (event.key === "ArrowLeft") go(step - 1);
+                          if (event.key === "ArrowRight") stepBy(1);
+                          if (event.key === "ArrowLeft") stepBy(-1);
                         }}
                       >
                         {STEPS.map((mark) => (
@@ -326,12 +331,12 @@ export function AgentSetupGuide({
 
                       <div className="flex items-center gap-2">
                         {step > 0 ? (
-                          <Button variant="quiet" size="sm" onClick={() => go(step - 1)}>
+                          <Button variant="quiet" size="sm" onClick={() => stepBy(-1)}>
                             {t("back")}
                           </Button>
                         ) : null}
                         {step < LAST ? (
-                          <Button size="sm" onClick={() => go(step + 1)}>
+                          <Button size="sm" onClick={() => stepBy(1)}>
                             {t("next", { step: t(`stepShort.${step + 2}`) })}
                           </Button>
                         ) : null}
