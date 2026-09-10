@@ -250,7 +250,8 @@
     "showNav": "Pokaż menu",
     "newProject": "Nowy projekt",
     "teams": "Zespoły",
-    "tasks": "Zadania"
+    "tasks": "Zadania",
+    "agents": "Połącz agenta"
   },
   "assistant": {
     "placeholder": "O co chcesz zapytać?",
@@ -566,6 +567,8 @@
     "used": "używany",
     "neverUsed": "nigdy nie użyty",
     "tokenRevoked": "Token odwołany.",
+    "tokensMoved": "Zarządzanie połączeniami agentów (Claude Code, Antigravity, Gemini CLI, Codex) i tokenami zostało przeniesione do osobnej zakładki.",
+    "tokensMovedAction": "Przejdź do zakładki Połącz agenta",
     "create": "Utwórz",
     "join": "Dołącz",
     "joined": "Jesteś w przestrzeni.",
@@ -680,5 +683,89 @@
     "newTeamNote": "Osobne archiwum na projekty, które prowadzisz z kimś innym.",
     "createTeam": "Załóż zespół",
     "teamCreated": "Zespół założony"
+  },
+  "agentConnect": {
+    "title": "Podłącz agenta",
+    "label": "TWÓJ AGENT",
+    "options": {
+      "claude-code": "Claude Code",
+      "antigravity": "Antigravity",
+      "gemini-cli": "Gemini CLI",
+      "codex": "Codex",
+      "other": "Inny (MCP)"
+    },
+    "subtitles": {
+      "claude-code": "Terminal Anthropic",
+      "antigravity": "IDE / CLI Google DeepMind",
+      "gemini-cli": "Terminal Google Gemini",
+      "codex": "Terminal OpenAI Codex",
+      "other": "Dowolny klient MCP"
+    },
+    "step1Title": "Krok 1: Otwórz narzędzie",
+    "step2Title": "Krok 2: Wklej konfigurację lub polecenie",
+    "step3Title": "Krok 3: Sprawdź połączenie",
+    "steps": {
+      "claude-code": {
+        "step1": "Otwórz terminal na swoim komputerze (w dowolnym katalogu).",
+        "step2What": "To polecenie rejestruje Ariadne jako serwer MCP dla Claude Code na całym komputerze:",
+        "step2Where": "Wklej powyższe polecenie w terminalu i naciśnij Enter.",
+        "step3": "Wpisz polecenie {cmd}, aby upewnić się, że serwer Ariadne ma status Connected."
+      },
+      "antigravity": {
+        "step1": "W prawym górnym rogu panelu czatu kliknij ikonę (...) i wybierz MCP Servers -> Manage MCP Servers (lub otwórz plik ~/.gemini/config/mcp_config.json).",
+        "step2What": "Wklej poniższy fragment do sekcji \"mcpServers\" w pliku konfiguracyjnym:",
+        "step2Where": "Zapisz plik konfiguracyjny (Ctrl+S / Cmd+S).",
+        "step3": "W czacie Antigravity wpisz komendę /mcp lub przejrzyj listę narzędzi — powinieneś zobaczyć narzędzia pamięci Ariadne."
+      },
+      "gemini-cli": {
+        "step1": "Otwórz plik konfiguracyjny ~/.gemini/settings.json w edytorze tekstowym.",
+        "step2What": "Wklej poniższy blok do sekcji \"mcpServers\":",
+        "step2Where": "Zapisz plik ~/.gemini/settings.json.",
+        "step3": "W oknie terminala uruchom gemini i wpisz /mcp, aby sprawdzić listę aktywnych narzędzi."
+      },
+      "codex": {
+        "step1": "Otwórz terminal na swoim komputerze.",
+        "step2What": "Uruchom poniższe polecenie, aby zarejestrować serwer Ariadne w Codex CLI:",
+        "step2Where": "Wklej w terminalu i naciśnij Enter (alternatywnie możesz dodać sekcję [mcp_servers.ariadne] w ~/.codex/config.toml).",
+        "step3": "Wpisz polecenie {cmd}, aby sprawdzić listę podłączonych serwerów."
+      },
+      "other": {
+        "step1": "Otwórz konfigurację serwerów MCP w swoim edytorze lub agencie (np. Cursor, Windsurf, Claude Desktop).",
+        "step2What": "Wprowadź poniższe parametry połączenia HTTP:",
+        "step2Where": "Zapisz konfigurację w swoim programie.",
+        "step3": "Zadaj swojemu asystentowi pytanie o projekt — asystent odpyta Ariadne o kontekst."
+      }
+    },
+    "tokenNoticeExisting": "Instrukcja zawiera znacznik {placeholder}. Wklej w to miejsce swój zapisany token lub kliknij przycisk obok, aby utworzyć nowy.",
+    "mintNew": "Utwórz nowy token",
+    "troubleshootingTitle": "Wskazówki i częste pytania",
+    "tips": {
+      "onceOnly": "Konfigurację wykonujesz raz na komputer, nie raz na projekt. Obejmuje wszystkie Twoje projekty.",
+      "alreadyExists": "Komunikat \"already exists in user config\" w Claude Code oznacza, że narzędzie jest już połączone i gotowe do pracy.",
+      "repoRef": "Pamiętaj, że agent odnajduje projekt po adresie repozytorium git (origin url). Uruchamiaj go w katalogu projektu."
+    }
+  },
+  "agentsPage": {
+    "title": "Połącz agenta",
+    "lead": "Zarządzaj tokenami dostępu i sprawdź instrukcje łączenia dla swojego narzędzia kodującego.",
+    "loading": "Wczytuję...",
+    "tokensTitle": "Tokeny dostępu",
+    "tokensLead": "Jeden token wystarcza na cały komputer i sięga wszystkich Twoich archiwów. Ze względów bezpieczeństwa token widzisz tylko w momencie utworzenia.",
+    "mint": "Utwórz token",
+    "minting": "Tworzę...",
+    "tokenLabel": "Do czego (np. laptop, komputer w pracy)",
+    "tokenPlaceholder": "mój laptop",
+    "tokenOnce": "Skopiuj ten token teraz — po odświeżeniu nie będzie widoczny",
+    "tokenOnceWhere": "Automatycznie wkleiliśmy go do poniższej instrukcji. Zapisz go, jeśli chcesz użyć go w kolejnym narzędziu.",
+    "copyToken": "Skopiuj token",
+    "tokensEmpty": "Nie masz jeszcze żadnego tokenu.",
+    "tokensEmptyNote": "Utwórz pierwszy token, aby połączyć agenta z pamięcią projektu.",
+    "revoke": "Odwołaj",
+    "tokenRevoked": "Token został odwołany.",
+    "noLabel": "Bez etykiety",
+    "used": "używany",
+    "neverUsed": "nigdy nie użyty",
+    "guideHeader": "Instrukcja połączenia",
+    "backToSettings": "Ustawienia konta"
   }
 }
