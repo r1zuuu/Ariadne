@@ -80,9 +80,9 @@ Instalator korzysta z hostowanego backendu — nie musisz lokalnie stawiać bazy
 
 ### Obecny etap
 
-Ariadne jest rozwijanym, otwartym projektem. Dostępny instalator to **v0.1.0 dla Windows**; nie ma jeszcze gotowych paczek dla macOS i Linuksa.
+Ariadne jest rozwijanym, otwartym projektem. Dostępny instalator to **v0.1.1 dla Windows**; nie ma jeszcze gotowych paczek dla macOS i Linuksa.
 
-Instalator nie jest podpisany cyfrowo, więc Windows może wyświetlić ostrzeżenie SmartScreen. Sumy SHA-256 i instrukcja ich sprawdzenia znajdują się w [opisie wydania](https://github.com/r1zuuu/Ariadne/releases/tag/v0.1.0).
+Instalator nie jest podpisany cyfrowo, więc Windows może wyświetlić ostrzeżenie SmartScreen. Sumy SHA-256 i instrukcja ich sprawdzenia znajdują się w [opisie wydania](https://github.com/r1zuuu/Ariadne/releases/tag/v0.1.1).
 
 Hostowany backend działa na darmowym planie, może się wybudzać przy pierwszym połączeniu i nie ma gwarancji dostępności. Ważne ustalenia zachowuj również poza nim lub uruchom własną instancję. Zaproszenia do przestrzeni używają kodów; nie ma jeszcze wysyłki e-maili, resetu hasła ani limitu logowań utrzymującego się po restarcie.
 
@@ -135,9 +135,9 @@ The installer connects to a hosted backend, so there is no local database or ser
 
 ### Current status
 
-Ariadne is an actively developed open-source project. The available installer is **v0.1.0 for Windows**. There are no packaged macOS or Linux builds yet.
+Ariadne is an actively developed open-source project. The available installer is **v0.1.1 for Windows**. There are no packaged macOS or Linux builds yet.
 
-The installer is unsigned, so Windows may show a SmartScreen warning. SHA-256 checksums and verification instructions are in the [release notes](https://github.com/r1zuuu/Ariadne/releases/tag/v0.1.0).
+The installer is unsigned, so Windows may show a SmartScreen warning. SHA-256 checksums and verification instructions are in the [release notes](https://github.com/r1zuuu/Ariadne/releases/tag/v0.1.1).
 
 The hosted backend runs on a free tier, may need to wake on first access, and has no uptime guarantee. Keep another copy of important decisions or run your own instance. Workspace invitations use codes; email delivery, password reset, and login rate limits that survive a restart are not implemented yet.
 
