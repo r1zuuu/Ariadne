@@ -252,36 +252,28 @@ function BackLink({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="-ml-2 mt-5 inline-flex items-center gap-2 rounded-control px-2 py-1 text-small text-ink-2 transition-colors duration-state hover:text-ink"
+      className="mt-3 -ml-1 inline-flex w-fit items-center gap-2 rounded-control px-2 py-1 text-small font-medium text-ink-2 transition-colors duration-state hover:bg-surface/60 hover:text-ink"
     >
       <svg
-        width="16"
-        height="16"
+        width="15"
+        height="15"
         viewBox="0 0 16 16"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden="true"
       >
         <path d="M8.5 3.5 4 8l4.5 4.5M4 8h8" />
       </svg>
-      {t("back")}
+      <span>{t("back")}</span>
     </button>
   );
 }
 
 // --- Behind the first door: what is waiting, and the code you were sent ---
 
-/**
- * Two ways in, in the order they cost the reader something. An invitation
- * written to this address is already here and takes one press. A code handed
- * over by hand has to be typed, so it sits under the hairline - and when nothing
- * is waiting it is the whole screen, which is the case that had no home at all
- * before: acceptInvite existed, the wizard and the settings called it, and this
- * screen offered nowhere to paste one.
- */
 function JoinPanel({
   invitations,
   onBack,
@@ -316,8 +308,6 @@ function JoinPanel({
     act(
       invite.id,
       async () => {
-        // The code is the key, not the id: accepting is the same act whether the
-        // code arrived by hand or was read off this screen.
         await acceptInvite(invite.code);
         await Promise.all([refreshMembership(), refreshProjects()]);
         onJoined();
@@ -340,8 +330,6 @@ function JoinPanel({
       toast(t("joined", { team: workspace.name }));
       onJoined();
     } catch (error) {
-      // A refused code is the reader's mistake to fix while it is still on
-      // screen, so it stays under the field instead of leaving in a toast.
       if (error instanceof ApiError && (error.status === 404 || error.status === 401)) {
         setCodeError(t("code.errorBad"));
       } else {
@@ -352,10 +340,8 @@ function JoinPanel({
     }
   };
 
-  // The field, wherever it ends up: the two arrangements below differ in what
-  // sits around it, never in what it is.
   const field = (
-    <div className="measure-tight">
+    <div className="w-full max-w-[480px]">
       <Input
         id="invite-code"
         label={t("code.label")}
@@ -368,109 +354,86 @@ function JoinPanel({
           if (event.key === "Enter") void joinByCode();
         }}
       />
-      <div className="flex justify-end pt-4">
+      <div className="flex items-center gap-3 pt-5">
         <Button loading={working === "code"} onClick={() => void joinByCode()}>
           {t("join")}
+        </Button>
+        <Button variant="quiet" onClick={onBack}>
+          {t("cancel")}
         </Button>
       </div>
     </div>
   );
 
-  // Nothing waiting is the ordinary case, and then this screen is one field.
-  //
-  // It used to arrive as a 64px title, a section heading under it saying much
-  // the same thing, a paragraph, a labelled input and a button, all stacked
-  // down the left third of an 860px page with the rest of the window empty
-  // beside and below them. A form does not look considered when it is holding
-  // one corner of a screen it never fills. Centred, in the arrangement the
-  // other single-field screen in this app already uses - the question over the
-  // field, both in the middle of the space they have - it reads as the whole
-  // point of the screen, which is what it is.
   if (!invitations.length) {
     return (
-      <div className="flex screen-opening flex-col">
+      <div className="flex flex-col">
         <BackLink onClick={onBack} />
-        <div className="my-auto pb-9">
-          <div className="pb-7 text-center">
-            <h1 className="mx-auto max-w-[16ch] text-display text-ink">
-              {t("doors.join.title")}
-            </h1>
-            {/* text-balance, not a narrower measure: centred and left to
-                itself this sentence put "tutaj." alone on a second line, and
-                the browser evens the lines out better than a guessed width
-                can, in any of the two languages. */}
-            <p className="mx-auto measure text-balance pt-4 text-body text-ink-2">
-              {t("code.leadAlone")}
-            </p>
-          </div>
-          <div className="mx-auto w-fit">{field}</div>
-        </div>
+        <PageHeader
+          title={t("doors.join.title")}
+          lead={t("code.leadAlone")}
+        />
+        <div className="pt-2">{field}</div>
       </div>
     );
   }
 
   return (
-    <>
+    <div className="flex flex-col">
       <BackLink onClick={onBack} />
       <PageHeader title={t("doors.join.title")} />
 
       <section className="pb-9">
         <SectionHeader title={t("waiting")} count={invitations.length} />
-          <ul className="flex flex-col gap-4">
-            {invitations.map((invite) => (
-              <li key={invite.id}>
-                {/* Ochre, the colour this application already uses for anything
-                    proposed and unanswered, so an invitation reads the same way
-                    an entry awaiting approval does. */}
-                <Card className="border-ochre/40 p-6">
-                  <p className="text-body text-ink">
-                    {t("invitedTo", { team: invite.workspaceName })}
-                  </p>
-                  <div className="pt-2">
-                    <Meta
-                      items={[
-                        invite.invitedBy
-                          ? t("invitedBy", { who: invite.invitedBy })
-                          : t("invitedByUnknown"),
-                        t("expires", { at: new Date(invite.expiresAt).toLocaleDateString() }),
-                      ]}
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-3 pt-5">
-                    <Button loading={working === invite.id} onClick={() => void join(invite)}>
-                      {t("join")}
-                    </Button>
-                    <Button
-                      variant="quiet"
-                      disabled={working === invite.id}
-                      onClick={() =>
-                        act(
-                          invite.id,
-                          async () => {
-                            await declineInvite(invite.id);
-                            await refreshMembership();
-                          },
-                          t("declined"),
-                        )
-                      }
-                    >
-                      {t("decline")}
-                    </Button>
-                  </div>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <ul className="flex flex-col gap-4">
+          {invitations.map((invite) => (
+            <li key={invite.id}>
+              <Card className="border-ochre/40 p-6">
+                <p className="text-body text-ink">
+                  {t("invitedTo", { team: invite.workspaceName })}
+                </p>
+                <div className="pt-2">
+                  <Meta
+                    items={[
+                      invite.invitedBy
+                        ? t("invitedBy", { who: invite.invitedBy })
+                        : t("invitedByUnknown"),
+                      t("expires", { at: new Date(invite.expiresAt).toLocaleDateString() }),
+                    ]}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-3 pt-5">
+                  <Button loading={working === invite.id} onClick={() => void join(invite)}>
+                    {t("join")}
+                  </Button>
+                  <Button
+                    variant="quiet"
+                    disabled={working === invite.id}
+                    onClick={() =>
+                      act(
+                        invite.id,
+                        async () => {
+                          await declineInvite(invite.id);
+                          await refreshMembership();
+                        },
+                        t("declined"),
+                      )
+                    }
+                  >
+                    {t("decline")}
+                  </Button>
+                </div>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-      {/* Second here, and under a hairline: something is actually waiting above
-          it, and a code typed by hand is the way in for the invitation that
-          did not arrive. */}
       <section className="border-t border-hairline pt-7">
         <SectionHeader title={t("code.title")} note={t("code.lead")} />
-        {field}
+        <div className="pt-2">{field}</div>
       </section>
-    </>
+    </div>
   );
 }
 
@@ -537,7 +500,7 @@ function MyTeams({
             ))}
           </ul>
         ) : (
-          <EmptyState title={t("noTeams")} note={t("noTeamsNote")} />
+          <EmptyState title={t("noTeams")} note={t("noTeamsNote")} illustration="context" />
         )}
       </section>
 
